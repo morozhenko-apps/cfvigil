@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CFVigil</title>
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./app.mjs"></script>
+</head>
+<body>
+  <main id="card" class="card" data-view="compact">
+    <section id="drawer" class="drawer" hidden aria-label="Monitored resources">
+      <div id="resource-list" class="rows"></div>
+    </section>
+    <div id="search-row" class="search-row" hidden>
+      <input id="search" autocomplete="off" placeholder="Search resources..." aria-label="Search by resource name">
+    </div>
+    <div id="incident" class="incident" role="status" hidden></div>
+    <div class="actions" aria-label="Resource health">
+      <div class="metric metric-healthy"><strong id="healthy">—</strong><span>Healthy</span></div>
+      <div class="metric metric-deploying"><strong id="deploying">—</strong><span>Deploying</span></div>
+      <div class="metric metric-issues"><strong id="issues">—</strong><span>Issues</span></div>
+      <button id="toggle-list" class="action" type="button" aria-pressed="false" title="Toggle resource list"><span class="glyph" aria-hidden="true">▤</span><span>Resources</span></button>
+      <button id="hide" class="action" type="button" title="Hide in tray"><span class="glyph" aria-hidden="true">⌄</span><span>Hide</span></button>
+    </div>
+  </main>
+</body>
+</html>

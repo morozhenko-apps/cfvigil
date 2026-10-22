@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Settings</title><link rel="stylesheet" href="./window.css"><script type="module" src="./settings.mjs"></script></head>
+<body><h2>Connection</h2><form id="form">
+<label>Cloudflare Account ID<input id="account" placeholder="32-character account ID" autocomplete="off" required></label>
+<label>API Token<input id="token" type="password" autocomplete="new-password" placeholder="Leave blank to keep existing token"></label>
+<label>Refresh interval<select id="interval"><option value="60">1 minute</option><option value="180">3 minutes</option><option value="300">5 minutes</option><option value="600">10 minutes</option></select></label>
+<p class="hint">Use a user API token with Workers Scripts Read, Workers CI Read and Pages Read. Token stays in the operating system's credential store.</p>
+<div id="message" role="status"></div>
+<div class="footer"><button type="button" id="cancel">Cancel</button><button type="submit">Apply</button></div></form></body></html>

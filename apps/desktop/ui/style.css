@@ -1,0 +1,35 @@
+:root{font-family:system-ui,"Segoe UI",sans-serif;font-size:14px;color-scheme:light}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent;color:#252d36}
+button,input{font:inherit}
+button{cursor:pointer}
+[hidden]{display:none!important}
+.card{width:100%;height:100%;display:flex;flex-direction:column;justify-content:flex-end;gap:7px;padding:10px;background:#e9ecef;border:1px solid #c7cbd0;border-radius:17px;box-shadow:inset 0 1px 0 #fffc;position:relative;overflow:hidden}
+.drawer{display:flex;flex:1;min-height:0;border-bottom:1px solid #cdd2d8}
+.rows{width:100%;flex:1;overflow-y:auto;overflow-x:hidden;min-height:0}
+.resource-row{display:flex;gap:8px;align-items:center;min-height:36px;padding:3px 5px;border-bottom:1px solid #d6dade;font-size:13px}
+.resource-row.focused{background:#d4eafb}
+.resource-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.resource-time{color:#77808a;font-size:12px;font-variant-numeric:tabular-nums;min-width:28px;text-align:right}
+.lamp{flex:none;border-radius:50%;width:12px;height:12px;background:#9da5af;border:1px solid #0002}
+.lamp.healthy{background:#27a35c}.lamp.deploying{background:#e2aa32}.lamp.failed{background:#d84947}
+.more{flex:none;border:0;border-radius:5px;background:transparent;font-size:22px;width:28px;height:28px;line-height:20px}
+.more:hover{background:#dce6ec}
+.resource-menu{position:absolute;right:25px;z-index:3;background:#fff;border:1px solid #c6cbd1;border-radius:6px;padding:4px;box-shadow:0 5px 10px #0002}
+.resource-menu button{background:transparent;border:0;padding:7px 10px;text-align:left;min-width:150px}
+.search-row{padding:2px 3px 6px}
+.search-row input{width:100%;border-radius:6px;background:#fff;border:1px solid #cbd1d7;padding:7px 9px;outline-offset:2px;font-size:13px}
+.actions{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;flex:none}
+.metric,.action{border:1px solid #c5c9ce;border-radius:6px;background:#fafbfc;box-shadow:0 1px 1px #00000019;height:70px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.metric strong{font-size:22px;font-weight:650;font-variant-numeric:tabular-nums}
+.metric span,.action{font-size:11px}
+.metric-healthy strong{color:#16824a}.metric-deploying strong{color:#b47b0c}.metric-issues strong{color:#ba3d39}
+.action{padding:4px 0;color:inherit}
+.action:hover{background:#eaf5fc;border-color:#81bfe5}
+.action[aria-pressed="true"]{background:#d1e9f7;border-color:#78bde9}
+.glyph{font-size:25px;line-height:26px}
+.action.blink{animation:alert-pulse 1s ease-in-out infinite}
+@keyframes alert-pulse{0%,100%{background:#fafbfc}50%{background:#f4bdb3;border-color:#d84947}}
+.incident{position:absolute;left:11px;right:11px;bottom:86px;background:#fff8ef;border:1px solid #c95a49;border-radius:7px;padding:8px 10px;box-shadow:0 2px 10px #0002;z-index:2;font-size:12px}
+.empty{padding:12px;text-align:center;color:#697581;font-size:12px}
+@media(prefers-reduced-motion:reduce){.action.blink{animation:none;background:#ffe1d9}}

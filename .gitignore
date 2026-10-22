@@ -1,0 +1,10 @@
+/target
+/.idea
+/.vscode
+*.log
+*.tmp
+.env
+.env.*
+!*.example
+.DS_Store
+node_modules
