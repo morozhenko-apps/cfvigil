@@ -57,6 +57,12 @@ pub fn pages_state(deployment: &Value) -> &'static str {
     }
 }
 
+fn deployed_after_build(deployment: &Value, build: &Value) -> bool {
+    let deployed = chrono::DateTime::parse_from_rfc3339(str_field(deployment, "created_on"));
+    let built = chrono::DateTime::parse_from_rfc3339(str_field(build, "created_on"));
+    matches!((deployed, built), (Ok(deployed), Ok(built)) if deployed > built)
+}
+
 pub struct Cloudflare {
     http: Client,
 }
@@ -176,12 +182,8 @@ impl Cloudflare {
                 ).await.ok().and_then(|(result, _)| {
                     result.get("deployments")?.as_array()?.first().cloned()
                 });
-                let deployed_after_build = if let (Some(deployment), Some(build)) = (&active, build) {
-                    let deployed = chrono::DateTime::parse_from_rfc3339(str_field(deployment, "created_on"));
-                    let built = chrono::DateTime::parse_from_rfc3339(str_field(build, "created_on"));
-                    matches!((deployed, built), (Ok(deployed), Ok(built)) if deployed > built)
-                } else { false };
-                let (state, attempt, timestamp, detail) = if builds_available && deployed_after_build {
+                let newer_deployment = matches!((&active, build), (Some(deployed), Some(build)) if deployed_after_build(deployed, build));
+                let (state, attempt, timestamp, detail) = if builds_available && newer_deployment {
                     let deployed = active.as_ref().expect("checked above");
                     ("healthy", str_field(deployed, "id"), str_field(deployed, "created_on"), "Latest Worker deployment")
                 } else if let Some(build) = build.filter(|_| builds_available) {
@@ -274,6 +276,16 @@ mod tests {
         assert_eq!(pages_state(&json!({"latest_stage":{"status":"failure"}})), "failed");
         assert_eq!(pages_state(&json!({"latest_stage":{"status":"success"}})), "healthy");
         assert_eq!(pages_state(&json!({"latest_stage":{"status":"skipped"}})), "unknown");
+    }
+
+    #[test]
+    fn newer_active_deployment_can_resolve_an_older_failed_build() {
+        let build = json!({"created_on":"2026-10-22T12:00:00Z", "status":"stopped", "build_outcome":"fail"});
+        let newer = json!({"created_on":"2026-10-22T12:01:00Z"});
+        let older = json!({"created_on":"2026-10-22T11:59:00Z"});
+        assert!(deployed_after_build(&newer, &build));
+        assert!(!deployed_after_build(&older, &build));
+        assert!(!deployed_after_build(&json!({}), &build));
     }
 
     #[test]

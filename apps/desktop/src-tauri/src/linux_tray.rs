@@ -27,11 +27,15 @@ impl CFVigilTray {
         let _ = dispatcher.run_on_main_thread(move || match action {
             "open" => show_card(&app),
             "toggle" => {
-                if crate::linux_surface::enabled() && crate::linux_surface::visible() {
-                    hide_card(app.clone());
+                let visible = if crate::linux_surface::enabled() {
+                    crate::linux_surface::visible()
                 } else {
-                    show_card(&app);
-                }
+                    app.get_webview_window("main")
+                        .and_then(|window| window.is_visible().ok())
+                        .unwrap_or(false)
+                };
+                if visible { hide_card(app.clone()); }
+                else { show_card(&app); }
             }
             "history" => show_window(&app, "history"),
             "settings" => show_window(&app, "settings"),
