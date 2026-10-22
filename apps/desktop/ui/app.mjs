@@ -63,6 +63,7 @@ function render() {
       open.textContent = "Open in Cloudflare ↗";
       open.onclick = async () => { clearMenu(); try { await invoke("open_resource", { key: resource.key }); } catch { showIncident("Unable to open Cloudflare"); } };
       menu.append(open);
+      menu.style.top = Math.max(3, Math.min(window.innerHeight - 45, row.getBoundingClientRect().bottom)) + "px";
       row.append(menu);
       openMenuKey = resource.key;
     };

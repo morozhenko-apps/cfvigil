@@ -1,7 +1,7 @@
 const invoke = (name, args={}) => window.__TAURI__.core.invoke(name, args);
 const message = document.getElementById("message");
 const form = document.getElementById("form");
-document.getElementById("cancel").onclick = () => window.__TAURI__.core.getCurrentWindow().hide();
+document.getElementById("cancel").onclick = () => window.__TAURI__.window.getCurrentWindow().hide();
 form.addEventListener("submit", async event => {
   event.preventDefault();
   message.textContent = "Saving...";

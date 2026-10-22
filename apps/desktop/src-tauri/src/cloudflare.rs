@@ -168,22 +168,31 @@ impl Cloudflare {
                     }
                 }
             }
-            for (name, tag, script) in script_list {
+            for (name, tag, _) in script_list {
                 let build = latest.get(&tag).or_else(|| latest.get(&name));
-                let (state, attempt, timestamp, detail) = match build {
-                    Some(build) if builds_available => (
-                        worker_state(build),
-                        str_field(build, "build_uuid"),
-                        str_field(build, "created_on"),
-                        "Latest Cloudflare Workers build",
-                    ),
-                    None if builds_available && !tag.is_empty() => (
-                        "healthy",
-                        str_field(&script, "etag"),
-                        str_field(&script, "modified_on"),
-                        "Uploaded Worker (no Workers Builds record)",
-                    ),
-                    _ => ("unknown", "", "", "Workers Builds unavailable"),
+                let active = self.get(
+                    token,
+                    &format!("{base}/workers/scripts/{name}/deployments?page=1&per_page=1"),
+                ).await.ok().and_then(|(result, _)| {
+                    result.get("deployments")?.as_array()?.first().cloned()
+                });
+                let deployed_after_build = if let (Some(deployment), Some(build)) = (&active, build) {
+                    let deployed = chrono::DateTime::parse_from_rfc3339(str_field(deployment, "created_on"));
+                    let built = chrono::DateTime::parse_from_rfc3339(str_field(build, "created_on"));
+                    matches!((deployed, built), (Ok(deployed), Ok(built)) if deployed > built)
+                } else { false };
+                let (state, attempt, timestamp, detail) = if builds_available && deployed_after_build {
+                    let deployed = active.as_ref().expect("checked above");
+                    ("healthy", str_field(deployed, "id"), str_field(deployed, "created_on"), "Latest Worker deployment")
+                } else if let Some(build) = build.filter(|_| builds_available) {
+                    (worker_state(build), str_field(build, "build_uuid"), str_field(build, "created_on"), "Latest Cloudflare Workers build")
+                } else if builds_available {
+                    match active.as_ref() {
+                        Some(deployed) => ("healthy", str_field(deployed, "id"), str_field(deployed, "created_on"), "Latest Worker deployment"),
+                        None => ("unknown", "", "", "No verified Worker deployment"),
+                    }
+                } else {
+                    ("unknown", "", "", "Workers Builds unavailable")
                 };
                 resources.push(Resource {
                     key: format!("worker:{name}"),

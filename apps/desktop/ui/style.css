@@ -15,7 +15,7 @@ button{cursor:pointer}
 .lamp.healthy{background:#27a35c}.lamp.deploying{background:#e2aa32}.lamp.failed{background:#d84947}
 .more{flex:none;border:0;border-radius:5px;background:transparent;font-size:22px;width:28px;height:28px;line-height:20px}
 .more:hover{background:#dce6ec}
-.resource-menu{position:absolute;right:25px;z-index:3;background:#fff;border:1px solid #c6cbd1;border-radius:6px;padding:4px;box-shadow:0 5px 10px #0002}
+.resource-menu{position:fixed;right:25px;z-index:3;background:#fff;border:1px solid #c6cbd1;border-radius:6px;padding:4px;box-shadow:0 5px 10px #0002}
 .resource-menu button{background:transparent;border:0;padding:7px 10px;text-align:left;min-width:150px}
 .search-row{padding:2px 3px 6px}
 .search-row input{width:100%;border-radius:6px;background:#fff;border:1px solid #cbd1d7;padding:7px 9px;outline-offset:2px;font-size:13px}

@@ -61,6 +61,7 @@ struct AppState {
     resources: Mutex<Vec<Resource>>,
     history: Mutex<Vec<HistoryEvent>>,
     ready: AtomicBool,
+    refresh_lock: tokio::sync::Mutex<()>,
 }
 
 fn data_path(app: &AppHandle, filename: &str) -> Result<PathBuf, String> {
@@ -214,6 +215,7 @@ fn open_history_resource(state: State<'_, AppState>, key: String) -> Result<(), 
 
 async fn refresh_once(app: AppHandle) {
     let state = app.state::<AppState>();
+    let _refresh_guard = state.refresh_lock.lock().await;
     let config = state.config.lock().unwrap().clone();
     if config.account_id.is_empty() {
         return;
@@ -310,6 +312,7 @@ fn main() {
                 resources: Mutex::new(Vec::new()),
                 history: Mutex::new(read_json(&handle, "events.json")),
                 ready: AtomicBool::new(false),
+                refresh_lock: tokio::sync::Mutex::new(()),
             });
             let open = MenuItem::with_id(app, "open", "Show Card", true, None::<&str>)?;
             let history = MenuItem::with_id(app, "history", "Event History", true, None::<&str>)?;
