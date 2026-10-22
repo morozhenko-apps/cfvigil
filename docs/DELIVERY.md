@@ -7,7 +7,7 @@ Initial source: `dev`. Release branch: `main`. No change may be fast-forwarded o
 - Implemented provider rules for Workers Builds and Pages latest attempts in Rust.
 - Included deterministic Node.js status tests and Rust unit tests.
 - GitHub checks workflow runs on self-hosted Linux runners for code changes, excluding documentation-only changes.
-- Rust compilation, live Cloudflare API acceptance, native KDE tray/Wayland behavior and Windows runtime **not yet verified**.
+- Native KDE GTK Layer Shell and StatusNotifierItem support has been added in source, but Rust compilation, live Cloudflare API acceptance, native KDE tray/Wayland behavior and Windows runtime are **not yet verified**.
 
 ## Required before announcing v0.1.0
 

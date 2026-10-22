@@ -17,7 +17,7 @@ Free, local-first desktop monitoring for Cloudflare Workers and Pages.
 
 - **No attack detection or error-spike monitoring yet.** These will be implemented independently, without HTTP health checks or guessed zone-to-Worker attribution.
 - A previous failed build followed by a newer running build is yellow. A currently serving deployment is not used as proof that an application is healthy.
-- Linux KDE Wayland tray anchoring still needs the native Layer Shell implementation/physical acceptance; Tauri window repositioning can be rejected by Wayland.
+- Linux KDE Wayland anchoring now has a native GTK Layer Shell implementation and KSNI tray integration adapted from RepoTicker, but has **not** been physically tested on KDE; fallback window repositioning can be rejected by unsupported Wayland compositors.
 - No signed APT, DEB/AppImage/Windows release workflow, production icons, autostart configuration or localized interface has been accepted for CFVigil.
 - Rust application compilation, Cloudflare live-account API responses and installers have not yet been verified.
 - An account ID and a **user-scoped** API Token with Workers Scripts Read, Workers CI Read and Pages Read are required. Availability of APIs can vary by token and account.
