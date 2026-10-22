@@ -108,6 +108,16 @@ document.addEventListener("keydown", event => {
   if (event.key !== "Escape") return;
   if (expanded) void toggleList(); else void invoke("hide_card");
 });
+await listen("cfvigil-card-hidden", () => {
+  expanded = false;
+  focusedKey = null;
+  byId("search").value = "";
+  byId("drawer").hidden = true;
+  byId("search-row").hidden = true;
+  byId("toggle-list").setAttribute("aria-pressed","false");
+  byId("incident").hidden = true;
+  clearMenu();
+});
 await listen("cfvigil-resources", ({payload}) => {
   resources = payload;
   syncAvailable = true;

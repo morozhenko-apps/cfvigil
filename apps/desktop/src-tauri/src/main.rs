@@ -1,4 +1,8 @@
 mod cloudflare;
+#[cfg(target_os = "linux")]
+mod linux_surface;
+#[cfg(target_os = "linux")]
+mod linux_tray;
 
 use cloudflare::{Cloudflare, Resource};
 use serde::{Deserialize, Serialize};
@@ -158,6 +162,11 @@ fn show_window(app: &AppHandle, label: &str) {
 }
 
 fn show_card(app: &AppHandle) {
+    #[cfg(target_os = "linux")]
+    if linux_surface::enabled() {
+        let _ = linux_surface::show(app);
+        return;
+    }
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.show();
         let _ = window.set_focus();
@@ -166,15 +175,27 @@ fn show_card(app: &AppHandle) {
 
 #[tauri::command]
 fn hide_card(app: AppHandle) {
+    #[cfg(target_os = "linux")]
+    if linux_surface::enabled() {
+        let _ = linux_surface::hide(&app);
+        let _ = linux_surface::request_resize(&app, 122);
+        let _ = app.emit("cfvigil-card-hidden", ());
+        return;
+    }
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.hide();
     }
+    let _ = app.emit("cfvigil-card-hidden", ());
 }
 
 #[tauri::command]
-fn set_card_expanded(app: AppHandle, expanded: bool) -> Result<(), String> {
+async fn set_card_expanded(app: AppHandle, expanded: bool) -> Result<(), String> {
     let window = app.get_webview_window("main").ok_or("Card unavailable")?;
     let height = if expanded { EXPANDED_HEIGHT } else { COMPACT_HEIGHT };
+    #[cfg(target_os = "linux")]
+    if linux_surface::enabled() {
+        return linux_surface::resize(app, height as i32).await;
+    }
     let old_position = window.outer_position().ok();
     let old_size = window.outer_size().ok();
     window
@@ -314,6 +335,13 @@ fn main() {
                 ready: AtomicBool::new(false),
                 refresh_lock: tokio::sync::Mutex::new(()),
             });
+            #[cfg(target_os = "linux")]
+            {
+                linux_surface::install(app)?;
+                linux_tray::install(app)?;
+            }
+            #[cfg(not(target_os = "linux"))]
+            {
             let open = MenuItem::with_id(app, "open", "Show Card", true, None::<&str>)?;
             let history = MenuItem::with_id(app, "history", "Event History", true, None::<&str>)?;
             let settings = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
@@ -344,6 +372,7 @@ fn main() {
                     }
                 })
                 .build(app)?;
+            }
             run_polling(handle);
             Ok(())
         })

@@ -19,3 +19,9 @@ keyring = { version = "=4.2.0", default-features = false, features = ["v1"] }
 tokio = { version = "1", features = ["time", "sync"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 open = "5"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = "0.18"
+gtk-layer-shell = { version = "=0.8.2", features = ["v0_6"] }
+ksni = { version = "=0.3.6", default-features = false, features = ["async-io", "blocking"] }
+image = { version = "0.25", default-features = false, features = ["png"] }
