@@ -13,10 +13,14 @@ on:
       - "LICENSE"
       - "NOTICE"
 jobs:
-  node-tests:
+  stable:
     runs-on: [self-hosted, Linux, X64]
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - name: Run deterministic status tests
+      - name: Verify Node.js status rules
         run: node --test tests/*.test.mjs
+      - name: Check Rust desktop source
+        run: cargo check -p cfvigil-desktop
+      - name: Run Rust domain tests
+        run: cargo test -p cfvigil-desktop
