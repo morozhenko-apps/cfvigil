@@ -13,7 +13,11 @@ fn runtime_spike(resource: &Resource) -> bool {
 }
 
 pub fn describe_transition(old: &Resource, current: &Resource) -> Option<&'static str> {
-    if waf_spike(old) && waf_spike(current) { return None; }
+    // An analytics outage or app restart can turn a known WAF alert grey.
+    // Its return to red is continuation, not a fresh notification.
+    if old.kind == "zone" && old.attempt_id == "waf-block-spike" && waf_spike(current) {
+        return None;
+    }
     if old.kind == "zone" && current.kind == "zone" && current.status == "unknown" {
         return None;
     }
@@ -157,6 +161,10 @@ mod tests {
         let mut unknown = waf.clone();
         unknown.status = "unknown".into();
         assert_eq!(describe_transition(&waf,&unknown), None);
+        assert_eq!(describe_transition(&unknown, &waf), None);
+        let mut new_zone = waf.clone();
+        new_zone.key = "zone:new".into();
+        assert_eq!(initial_security_event(&new_zone), Some("WAF block spike detected"));
     }
 
     #[test]
