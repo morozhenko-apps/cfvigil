@@ -9,3 +9,6 @@ after correcting the per-commit Actions queue storm.
 
 2026-10-23: Completed Event History milestone — verify event-specific links,
 legacy JSON migration, category/search UX and native Rust unit tests.
+
+2026-10-23: Completed durable incident-journal milestone; verify Rust
+restart/account-scoping/dedup tests, UI tests and native compilation.
