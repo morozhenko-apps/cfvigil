@@ -67,6 +67,7 @@ struct AppState {
     config: Mutex<Config>,
     resources: Mutex<Vec<Resource>>,
     history: Mutex<Vec<HistoryEvent>>,
+    last_notified: Mutex<HashSet<String>>,
     ready: AtomicBool,
     refresh_lock: tokio::sync::Mutex<()>,
 }
@@ -154,6 +155,7 @@ async fn save_settings(
     *state.config.lock().unwrap() = next;
     state.ready.store(false, Ordering::Release);
     state.resources.lock().unwrap().clear();
+    state.last_notified.lock().unwrap().clear();
     let handle = app.clone();
     tauri::async_runtime::spawn(async move { refresh_once(handle).await; });
     Ok(())
@@ -329,13 +331,31 @@ async fn refresh_once(app: AppHandle) {
         let Some(message) = incident_policy::describe_transition(old, current) else {
             continue;
         };
+        if message == "Workers runtime error spike cleared" {
+            state.last_notified.lock().unwrap().remove(
+                &format!("{}:runtime-spike", current.key)
+            );
+        }
+        let notify = incident_policy::should_notify(current, message);
+        if notify {
+            let identity = if current.detail.starts_with("Workers errors spiking:") {
+                format!("{}:runtime-spike", current.key)
+            } else {
+                format!("{}:failed:{}", current.key, current.attempt_id)
+            };
+            // Reconnects and transient API errors must not re-alert an
+            // already acknowledged attempt as if it were a new failure.
+            if !state.last_notified.lock().unwrap().insert(identity) {
+                continue;
+            }
+        }
         events.push(HistoryEvent {
             at: chrono::Utc::now().to_rfc3339(),
             key: current.key.clone(),
             name: current.name.clone(),
             message: message.into(),
         });
-        if incident_policy::should_notify(current, message) {
+        if notify {
             show_card(&app);
             let _ = app.emit("cfvigil-incident", serde_json::json!({
                 "key":current.key,
@@ -370,6 +390,7 @@ fn main() {
                 config: Mutex::new(read_json(&handle, "settings.json")),
                 resources: Mutex::new(Vec::new()),
                 history: Mutex::new(read_json(&handle, "events.json")),
+                last_notified: Mutex::new(HashSet::new()),
                 ready: AtomicBool::new(false),
                 refresh_lock: tokio::sync::Mutex::new(()),
             });
