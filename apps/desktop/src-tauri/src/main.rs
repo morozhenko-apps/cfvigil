@@ -239,12 +239,21 @@ async fn set_card_expanded(app: AppHandle, expanded: bool) -> Result<(), String>
     Ok(())
 }
 
+fn trusted_dashboard_url(candidate: &str) -> bool {
+    let Ok(parsed) = reqwest::Url::parse(candidate) else { return false };
+    parsed.scheme() == "https"
+        && parsed.host_str() == Some("dash.cloudflare.com")
+        && parsed.port().is_none()
+        && parsed.username().is_empty()
+        && parsed.password().is_none()
+}
+
 fn open_key(state: &AppState, key: &str) -> Result<(), String> {
     let url = state.resources.lock().unwrap().iter()
         .find(|resource| resource.key == key)
         .map(|resource| resource.url.clone())
         .ok_or("Resource not found")?;
-    if !url.starts_with("https://dash.cloudflare.com/") {
+    if !trusted_dashboard_url(&url) {
         return Err("Unexpected external destination".into());
     }
     open::that(&url).map_err(|_| "Could not open browser".into())
@@ -257,8 +266,8 @@ fn open_resource(state: State<'_, AppState>, key: String) -> Result<(), String> 
 
 #[tauri::command]
 fn open_history_resource(state: State<'_, AppState>, key: String) -> Result<(), String> {
-    if open_key(&state, &key).is_ok() {
-        return Ok(());
+    if state.resources.lock().unwrap().iter().any(|resource| resource.key == key) {
+        return open_key(&state, &key);
     }
     // Resolved WAF alerts disappear from the resource drawer but must remain
     // actionable in the saved event history.
@@ -266,7 +275,7 @@ fn open_history_resource(state: State<'_, AppState>, key: String) -> Result<(), 
         .find(|event| event.key == key)
         .cloned()
         .ok_or("History resource no longer available")?;
-    if !event.url.starts_with("https://dash.cloudflare.com/") {
+    if !trusted_dashboard_url(&event.url) {
         return Err("Invalid Cloudflare history destination".into());
     }
     open::that(event.url).map_err(|_| "Could not open browser".into())
@@ -519,4 +528,24 @@ fn main() {
         ])
         .run(tauri::generate_context!())
         .expect("CFVigil startup failed");
+}
+
+#[cfg(test)]
+mod security_tests {
+    use super::trusted_dashboard_url;
+
+    #[test]
+    fn only_exact_cloudflare_dashboard_host_is_accepted() {
+        assert!(trusted_dashboard_url("https://dash.cloudflare.com/0123/workers"));
+        assert!(trusted_dashboard_url("https://dash.cloudflare.com/0123/example.com/security/analytics/events?action=block"));
+        assert!(!trusted_dashboard_url("http://dash.cloudflare.com/workers"));
+        assert!(!trusted_dashboard_url("https://dash.cloudflare.com.evil.example/path"));
+        assert!(!trusted_dashboard_url("https://dash.cloudflare.com@evil.example/path"));
+        assert!(!trusted_dashboard_url("https://evil@dash.cloudflare.com/path"));
+        assert!(!trusted_dashboard_url("https://dash.cloudflare.com:8443/path"));
+        assert!(!trusted_dashboard_url("https://dash.cloudflare.com:443/path"));
+        assert!(!trusted_dashboard_url("https://example.com/dash.cloudflare.com"));
+        assert!(!trusted_dashboard_url("javascript:alert(1)"));
+        assert!(!trusted_dashboard_url(""));
+    }
 }
