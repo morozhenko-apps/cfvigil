@@ -231,3 +231,34 @@ Source implementation:
 explicit Preflight is required before declaring stable source checks green.
 Native KDE startup, actual keyring interaction and live Cloudflare API
 availability are not verified by headless unit tests.
+
+## 2026-10-24 — Single-poller scheduling and provider-failure readiness
+
+Implementation summary:
+- Only `run_polling` can call `refresh_once`. Settings changes are serialized
+  with the active request using the existing Tokio refresh mutex, update the
+  OS-keyring token under that lock and wake the same polling task using a
+  bounded `tokio::sync::watch` revision. No second refresh worker is spawned.
+- Introduced `polling_policy.rs` with deterministic retry cadence. Successful
+  core reads use configured polling delay; credentials or Workers/Pages
+  discovery failures retry with exponential backoff, capped at 30 minutes.
+  A settings revision bypasses sleep/backoff immediately.
+- Initial `get_snapshot` and `cfvigil-resources` events now share the
+  same readiness payload: `{ready, configured, resources, pending_incident}`.
+  The UI no longer assumes every resource event implies fresh verified
+  Cloudflare data.
+- Credential/keyring or provider failure marks previous resources grey and
+  publishes `ready: false` rather than leaving last green statuses visible.
+  Same-account settings updates also mark data stale before waking the poller.
+  Configured-but-unavailable is distinguished from not-yet-configured.
+- Rust tests exercise bounded backoff, coalesced watch revisions and loss
+  of verified health on credential/provider errors. JS tests exercise the
+  readiness schema and defend against restoring automatic per-save spawns.
+- These are source checks; actual Linux tray runtime, OS keyring unlock,
+  Cloudflare rate limits, multi-API partial outages and end-to-end network
+  recovery require native/live acceptance.
+
+The previous incident-journal Preflight #40037042894 completed green before
+these polling changes. A single separate marker-triggered Preflight will be
+needed for the new code. Code/config and documentation remain separate
+commits. Do not infer successful Rust tests for new source from the old CI run.

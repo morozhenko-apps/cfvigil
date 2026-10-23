@@ -94,6 +94,26 @@ preserves their new fields. Existing history records are not discarded.
 
 An important incident brings up the compact card and highlights/blinks **Resources**. **No extra visual banner/toast overlays the five-cell compact strip.** Incident text is exposed through the Resources tooltip and an offscreen screen-reader live region; the expanded resource row has a detail tooltip. Selecting Resources expands the drawer upwards and focuses the affected resource. The user may open the corresponding Cloudflare screen via `⋯`, or ignore it. Repeated polls of an unchanged attempt do not create repeated incidents. A pending alert is stored in native process state until the user opens the resource list or hides the card, so notifications are not lost when WebView event listeners have not started yet.
 
+## Polling and network resilience (implemented source; native acceptance pending)
+
+Exactly one asynchronous polling loop owns Cloudflare network refreshes. Saving
+valid Settings serializes OS-keyring and account configuration changes with
+in-flight refreshes, marks any previously verified resources unknown, then
+notifies the existing loop through a coalescing Tokio watch channel. Settings
+never spawn a competing refresh task; latest account/token state wins.
+
+An ordinary successful poll uses the configured cadence of 1, 3, 5 or 10
+minutes. A credentials failure or failed Workers/Pages discovery makes previous
+data **unknown (grey)**, clears verified readiness, publishes that change to
+the card and emits an error message. Repeated core failures back off
+exponentially up to 30 minutes; updating settings wakes the poller immediately
+instead of waiting for backoff. A successful core read resets the delay.
+
+Cloudflare Analytics/WAF partial availability remains handled separately:
+missing metrics cannot prove recovery and do not automatically mark a
+successful independent deployment read stale. Polling never makes an uptime
+probe, retries at sub-minute frequency, or launches overlapping network jobs.
+
 ## Settings and tray menu
 
 Right-click menu: Show Card, Event History, Settings, About, Exit.
