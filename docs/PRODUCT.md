@@ -30,7 +30,7 @@ A unified alphabetical list of detected Workers and Pages. No type column, branc
 
 For a given resource, inspect the **latest Cloudflare build/deployment attempt**, not the last successful deployment:
 
-- Red: most recent attempt failed, or future confirmed error-traffic/security incident.
+- Red: most recent attempt failed, or verified Worker invocation-error spike. WAF attack detection remains planned.
 - Yellow: most recent attempt is queued/initializing/running, even if the previous attempt was red.
 - Green: most recent attempt completed successfully.
 - Grey: unknown/unsupported outcome, insufficient permissions, stale response, or unavailable information.
@@ -38,6 +38,16 @@ For a given resource, inspect the **latest Cloudflare build/deployment attempt**
 A published version serving traffic does not make a newer failing attempt green. No HTTP health checks or runtime application availability monitoring.
 
 A zone-level security event must not be assigned to a Worker/Pages resource without reliable attribution. Future security monitoring should represent zone-level events truthfully.
+
+## Worker runtime error spikes (implemented source, unverified live)
+
+Cloudflare GraphQL Analytics supplies Workers invocation request/error counts. A single read-only query per refresh requests a 10-minute recent window, a preceding 30-minute baseline, and a five-minute ingestion delay.
+
+A fresh spike needs at least 100 requests, at least 10 errors and at least 10% errors. Against a meaningful baseline (100+ historical requests), the rate must be at least three times baseline and at least five percentage points higher. When baseline volume is too low, require 20+ errors and 20% errors. These are initial conservative thresholds subject to real-data tuning.
+
+A repeating incident creates one alert. A missing Analytics response does **not** prove recovery: a previously red error-spike resource becomes grey until metrics are available again. On a new build attempt, a prior build failure no longer determines the status, but a simultaneously active runtime spike stays red.
+
+The token requires **Account Analytics Read** in addition to Workers Scripts Read, Workers CI Read and Pages Read.
 
 ## Notifications
 
@@ -56,4 +66,4 @@ GitHub CI, HTTP probing, automatic rollbacks, WAF management, request graphs, Te
 
 ## Planned before stable v1.0
 
-Security/error traffic monitoring using available Cloudflare analytics, reliable alert thresholds and deduplication, clear zone/account scope, native KDE Layer Shell anchoring, native Windows smoke acceptance, signed APT/R2 distribution like RepoTicker, autostart, EN/RU UI, negative tests and a final Mode B QA campaign.
+WAF and zone-level attack detection, account/zone scoping, native KDE Layer Shell anchoring, native Windows smoke acceptance, signed APT/R2 distribution like RepoTicker, autostart, EN/RU UI, negative tests and a final Mode B QA campaign.
