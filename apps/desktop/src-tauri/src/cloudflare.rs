@@ -1,7 +1,7 @@
 use reqwest::{redirect::Policy, Client};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::{collections::HashMap, time::Duration};
+use std::{collections::{HashMap, HashSet}, time::Duration};
 
 const API: &str = "https://api.cloudflare.com/client/v4";
 const PAGE_LIMIT: usize = 50;
@@ -103,6 +103,44 @@ fn deployed_after_build(deployment: &Value, build: &Value) -> bool {
     matches!((deployed, built), (Ok(deployed), Ok(built)) if deployed > built)
 }
 
+#[derive(Debug, PartialEq, Eq)]
+struct WorkerAttempt {
+    status: &'static str,
+    attempt_id: String,
+    changed_at: String,
+    detail: &'static str,
+}
+
+// The latest attempt wins. The active Worker deployment endpoint returns
+// versions SERVING traffic, not the state of a more recent pending build.
+fn select_worker_attempt(
+    build: Option<&Value>,
+    active: Option<&Value>,
+    builds_available: bool,
+) -> WorkerAttempt {
+    let (status, id, time, detail) = if !builds_available {
+        ("unknown", "", "", "Workers Builds unavailable")
+    } else if let (Some(deployed), Some(build)) = (active, build) {
+        if deployed_after_build(deployed, build) {
+            ("healthy", str_field(deployed, "id"), str_field(deployed, "created_on"), "Latest Worker deployment")
+        } else {
+            (worker_state(build), str_field(build, "build_uuid"), worker_event_time(build), "Latest Cloudflare Workers build")
+        }
+    } else if let Some(build) = build {
+        (worker_state(build), str_field(build, "build_uuid"), worker_event_time(build), "Latest Cloudflare Workers build")
+    } else if let Some(deployed) = active {
+        ("healthy", str_field(deployed, "id"), str_field(deployed, "created_on"), "Latest Worker deployment")
+    } else {
+        ("unknown", "", "", "No verified Worker deployment")
+    };
+    WorkerAttempt {
+        status,
+        attempt_id: id.to_owned(),
+        changed_at: time.to_owned(),
+        detail,
+    }
+}
+
 pub struct Cloudflare {
     http: Client,
 }
@@ -190,18 +228,21 @@ impl Cloudflare {
         let mut resources = Vec::new();
 
         if let Ok(workers) = workers {
-            let mut keyed = HashMap::<String, Value>::new();
+            let mut tags = HashSet::<String>::new();
             let mut script_list = Vec::new();
             for script in workers {
                 let name = str_field(&script, "id");
                 if !valid_name(name) { continue; }
                 let tag = str_field(&script, "tag").to_owned();
-                if !tag.is_empty() {
-                    keyed.insert(tag.clone(), script.clone());
+                // Cloudflare's immutable external_script_id is 32 hex chars.
+                // Do not interpolate unchecked API values into a URL query.
+                if tag.len() == 32 && tag.bytes().all(|ch| ch.is_ascii_hexdigit()) {
+                    tags.insert(tag.clone());
                 }
                 script_list.push((name.to_owned(), tag, script));
             }
-            let tags = keyed.keys().cloned().collect::<Vec<_>>();
+            let mut tags = tags.into_iter().collect::<Vec<_>>();
+            tags.sort();
             let mut latest = HashMap::<String, Value>::new();
             let mut builds_available = true;
             for chunk in tags.chunks(20) {
@@ -215,6 +256,11 @@ impl Cloudflare {
                             for (key, value) in map {
                                 latest.insert(key.to_owned(), value.clone());
                             }
+                        } else {
+                            // A malformed or incomplete query result does not
+                            // prove every Worker has a successful deployment.
+                            builds_available = false;
+                            break;
                         }
                     }
                     Err(_) => {
@@ -231,33 +277,20 @@ impl Cloudflare {
                 ).await.ok().and_then(|(result, _)| {
                     result.get("deployments")?.as_array()?.first().cloned()
                 });
-                let newer_deployment = matches!((&active, build), (Some(deployed), Some(build)) if deployed_after_build(deployed, build));
-                let (state, attempt, timestamp, detail) = if builds_available && newer_deployment {
-                    let deployed = active.as_ref().expect("checked above");
-                    ("healthy", str_field(deployed, "id"), str_field(deployed, "created_on"), "Latest Worker deployment")
-                } else if let Some(build) = build.filter(|_| builds_available) {
-                    (worker_state(build), str_field(build, "build_uuid"), worker_event_time(build), "Latest Cloudflare Workers build")
-                } else if builds_available {
-                    match active.as_ref() {
-                        Some(deployed) => ("healthy", str_field(deployed, "id"), str_field(deployed, "created_on"), "Latest Worker deployment"),
-                        None => ("unknown", "", "", "No verified Worker deployment"),
-                    }
-                } else {
-                    ("unknown", "", "", "Workers Builds unavailable")
-                };
+                let choice = select_worker_attempt(build, active.as_ref(), builds_available);
                 let mut url = format!("https://dash.cloudflare.com/{account}/workers/services/view/{name}/production");
-                if detail == "Latest Cloudflare Workers build" && valid_uuid(attempt) {
-                    url.push_str(&format!("/builds/{attempt}"));
+                if choice.detail == "Latest Cloudflare Workers build" && valid_uuid(&choice.attempt_id) {
+                    url.push_str(&format!("/builds/{}", choice.attempt_id));
                 }
                 resources.push(Resource {
                     key: format!("worker:{name}"),
                     name: name.clone(),
                     kind: "worker".into(),
-                    status: state.into(),
-                    changed_at: timestamp.into(),
-                    attempt_id: attempt.into(),
+                    status: choice.status.into(),
+                    changed_at: choice.changed_at,
+                    attempt_id: choice.attempt_id,
                     url,
-                    detail: detail.into(),
+                    detail: choice.detail.into(),
                 });
             }
         }
@@ -345,6 +378,44 @@ mod tests {
         assert_eq!(pages_state(&json!({"is_skipped":true,"latest_stage":{"status":"success"}})), "unknown");
         assert_eq!(pages_state(&json!({"is_skipped":false,"latest_stage":{"status":"success"}})), "healthy");
         assert_eq!(pages_state(&json!({"latest_stage":{"status":"active"}})), "deploying");
+    }
+
+    #[test]
+    fn cloudflare_response_fixtures_prefer_newer_build_attempts() {
+        // Shapes follow documented GET /builds/builds/latest and
+        // GET /workers/scripts/{name}/deployments success responses.
+        let tag = "dd7160bb9cef458093557736f4b9e75b";
+        let response = json!({"success":true, "result":{"builds": {
+            tag: {"build_uuid":"182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
+                  "created_on":"2026-10-23T12:00:00Z", "status":"running"}
+        }}});
+        let build = &response["result"]["builds"][tag];
+        let deployment = json!({"result":{"deployments":[{
+            "id":"023e105f-2a42-4f8b-a1c1-73f6a2a30c0f",
+            "created_on":"2026-10-23T11:59:00Z"
+        }]}});
+        let active = &deployment["result"]["deployments"][0];
+        let chosen = select_worker_attempt(Some(build), Some(active), true);
+        assert_eq!(chosen.status, "deploying");
+        assert_eq!(chosen.detail, "Latest Cloudflare Workers build");
+        assert_eq!(chosen.changed_at, "2026-10-23T12:00:00Z");
+
+        let failed = json!({"created_on":"2026-10-23T12:00:00Z",
+            "build_uuid":"182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
+            "status":"stopped", "build_outcome":"fail"});
+        assert_eq!(select_worker_attempt(Some(&failed), Some(active), true).status, "failed");
+        let manual = json!({"id":"023e105f-2a42-4f8b-a1c1-73f6a2a30c0f",
+            "created_on":"2026-10-23T12:01:00Z"});
+        assert_eq!(select_worker_attempt(Some(&failed), Some(&manual), true).status, "healthy");
+    }
+
+    #[test]
+    fn unavailable_build_information_cannot_be_inferred_as_healthy() {
+        let active = json!({"id":"023e105f-2a42-4f8b-a1c1-73f6a2a30c0f",
+            "created_on":"2026-10-23T12:01:00Z"});
+        assert_eq!(select_worker_attempt(None, Some(&active), false).status, "unknown");
+        assert_eq!(select_worker_attempt(None, Some(&active), true).status, "healthy");
+        assert_eq!(select_worker_attempt(None, None, true).status, "unknown");
     }
 
     #[test]
