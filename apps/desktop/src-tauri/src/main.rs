@@ -19,11 +19,12 @@ use std::{
     },
     time::Duration,
 };
+use tauri::{AppHandle, Emitter, Manager, State};
+#[cfg(not(target_os = "linux"))]
 use tauri::{
     image::Image,
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Emitter, Manager, State,
 };
 
 const KEYRING_SERVICE: &str = "com.morozhenko.cfvigil.cloudflare";
@@ -102,7 +103,7 @@ fn write_json<T: Serialize>(app: &AppHandle, name: &str, data: &T) -> Result<(),
     let tmp = path.with_extension("tmp");
     let bytes = serde_json::to_vec_pretty(data).map_err(|_| "Cannot serialize settings")?;
     fs::write(&tmp, bytes).map_err(|_| "Cannot write settings")?;
-    fs::rename(&tmp, path).map_err(|_| "Cannot persist settings")
+    fs::rename(&tmp, path).map_err(|_| "Cannot persist settings".to_owned())
 }
 
 fn token_entry() -> Result<keyring::Entry, String> {
