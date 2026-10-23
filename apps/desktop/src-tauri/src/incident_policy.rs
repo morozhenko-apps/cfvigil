@@ -1,12 +1,25 @@
 //! Pure incident transition policy; independent from OS windows and APIs.
 use crate::cloudflare::Resource;
 
+fn waf_spike(resource: &Resource) -> bool {
+    resource.kind == "zone"
+        && resource.attempt_id == "waf-block-spike"
+        && resource.status == "failed"
+}
+
 fn runtime_spike(resource: &Resource) -> bool {
     resource.detail.starts_with("Workers errors spiking:")
         || resource.attempt_id == "runtime-error-spike"
 }
 
 pub fn describe_transition(old: &Resource, current: &Resource) -> Option<&'static str> {
+    if waf_spike(old) && waf_spike(current) { return None; }
+    if old.kind == "zone" && current.kind == "zone" && current.status == "unknown" {
+        return None;
+    }
+    if current.kind == "zone" {
+        return waf_spike(current).then_some("WAF block spike detected");
+    }
     let had_spike = runtime_spike(old);
     let has_spike = runtime_spike(current);
     if had_spike && has_spike {
@@ -36,14 +49,21 @@ pub fn describe_transition(old: &Resource, current: &Resource) -> Option<&'stati
 pub fn should_notify(current: &Resource, message: &str) -> bool {
     current.status == "failed"
         && (message == "Latest Cloudflare build/deployment failed"
-            || message == "Workers runtime error spike detected")
+            || message == "Workers runtime error spike detected"
+            || message == "WAF block spike detected")
+}
+
+pub fn initial_security_event(current: &Resource) -> Option<&'static str> {
+    waf_spike(current).then_some("WAF block spike detected")
 }
 
 pub fn notification_identity(current: &Resource, message: &str) -> Option<String> {
     if !should_notify(current, message) {
         return None;
     }
-    if runtime_spike(current) {
+    if waf_spike(current) {
+        Some(format!("{}:waf-spike", current.key))
+    } else if runtime_spike(current) {
         Some(format!("{}:runtime-spike", current.key))
     } else {
         Some(format!("{}:failed:{}", current.key, current.attempt_id))
@@ -123,6 +143,20 @@ mod tests {
         assert_eq!(notification_identity(&spike, "Workers runtime error spike detected"),
             Some("worker:example:runtime-spike".to_string()));
         assert_eq!(notification_identity(&spike, "Workers runtime error spike cleared"), None);
+    }
+
+    #[test]
+    fn waf_zone_alerts_are_new_only_and_remain_attributed_to_zone() {
+        let mut waf = make("failed", "waf-block-spike", "WAF blocks spiking: 200 in 10m");
+        waf.kind = "zone".into();
+        waf.key = "zone:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee".into();
+        assert_eq!(initial_security_event(&waf), Some("WAF block spike detected"));
+        assert_eq!(notification_identity(&waf,"WAF block spike detected"),
+            Some("zone:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee:waf-spike".into()));
+        assert_eq!(describe_transition(&waf, &waf), None);
+        let mut unknown = waf.clone();
+        unknown.status = "unknown".into();
+        assert_eq!(describe_transition(&waf,&unknown), None);
     }
 
     #[test]
