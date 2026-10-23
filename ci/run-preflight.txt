@@ -1,0 +1,8 @@
+CFVigil explicit verification gate
+==================================
+Change this file ONLY after a complete feature/fix batch is implemented.
+A regular push to dev (including code and documentation) does NOT trigger CI.
+The push containing a change to THIS file requests exactly one Preflight.
+
+2026-10-23: Verify single-job hosted workflow, JS regression and Rust tests
+after correcting the per-commit Actions queue storm.
