@@ -278,20 +278,36 @@ async fn refresh_once(app: AppHandle) {
         .map(|resource| resource.name.clone()).collect();
     // Metrics never probe the deployed application. Unavailable analytics
     // leave deployment status unchanged rather than inventing an incident.
-    if let Ok(spikes) = analytics::query_spikes(&config.account_id, &token, &worker_names).await {
-        for resource in resources.iter_mut().filter(|resource| resource.kind == "worker") {
-            if let Some(spike) = spikes.get(&resource.name) {
-                let old_alert = previous.iter().find(|old| old.key == resource.key)
-                    .filter(|old| old.detail.starts_with("Workers errors spiking:"));
-                resource.changed_at = old_alert
-                    .map(|old| old.changed_at.clone())
-                    .unwrap_or_else(|| chrono::Utc::now().to_rfc3339());
-                resource.status = "failed".into();
-                resource.detail = format!(
-                    "Workers errors spiking: {} errors / {} requests ({:.1}%)",
-                    spike.errors, spike.requests, spike.ratio * 100.0
-                );
-                resource.attempt_id = "runtime-error-spike".into();
+    match analytics::query_spikes(&config.account_id, &token, &worker_names).await {
+        Ok(spikes) => {
+            for resource in resources.iter_mut().filter(|resource| resource.kind == "worker") {
+                if let Some(spike) = spikes.get(&resource.name) {
+                    let old_alert = previous.iter().find(|old| old.key == resource.key)
+                        .filter(|old| old.detail.starts_with("Workers errors spiking:"));
+                    resource.changed_at = old_alert
+                        .map(|old| old.changed_at.clone())
+                        .unwrap_or_else(|| chrono::Utc::now().to_rfc3339());
+                    resource.status = "failed".into();
+                    resource.detail = format!(
+                        "Workers errors spiking: {} errors / {} requests ({:.1}%)",
+                        spike.errors, spike.requests, spike.ratio * 100.0
+                    );
+                    resource.attempt_id = "runtime-error-spike".into();
+                }
+            }
+        }
+        Err(_) => {
+            // A missing GraphQL response is NOT proof that an existing spike
+            // recovered. Keep the affected resource grey until checked.
+            for resource in resources.iter_mut().filter(|resource| resource.kind == "worker") {
+                if let Some(old) = previous.iter().find(|old| old.key == resource.key)
+                    .filter(|old| old.detail.starts_with("Workers errors spiking:"))
+                {
+                    resource.status = "unknown".into();
+                    resource.detail = "Workers analytics unavailable; previous spike unverified".into();
+                    resource.changed_at = old.changed_at.clone();
+                    resource.attempt_id = old.attempt_id.clone();
+                }
             }
         }
     }
