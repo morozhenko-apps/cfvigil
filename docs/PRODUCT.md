@@ -41,7 +41,7 @@ Zone-level WAF monitoring adds a **temporary domain row only while a WAF block s
 
 ## Worker runtime error spikes (implemented source, unverified live)
 
-Cloudflare GraphQL Analytics supplies Workers invocation request/error counts. A single read-only query per refresh requests a 10-minute recent window, a preceding 30-minute baseline, and a five-minute ingestion delay.
+Cloudflare GraphQL Analytics supplies Workers invocation request/error counts. To avoid the truncation of sampled raw rows, CFVigil requests each Worker using the documented `workersInvocationsAdaptive(limit: 1, filter: {scriptName: ...})` aggregate pattern, in bounded batches of eight Workers per read-only GraphQL request. Recent (10-minute) and baseline (preceding 30-minute) aggregates use a five-minute ingestion delay.
 
 A fresh spike needs at least 100 requests, at least 10 errors and at least 10% errors. Against a meaningful baseline (100+ historical requests), the rate must be at least three times baseline and at least five percentage points higher. When baseline volume is too low, require 20+ errors and 20% errors. These are initial conservative thresholds subject to real-data tuning.
 
