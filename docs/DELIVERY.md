@@ -208,3 +208,26 @@ not be claimed successful merely because previous preflight was green.
   invalid timestamps and event-specific native invocation.
 - Actual CI results for this commit must be checked after the single explicit
   Preflight. This is not native KDE or live Cloudflare integration acceptance.
+
+## 2026-10-23 — Durable incident state across app restarts
+
+Source implementation:
+- `incident_store.rs` models a bounded notification deduplication window
+  (512 latest IDs), 320 maximum retained active Worker/WAF incidents and an
+  account-scoped JSON journal independent of event history. There is no
+  token/secret field in this journal.
+- `main.rs` loads only active incidents for the configured Cloudflare account,
+  marks all restored statuses **unknown**, persists changed incident snapshots
+  and identities, and resets the state on account switch. Same-account settings
+  updates do not erase active alerts.
+- Analytics failures preserve the previous runtime spike even when the
+  previous record was already grey; a continuing WAF spike after a restart
+  or metrics outage is no longer counted as a second event.
+- Unit tests cover restart after active WAF + runtime spikes, no false green,
+  duplicate IDs, bounded eviction, later recovery re-arming, account mismatch,
+  malicious/duplicate local data and continued WAF episodes.
+
+**Validation status:** changes were committed directly to `dev`. A single
+explicit Preflight is required before declaring stable source checks green.
+Native KDE startup, actual keyring interaction and live Cloudflare API
+availability are not verified by headless unit tests.

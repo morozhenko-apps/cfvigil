@@ -55,6 +55,27 @@ Cloudflare zone discovery is automatic, using an account-scoped Zone Read query.
 
 A WAF incident displays a **domain row**, not a fictitious Worker-level attack. Its Cloudflare link opens `/security/analytics/events?action=block`. The row disappears when metrics confirm recovery, while the incident remains in Event History. Failed GraphQL queries preserve the previous zone alert as unknown (grey) rather than indicating recovery.
 
+## Durable incident continuity (implemented source, awaiting CI)
+
+The native app maintains an account-scoped `incident-state.json` journal
+separate from `events.json`. It stores **only** a bounded list of ongoing
+Worker execution-error and zone WAF-block incidents plus up to 512 recent
+notification identities; API tokens remain exclusively in the operating
+system credential store.
+
+After process restart, ongoing incidents return as **unknown (grey)** until a
+fresh Cloudflare read confirms whether they are still present. Old successful
+resources are never restored as green. A temporary Analytics outage or
+reappearance of the same incident must not generate another alert. Verified
+recovery removes the active snapshot and re-arms future distinct incidents.
+
+Changing Cloudflare accounts discards the previous account's incident journal
+and notification identities; changing the token or polling interval within
+the same account retains them. The journal is only rewritten when its meaningful
+content changes, not on every poll. If persistence fails, monitoring continues
+but a future restart may lose the duplicate-alert guard; the failure is logged
+without credentials.
+
 ## Event History fidelity (implemented source, awaiting CI)
 
 The native event log retains up to 500 recent records. Each event has a stable ID,
