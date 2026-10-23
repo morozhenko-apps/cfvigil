@@ -3,12 +3,17 @@ use crate::cloudflare::Resource;
 
 fn runtime_spike(resource: &Resource) -> bool {
     resource.detail.starts_with("Workers errors spiking:")
+        || resource.attempt_id == "runtime-error-spike"
 }
 
 pub fn describe_transition(old: &Resource, current: &Resource) -> Option<&'static str> {
     let had_spike = runtime_spike(old);
     let has_spike = runtime_spike(current);
     if had_spike && has_spike {
+        return None;
+    }
+    // Analytics outage is not a verified recovery.
+    if had_spike && current.status == "unknown" {
         return None;
     }
     if old.status == current.status && old.attempt_id == current.attempt_id {
@@ -83,6 +88,17 @@ mod tests {
         let message = describe_transition(&spike, &recovered).unwrap();
         assert_eq!(message, "Workers runtime error spike cleared");
         assert!(!should_notify(&recovered, message));
+    }
+
+    #[test]
+    fn analytics_outage_keeps_spike_unresolved_without_repeat_notification() {
+        let incident = make("failed", "runtime-error-spike", "Workers errors spiking: 30 errors / 120 requests");
+        let offline = make("unknown", "runtime-error-spike", "Workers analytics unavailable");
+        let resuming = make("failed", "runtime-error-spike", "Workers errors spiking: 31 errors / 123 requests");
+        let resolved = make("healthy", "build-12", "Cloudflare build");
+        assert_eq!(describe_transition(&incident, &offline), None);
+        assert_eq!(describe_transition(&offline, &resuming), None);
+        assert_eq!(describe_transition(&offline, &resolved), Some("Workers runtime error spike cleared"));
     }
 
     #[test]
