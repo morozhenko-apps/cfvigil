@@ -14,6 +14,7 @@ export function classifyWorkerBuild(build) {
 
 export function classifyPagesDeployment(deployment) {
   if (!deployment || typeof deployment !== "object") return "unknown";
+  if (deployment.is_skipped === true) return "unknown";
   const status = deployment.latest_stage?.status;
   if (["active", "idle"].includes(status)) return "deploying";
   if (status === "success") return "healthy";
