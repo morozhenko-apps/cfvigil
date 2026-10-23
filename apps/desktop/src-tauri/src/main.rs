@@ -1,5 +1,6 @@
 mod cloudflare;
 mod analytics;
+mod incident_policy;
 #[cfg(target_os = "linux")]
 mod linux_surface;
 #[cfg(target_os = "linux")]
@@ -309,25 +310,8 @@ async fn refresh_once(app: AppHandle) {
             Some(old) => old,
             None => continue,
         };
-        let current_spike = current.detail.starts_with("Workers errors spiking:");
-        let old_spike = old.detail.starts_with("Workers errors spiking:");
-        // Do not re-alert each poll, even if the Worker was redeployed while
-        // the same runtime error spike remained active.
-        if current_spike && old_spike { continue; }
-        if old.attempt_id == current.attempt_id && old.status == current.status {
+        let Some(message) = incident_policy::describe_transition(old, current) else {
             continue;
-        }
-        let message = if current_spike {
-            "Workers runtime error spike detected"
-        } else if old_spike {
-            "Workers runtime error spike cleared"
-        } else {
-            match current.status.as_str() {
-                "failed" => "Latest Cloudflare build/deployment failed",
-                "deploying" => "New Cloudflare build/deployment started",
-                "healthy" => "Latest Cloudflare deployment succeeded",
-                _ => continue,
-            }
         };
         events.push(HistoryEvent {
             at: chrono::Utc::now().to_rfc3339(),
@@ -335,7 +319,7 @@ async fn refresh_once(app: AppHandle) {
             name: current.name.clone(),
             message: message.into(),
         });
-        if current.status == "failed" {
+        if incident_policy::should_notify(current, message) {
             show_card(&app);
             let _ = app.emit("cfvigil-incident", serde_json::json!({
                 "key":current.key,
