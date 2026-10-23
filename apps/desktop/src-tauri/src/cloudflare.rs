@@ -386,7 +386,7 @@ mod tests {
         // GET /workers/scripts/{name}/deployments success responses.
         let tag = "dd7160bb9cef458093557736f4b9e75b";
         let response = json!({"success":true, "result":{"builds": {
-            tag: {"build_uuid":"182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
+            "dd7160bb9cef458093557736f4b9e75b": {"build_uuid":"182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
                   "created_on":"2026-10-23T12:00:00Z", "status":"running"}
         }}});
         let build = &response["result"]["builds"][tag];
