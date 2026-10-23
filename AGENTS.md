@@ -14,8 +14,16 @@ This file applies to all coding agents working in this repository.
   Do not delete another agent's unmerged work.
 - Never fast-forward `dev` to `main`, tag or publish a release without the
   owner's explicit instruction and passing release acceptance.
-- Separate source/config changes from documentation-only commits so docs edits
-  do not trigger expensive CI runs.
+- Separate source/config changes from documentation-only commits.
+- **Never trigger CI for every source commit.** CFVigil dev's Preflight uses
+  an explicit verification marker: update `ci/run-preflight.txt` exactly once
+  after finishing a feature/fix batch. Normal source commits and documentation
+  commits MUST NOT launch CI. A temporary branch PR runs code checks on PR changes.
+- When the feature gate reports failure, fix the root cause first, then update
+  the marker once after corrections. Do not spam CI by polling or committing
+  multiple changes while another verification run is active.
+- `workflow_dispatch` works only after the workflow exists on the repository
+  default branch; on `dev`, the marker is the reliable explicit trigger.
 
 ## Engineering and validation
 

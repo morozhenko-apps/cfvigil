@@ -153,3 +153,38 @@ Source changes on `dev`:
 The preceding green GitHub-hosted Preflight `40024544307` validated the earlier Rust/JS source only. New provider/UI test commits require their own green run before source-level gates can be considered current. CI runs may be cancelled by superseding pushes because `cancel-in-progress` is enabled. Documentation-only edits must not trigger a new run.
 
 **Acceptance pending:** confirm newest source commit's `Preflight` (JS syntax/tests, Rust check/tests), perform read-only Cloudflare API integration checks on a configured account, and verify the popup on actual KDE Wayland and X11. No `main` fast-forward, release or package publication is authorized by this note.
+
+## 2026-10-23: explicit dev CI gate; queue-storm correction
+
+The earlier RepoTicker-inspired `push: branches: [dev, main]` source paths
+still started one 3-job Preflight for **every code commit**, making a storm
+of redundant queued/cancelled jobs when the agent created small commits.
+`cancel-in-progress` cancels older jobs but cannot prevent them being
+registered in the Actions queue. This was not compatible with the owner's
+requirement to run full tests **once at the end of feature implementation**.
+
+**Current design** in `.github/workflows/checks.yml`:
+
+- `push` on `dev` runs only if `ci/run-preflight.txt` changes. Normal
+  Rust/JS/HTML/CSS/config source commits and documentation-only commits
+  do **not** launch CI. Explicitly change the marker only once when
+  ready to verify the complete feature/fix batch.
+- A temporary internal `pull_request` targeting `dev` or `main` runs
+  when it changes source/test/workflow files, not for docs-only updates.
+- `workflow_dispatch` is available once the workflow reaches the
+  repository's default branch (`main` at present).
+- One `ubuntu-24.04` GitHub-hosted job executes Node.js 24 syntax and
+  stable UI tests, then Rust check and Rust tests with required Tauri
+  dependencies. There are no standalone per-job aggregator runners.
+  No Alcotester/self-hosted runner involvement or paid hosted runner.
+- `concurrency.cancel-in-progress: true` remains as a safeguard for
+  superseded *explicit* requests or PRs, not as the primary dedup mechanism.
+- `tests/ci-trigger.test.mjs` guards these invariants and runs as part
+  of the same stable UI suite.
+
+**Observed queue evidence:** GitHub's Actions API returned 49 historical
+runs for the repository; all had `completed` status at audit time and
+there were **zero remaining queued/in-progress runs**. The latest
+Preflight before this fix, run `40030521303`, was green. The
+new explicit-trigger workflow requires its own verification and must
+not be claimed successful merely because previous preflight was green.
