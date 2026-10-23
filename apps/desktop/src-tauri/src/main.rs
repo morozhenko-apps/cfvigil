@@ -1,6 +1,7 @@
 mod cloudflare;
 mod analytics;
 mod incident_policy;
+mod incident_store;
 mod security;
 #[cfg(target_os = "linux")]
 mod linux_surface;
@@ -8,6 +9,7 @@ mod linux_surface;
 mod linux_tray;
 
 use cloudflare::{Cloudflare, Resource};
+use incident_store::{IncidentJournal, NotificationWindow};
 use serde::{Deserialize, Serialize};
 use std::{
     fs,
@@ -129,7 +131,8 @@ struct AppState {
     config: Mutex<Config>,
     resources: Mutex<Vec<Resource>>,
     history: Mutex<Vec<HistoryEvent>>,
-    last_notified: Mutex<HashSet<String>>,
+    last_notified: Mutex<NotificationWindow>,
+    journal: Mutex<IncidentJournal>,
     pending_incident: Mutex<Option<IncidentNotice>>,
     ready: AtomicBool,
     refresh_lock: tokio::sync::Mutex<()>,
@@ -220,11 +223,27 @@ async fn save_settings(
     // Prevent a completed fetch for the old account from overwriting new settings.
     let _refresh_guard = state.refresh_lock.lock().await;
     let next = Config { account_id, refresh_seconds };
+    let old_account = state.config.lock().unwrap().account_id.clone();
     write_json(&app, "settings.json", &next)?;
-    *state.config.lock().unwrap() = next;
+    *state.config.lock().unwrap() = next.clone();
     state.ready.store(false, Ordering::Release);
-    state.resources.lock().unwrap().clear();
-    state.last_notified.lock().unwrap().clear();
+    if old_account != next.account_id {
+        // Never reuse WAF or Worker incident identities across Cloudflare
+        // accounts. The persisted journal is scoped to exactly one account.
+        state.resources.lock().unwrap().clear();
+        state.last_notified.lock().unwrap().clear();
+        let journal = IncidentJournal::empty(&next.account_id);
+        *state.journal.lock().unwrap() = journal.clone();
+        if write_json(&app, "incident-state.json", &journal).is_err() {
+            eprintln!("CFVigil: could not reset the incident journal");
+        }
+    } else {
+        // A token refresh or interval change does not resolve or rearm
+        // ongoing incidents. Mark old data stale until the next poll.
+        for resource in state.resources.lock().unwrap().iter_mut() {
+            resource.status = "unknown".into();
+        }
+    }
     *state.pending_incident.lock().unwrap() = None;
     let handle = app.clone();
     tauri::async_runtime::spawn(async move { refresh_once(handle).await; });
@@ -374,7 +393,7 @@ async fn refresh_once(app: AppHandle) {
             for resource in resources.iter_mut().filter(|resource| resource.kind == "worker") {
                 if let Some(spike) = spikes.get(&resource.name) {
                     let old_alert = previous.iter().find(|old| old.key == resource.key)
-                        .filter(|old| old.detail.starts_with("Workers errors spiking:"));
+                         .filter(|old| old.attempt_id == "runtime-error-spike");
                     resource.changed_at = old_alert
                         .map(|old| old.changed_at.clone())
                         .unwrap_or_else(|| chrono::Utc::now().to_rfc3339());
@@ -392,7 +411,7 @@ async fn refresh_once(app: AppHandle) {
             // recovered. Keep the affected resource grey until checked.
             for resource in resources.iter_mut().filter(|resource| resource.kind == "worker") {
                 if let Some(old) = previous.iter().find(|old| old.key == resource.key)
-                    .filter(|old| old.detail.starts_with("Workers errors spiking:"))
+                    .filter(|old| old.attempt_id == "runtime-error-spike")
                 {
                     resource.status = "unknown".into();
                     resource.detail = "Workers analytics unavailable; previous spike unverified".into();
@@ -480,6 +499,21 @@ async fn refresh_once(app: AppHandle) {
         let _ = write_json(&app, "events.json", &*history);
         let _ = app.emit("cfvigil-history-changed", ());
     }
+    // Persist only active security/runtime incidents and a bounded set of
+    // notification identities. Normal green resources are never rehydrated
+    // from disk as verified after restart.
+    let next_journal = {
+        let notified = state.last_notified.lock().unwrap();
+        IncidentJournal::snapshot(&config.account_id, &resources, &notified)
+    };
+    let mut saved = state.journal.lock().unwrap();
+    if *saved != next_journal {
+        if write_json(&app, "incident-state.json", &next_journal).is_ok() {
+            *saved = next_journal;
+        } else {
+            eprintln!("CFVigil: could not persist the incident journal");
+        }
+    }
 }
 
 fn run_polling(app: AppHandle) {
@@ -496,15 +530,19 @@ fn main() {
     tauri::Builder::default()
         .setup(|app| {
             let handle = app.handle().clone();
+            let config: Config = read_json(&handle, "settings.json");
+            let stored: IncidentJournal = read_json(&handle, "incident-state.json");
+            let journal = stored.restore(&config.account_id);
             app.manage(AppState {
-                config: Mutex::new(read_json(&handle, "settings.json")),
-                resources: Mutex::new(Vec::new()),
+                config: Mutex::new(config),
+                resources: Mutex::new(journal.active.clone()),
                 history: Mutex::new({
                     let mut events: Vec<HistoryEvent> = read_json(&handle, "events.json");
                     normalize_history(&mut events);
                     events
                 }),
-                last_notified: Mutex::new(HashSet::new()),
+                last_notified: Mutex::new(NotificationWindow::from_ids(journal.notified.clone())),
+                journal: Mutex::new(journal),
                 pending_incident: Mutex::new(None),
                 ready: AtomicBool::new(false),
                 refresh_lock: tokio::sync::Mutex::new(()),
