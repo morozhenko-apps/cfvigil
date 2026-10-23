@@ -22,6 +22,9 @@ test("latest Pages attempt controls indicator", () => {
   assert.equal(classifyPagesDeployment({latest_stage:{status:"failure"}}),"failed");
   assert.equal(classifyPagesDeployment({latest_stage:{status:"success"}}),"healthy");
   assert.equal(classifyPagesDeployment({latest_stage:{status:"skipped"}}),"unknown");
+  assert.equal(classifyPagesDeployment({latest_stage:{status:"canceled"}}),"unknown");
+  assert.equal(classifyPagesDeployment({is_skipped:true,latest_stage:{status:"success"}}),"unknown");
+  assert.equal(classifyPagesDeployment({is_skipped:false,latest_stage:{status:"success"}}),"healthy");
   assert.equal(classifyPagesDeployment(null),"unknown");
 });
 test("aggregate counts never mix unknown with healthy", () => {
