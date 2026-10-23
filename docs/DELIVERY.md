@@ -140,3 +140,16 @@ Actual GitHub Actions evidence, from `Preflight` push run [39996928456](https://
 - At the time of review, GitHub Actions run [40024544307](https://github.com/morozhenko-apps/cfvigil/actions/runs/40024544307), triggered by the second fix, was **pending**. The predecessor run [40024522708](https://github.com/morozhenko-apps/cfvigil/actions/runs/40024522708) was still in progress. No successful Rust check is yet demonstrated.
 
 The connector's general commit-status endpoint was insufficient for GitHub Actions checks, but the GitHub workflow runs collection and job logs can be fetched directly through the approved GitHub connector. Further compiler work should be driven by actual current workflow job diagnostics, not guesses. The documentation-only evidence commit must not start source CI.
+
+## 2026-10-23 — Overlay removal and provider contract fixtures
+
+Source changes on `dev`:
+- Removed the visible incident banner/toast from the five-cell compact card. Incidents still blink the Resources button, clear the search filter, focus the affected list row and keep the message in a screen-reader-only live region and button tooltip. File-level DOM contract tests assert the compact layout and absence of the visual overlay.
+- Extracted the latest Worker attempt selection into a pure Rust helper. Documented Cloudflare REST response-shaped fixtures cover a newer running build outranking an older serving deployment, a failed build, a subsequent manual deployment, a missing build and an unavailable Workers Builds API.
+- Explicitly validate immutable 32-character hexadecimal Worker script tags before placing them in a query string; sort tags for deterministic batch requests. A malformed or missing `result.builds` mapping is no longer interpreted as successful completed deployments.
+- Cross-checked public Cloudflare API documentation for `/workers/scripts`, `/builds/builds/latest`, `/workers/scripts/{script_name}/deployments` and `/pages/projects/{name}/deployments`. That is **contract verification against published documentation**, not real-user-token/live-account verification.
+- No Cloudflare credentials are provided to the connected tools. A genuine live-account acceptance test and KDE Wayland/X11 tray/click/expand smoke **remain open**. A headless CI compilation is not equivalent to physically verifying the KDE popup.
+
+The preceding green GitHub-hosted Preflight `40024544307` validated the earlier Rust/JS source only. New provider/UI test commits require their own green run before source-level gates can be considered current. CI runs may be cancelled by superseding pushes because `cancel-in-progress` is enabled. Documentation-only edits must not trigger a new run.
+
+**Acceptance pending:** confirm newest source commit's `Preflight` (JS syntax/tests, Rust check/tests), perform read-only Cloudflare API integration checks on a configured account, and verify the popup on actual KDE Wayland and X11. No `main` fast-forward, release or package publication is authorized by this note.
