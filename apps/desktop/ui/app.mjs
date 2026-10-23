@@ -90,6 +90,7 @@ async function toggleList() {
     if (expanded) {
       byId("toggle-list").classList.remove("blink");
       byId("incident").hidden = true;
+      await invoke("acknowledge_incident");
       render();
     } else {
       focusedKey = null;
@@ -124,18 +125,21 @@ await listen("cfvigil-resources", ({payload}) => {
   syncAvailable = true;
   render();
 });
-await listen("cfvigil-incident", ({payload}) => {
+function presentIncident(payload) {
+  if (!payload?.key || !payload?.message) return;
   focusedKey = payload.key;
   // The active text search must not hide the incident target.
   byId("search").value = "";
   showIncident(payload.message);
   if (!expanded) byId("toggle-list").classList.add("blink");
   else render();
-});
+}
+await listen("cfvigil-incident", ({payload}) => presentIncident(payload));
 await listen("cfvigil-sync-error", ({payload}) => { showIncident(payload || "Cloudflare API unavailable"); });
 try {
   const snapshot = await invoke("get_snapshot");
   resources = snapshot.resources;
   syncAvailable = snapshot.ready;
   render();
+  if (snapshot.pending_incident) presentIncident(snapshot.pending_incident);
 } catch { showIncident("Unable to load resources"); }
