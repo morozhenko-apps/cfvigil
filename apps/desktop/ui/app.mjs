@@ -1,4 +1,5 @@
 import { counters, filterResources, relativeTime } from "./status.mjs";
+import { normalizeSnapshot } from "./snapshot.mjs";
 const invoke = (command, args = {}) => window.__TAURI__.core.invoke(command, args);
 const listen = (event, callback) => window.__TAURI__.event.listen(event, callback);
 const byId = id => document.getElementById(id);
@@ -7,6 +8,7 @@ let expanded = false;
 let focusedKey = null;
 let openMenuKey = null;
 let syncAvailable = false;
+let accountConfigured = false;
 
 function clearMenu() { document.querySelectorAll(".resource-menu").forEach(node => node.remove()); openMenuKey = null; }
 
@@ -21,7 +23,7 @@ function render() {
   if (!resources.length) {
     const message = document.createElement("div");
     message.className = "empty";
-    message.textContent = syncAvailable ? "No resources found" : "Connect Cloudflare in Settings";
+    message.textContent = !accountConfigured ? "Connect Cloudflare in Settings" : syncAvailable ? "No resources found" : "Cloudflare data unavailable";
     list.append(message);
     return;
   }
@@ -126,11 +128,18 @@ await listen("cfvigil-card-hidden", () => {
   announce("");
   clearMenu();
 });
-await listen("cfvigil-resources", ({payload}) => {
-  resources = payload;
-  syncAvailable = true;
+function applySnapshot(payload) {
+  const snapshot = normalizeSnapshot(payload);
+  resources = snapshot.resources;
+  syncAvailable = snapshot.ready;
+  accountConfigured = snapshot.configured;
+  if (syncAvailable && !byId("toggle-list").classList.contains("blink")) {
+    byId("toggle-list").title = "Toggle resource list";
+    announce("");
+  }
   render();
-});
+}
+await listen("cfvigil-resources", ({payload}) => applySnapshot(payload));
 function presentIncident(payload) {
   if (!payload?.key || !payload?.message) return;
   focusedKey = payload.key;
@@ -146,8 +155,6 @@ await listen("cfvigil-sync-error", ({payload}) => {
 });
 try {
   const snapshot = await invoke("get_snapshot");
-  resources = snapshot.resources;
-  syncAvailable = snapshot.ready;
-  render();
+  applySnapshot(snapshot);
   if (snapshot.pending_incident) presentIncident(snapshot.pending_incident);
 } catch { alertOnResources("Unable to load resources"); }
