@@ -55,7 +55,21 @@ Cloudflare zone discovery is automatic, using an account-scoped Zone Read query.
 
 A WAF incident displays a **domain row**, not a fictitious Worker-level attack. Its Cloudflare link opens `/security/analytics/events?action=block`. The row disappears when metrics confirm recovery, while the incident remains in Event History. Failed GraphQL queries preserve the previous zone alert as unknown (grey) rather than indicating recovery.
 
+## Event History fidelity (implemented source, awaiting CI)
+
+The native event log retains up to 500 recent records. Each event has a stable ID,
+category (`incident`, `recovery`, `update`), timestamp, resource name/key,
+message and **the original Cloudflare Dashboard link for that exact historical
+attempt**. Clicking an older failed build must not open a newer deployment of
+the same resource. URL checks remain on the Rust side.
+
+Event History has search by resource/name/message and category filters for
+incidents, recoveries and updates. Legacy `events.json` records without
+IDs/categories are normalized in memory; the next persisted history write
+preserves their new fields. Existing history records are not discarded.
+
 ## Notifications
+
 
 An important incident brings up the compact card and highlights/blinks **Resources**. **No extra visual banner/toast overlays the five-cell compact strip.** Incident text is exposed through the Resources tooltip and an offscreen screen-reader live region; the expanded resource row has a detail tooltip. Selecting Resources expands the drawer upwards and focuses the affected resource. The user may open the corresponding Cloudflare screen via `⋯`, or ignore it. Repeated polls of an unchanged attempt do not create repeated incidents. A pending alert is stored in native process state until the user opens the resource list or hides the card, so notifications are not lost when WebView event listeners have not started yet.
 

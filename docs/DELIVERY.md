@@ -188,3 +188,23 @@ there were **zero remaining queued/in-progress runs**. The latest
 Preflight before this fix, run `40030521303`, was green. The
 new explicit-trigger workflow requires its own verification and must
 not be claimed successful merely because previous preflight was green.
+
+## 2026-10-23 — Event History milestone (source implementation)
+
+- Source commit `6be5b403a56d8f48ca0601d3c313cd0a0aa3810e`
+  introduces immutable per-event IDs and categories.
+- The event-window Cloudflare action now resolves by **event ID** and uses
+  the URL saved with that specific event, not a possibly new current resource
+  or the first matching resource key. Dashboard URL origin checks still apply.
+- Added local search (resource ID/name/message) and independent filters for
+  incidents/recoveries/updates. Does not change compact card dimensions.
+- Old `events.json` records remain readable. The migration assigns
+  deterministic legacy IDs and categories in memory, which are persisted the
+  next time event history is written. Missing historical URLs stay unavailable,
+  rather than being guessed from the current resource.
+- Rust unit tests cover two events for one Worker pointing at different
+  deployments, legacy record normalization, malicious Dashboard destinations,
+  and WAF recovery category. JavaScript tests cover search/filter semantics,
+  invalid timestamps and event-specific native invocation.
+- Actual CI results for this commit must be checked after the single explicit
+  Preflight. This is not native KDE or live Cloudflare integration acceptance.

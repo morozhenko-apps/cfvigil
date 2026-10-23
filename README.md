@@ -11,7 +11,7 @@ Free, local-first desktop monitoring for Cloudflare Workers and Pages.
 - Row layout: resource name, relative event time, state lamp, and `⋯` menu for opening the Cloudflare Dashboard.
 - Green: latest Cloudflare build/deployment succeeded; yellow: a newer attempt is running; red: latest attempt failed. Grey means unknown. A new running attempt takes precedence over a failed previous attempt.
 - Automatic resource discovery via Cloudflare REST APIs and a configurable polling interval.
-- Native API-token handling with OS keychain, local event history, deployment/Worker-error/WAF-block notifications, and direct browser links to specific builds, Pages deployment details or zone Security Events. Pending incident focus is retained by Rust until the user opens the resource drawer.
+- Native API-token handling with OS keychain, **searchable/filterable local event history with exact event-specific links**, deployment/Worker-error/WAF-block notifications, and direct browser links to specific builds, Pages deployment details or zone Security Events. Pending incident focus is retained by Rust until the user opens the resource drawer.
 
 ### Known limitations of this initial implementation
 
