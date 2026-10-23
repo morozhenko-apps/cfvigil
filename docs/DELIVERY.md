@@ -126,3 +126,17 @@ The working branch is `dev`. Create a short-lived branch and PR only if
 another agent is already writing to `dev`. Merge, close the temporary PR
 and delete its merged branch after the feature. `main` and release tags
 require explicit owner approval and passing release gates.
+
+## 2026-10-23 GitHub-hosted Preflight compiler diagnosis
+
+Actual GitHub Actions evidence, from `Preflight` push run [39996928456](https://github.com/morozhenko-apps/cfvigil/actions/runs/39996928456) for commit `37fb82872b87c7c08072eaf8d1325634a835868e`:
+
+- `JavaScript syntax and stable tests` **PASS**; the job log records 6 tests, 6 passed, 0 failed.
+- `Install Tauri 2 Linux build dependencies` **PASS**.
+- `cargo check -p cfvigil-desktop` **FAIL**, with two compiler diagnostics:
+  - `E0597` in `cloudflare.rs`: Pages deployment ID/time borrowed from a JSON `result` dropped at the end of the `match`. Fixed by owning strings before leaving the result scope in source commit `d406634f2a2059b965505fc8e29af33e1b62d2b4`.
+  - `E0308` in `main.rs`: persistence `map_err` returned `Result<(), &str>` where `Result<(), String>` was declared. Fixed by returning an owned String in commit `6fb19d669e2f29f353ddcf20976c51e6088f02a7`. The same commit gates Windows-only tray imports on non-Linux platforms.
+- Native Rust tests did not run because `cargo check` failed. **Do not count them as passed**.
+- At the time of review, GitHub Actions run [40024544307](https://github.com/morozhenko-apps/cfvigil/actions/runs/40024544307), triggered by the second fix, was **pending**. The predecessor run [40024522708](https://github.com/morozhenko-apps/cfvigil/actions/runs/40024522708) was still in progress. No successful Rust check is yet demonstrated.
+
+The connector's general commit-status endpoint was insufficient for GitHub Actions checks, but the GitHub workflow runs collection and job logs can be fetched directly through the approved GitHub connector. Further compiler work should be driven by actual current workflow job diagnostics, not guesses. The documentation-only evidence commit must not start source CI.
