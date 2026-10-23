@@ -12,15 +12,29 @@ on:
       - "**/*.md"
       - "LICENSE"
       - "NOTICE"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: cfvigil-source-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   stable:
+    name: Stable source and desktop checks
     runs-on: [self-hosted, Linux, X64]
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
-      - name: Verify Node.js status rules
+      - name: Check JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in apps/desktop/ui/*.mjs; do
+            node --check "$file"
+          done
+      - name: Run deterministic JavaScript tests
         run: node --test tests/*.test.mjs
       - name: Check Rust desktop source
         run: cargo check -p cfvigil-desktop
-      - name: Run Rust domain tests
+      - name: Run Rust domain and provider tests
         run: cargo test -p cfvigil-desktop
