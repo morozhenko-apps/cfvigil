@@ -2,6 +2,7 @@ mod cloudflare;
 mod analytics;
 mod incident_policy;
 mod incident_store;
+mod polling_policy;
 mod security;
 #[cfg(target_os = "linux")]
 mod linux_surface;
@@ -10,6 +11,7 @@ mod linux_tray;
 
 use cloudflare::{Cloudflare, Resource};
 use incident_store::{IncidentJournal, NotificationWindow};
+use polling_policy::poll_delay;
 use serde::{Deserialize, Serialize};
 use std::{
     fs,
@@ -19,8 +21,7 @@ use std::{
         atomic::{AtomicBool, Ordering},
         Mutex,
     },
-    time::Duration,
-};
+ };
 use tauri::{AppHandle, Emitter, Manager, State};
 #[cfg(not(target_os = "linux"))]
 use tauri::{
@@ -123,6 +124,7 @@ struct IncidentNotice {
 #[derive(Serialize)]
 struct Snapshot {
     ready: bool,
+    configured: bool,
     resources: Vec<Resource>,
     pending_incident: Option<IncidentNotice>,
 }
@@ -136,6 +138,7 @@ struct AppState {
     pending_incident: Mutex<Option<IncidentNotice>>,
     ready: AtomicBool,
     refresh_lock: tokio::sync::Mutex<()>,
+    poll_refresh: tokio::sync::watch::Sender<u64>,
 }
 
 fn data_path(app: &AppHandle, filename: &str) -> Result<PathBuf, String> {
@@ -176,13 +179,36 @@ fn get_settings(state: State<'_, AppState>) -> Config {
     state.config.lock().unwrap().clone()
 }
 
-#[tauri::command]
-fn get_snapshot(state: State<'_, AppState>) -> Snapshot {
+fn current_snapshot(state: &AppState) -> Snapshot {
     Snapshot {
         ready: state.ready.load(Ordering::Acquire),
+        configured: !state.config.lock().unwrap().account_id.is_empty(),
         resources: state.resources.lock().unwrap().clone(),
         pending_incident: state.pending_incident.lock().unwrap().clone(),
     }
+}
+
+fn publish_snapshot(app: &AppHandle, state: &AppState) {
+    let _ = app.emit("cfvigil-resources", current_snapshot(state));
+}
+
+fn invalidate_resources(state: &AppState, reason: &str) {
+    state.ready.store(false, Ordering::Release);
+    for resource in state.resources.lock().unwrap().iter_mut() {
+        resource.status = "unknown".into();
+        resource.detail = reason.to_owned();
+    }
+}
+
+fn report_sync_failure(app: &AppHandle, state: &AppState, message: &str) {
+    invalidate_resources(state, "Cloudflare data is stale or unavailable");
+    publish_snapshot(app, state);
+    let _ = app.emit("cfvigil-sync-error", message);
+}
+
+#[tauri::command]
+fn get_snapshot(state: State<'_, AppState>) -> Snapshot {
+    current_snapshot(&state)
 }
 
 #[tauri::command]
@@ -209,10 +235,15 @@ async fn save_settings(
     if ![60, 180, 300, 600].contains(&refresh_seconds) {
         return Err("Unsupported refresh interval".into());
     }
+    if token.as_ref().is_some_and(|value| {
+        value.len() < 20 || value.len() > 4096 || value.chars().any(char::is_whitespace)
+    }) {
+        return Err("Invalid API token format".into());
+    }
+    // Serialize credentials, settings and network reads: no request may use
+    // an old account ID with a newly replaced OS-keyring token.
+    let _refresh_guard = state.refresh_lock.lock().await;
     if let Some(token) = token {
-        if token.len() < 20 || token.len() > 4096 || token.chars().any(char::is_whitespace) {
-            return Err("Invalid API token format".into());
-        }
         tauri::async_runtime::spawn_blocking(move || {
             token_entry()?.set_password(&token).map_err(|_| "Could not store token in OS keychain".to_string())
         }).await.map_err(|_| "Credential service unavailable")??;
@@ -220,8 +251,6 @@ async fn save_settings(
         tauri::async_runtime::spawn_blocking(load_token)
             .await.map_err(|_| "Credential service unavailable")??;
     }
-    // Prevent a completed fetch for the old account from overwriting new settings.
-    let _refresh_guard = state.refresh_lock.lock().await;
     let next = Config { account_id, refresh_seconds };
     let old_account = state.config.lock().unwrap().account_id.clone();
     write_json(&app, "settings.json", &next)?;
@@ -238,15 +267,15 @@ async fn save_settings(
             eprintln!("CFVigil: could not reset the incident journal");
         }
     } else {
-        // A token refresh or interval change does not resolve or rearm
-        // ongoing incidents. Mark old data stale until the next poll.
-        for resource in state.resources.lock().unwrap().iter_mut() {
-            resource.status = "unknown".into();
-        }
+        // Changes in settings never count as a verified recovery.
+        invalidate_resources(&state, "Cloudflare data pending refresh");
     }
     *state.pending_incident.lock().unwrap() = None;
-    let handle = app.clone();
-    tauri::async_runtime::spawn(async move { refresh_once(handle).await; });
+    publish_snapshot(&app, &state);
+    // The existing poller wakes once; no second asynchronous polling task.
+    state.poll_refresh.send_modify(|revision| {
+        *revision = revision.wrapping_add(1);
+    });
     Ok(())
 }
 
@@ -349,18 +378,18 @@ fn open_history_event(state: State<'_, AppState>, id: String) -> Result<(), Stri
     open::that(url).map_err(|_| "Could not open browser".into())
 }
 
-async fn refresh_once(app: AppHandle) {
+async fn refresh_once(app: AppHandle) -> bool {
     let state = app.state::<AppState>();
     let _refresh_guard = state.refresh_lock.lock().await;
     let config = state.config.lock().unwrap().clone();
     if config.account_id.is_empty() {
-        return;
+        return true;
     }
     let token = match tauri::async_runtime::spawn_blocking(load_token).await {
         Ok(Ok(token)) => token,
         _ => {
-            let _ = app.emit("cfvigil-sync-error", "Cloudflare credentials unavailable");
-            return;
+            report_sync_failure(&app, &state, "Cloudflare credentials unavailable");
+            return false;
         }
     };
     let result = match Cloudflare::new() {
@@ -370,15 +399,8 @@ async fn refresh_once(app: AppHandle) {
     let mut resources = match result {
         Ok(resources) => resources,
         Err(message) => {
-            // Stale resources must not be presented as verified green.
-            let mut stale = state.resources.lock().unwrap();
-            for item in stale.iter_mut() {
-                item.status = "unknown".into();
-                item.detail = "Cloudflare data is stale".into();
-            }
-            let _ = app.emit("cfvigil-resources", stale.clone());
-            let _ = app.emit("cfvigil-sync-error", message);
-            return;
+            report_sync_failure(&app, &state, &message);
+            return false;
         }
     };
 
@@ -449,7 +471,7 @@ async fn refresh_once(app: AppHandle) {
     resources.sort_by(|a,b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
     state.ready.store(true, Ordering::Release);
     *state.resources.lock().unwrap() = resources.clone();
-    let _ = app.emit("cfvigil-resources", &resources);
+    publish_snapshot(&app, &state);
     let mut events = Vec::new();
     for current in &resources {
         let old = previous.iter().find(|entry| entry.key == current.key);
@@ -514,14 +536,29 @@ async fn refresh_once(app: AppHandle) {
             eprintln!("CFVigil: could not persist the incident journal");
         }
     }
+    true
 }
 
 fn run_polling(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
+        let mut changes = app.state::<AppState>().poll_refresh.subscribe();
+        let mut failures = 0u32;
         loop {
-            refresh_once(app.clone()).await;
+            // An update while fetching remains unconsumed and triggers
+            // an immediate next cycle after the previous request finishes.
+            let _ = *changes.borrow_and_update();
+            if refresh_once(app.clone()).await {
+                failures = 0;
+            } else {
+                failures = failures.saturating_add(1);
+            }
             let interval = app.state::<AppState>().config.lock().unwrap().refresh_seconds;
-            tokio::time::sleep(Duration::from_secs(interval)).await;
+            tokio::select! {
+                _ = tokio::time::sleep(poll_delay(interval, failures)) => {},
+                update = changes.changed() => {
+                    if update.is_err() { break; }
+                }
+            }
         }
     });
 }
@@ -533,6 +570,7 @@ fn main() {
             let config: Config = read_json(&handle, "settings.json");
             let stored: IncidentJournal = read_json(&handle, "incident-state.json");
             let journal = stored.restore(&config.account_id);
+            let (poll_refresh, _receiver) = tokio::sync::watch::channel(0u64);
             app.manage(AppState {
                 config: Mutex::new(config),
                 resources: Mutex::new(journal.active.clone()),
@@ -546,6 +584,7 @@ fn main() {
                 pending_incident: Mutex::new(None),
                 ready: AtomicBool::new(false),
                 refresh_lock: tokio::sync::Mutex::new(()),
+                poll_refresh,
             });
             #[cfg(target_os = "linux")]
             {
