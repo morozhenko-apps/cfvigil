@@ -348,6 +348,7 @@ async fn refresh_once(app: AppHandle) {
         history.splice(0..0, events);
         history.truncate(500);
         let _ = write_json(&app, "events.json", &*history);
+        let _ = app.emit("cfvigil-history-changed", ());
     }
 }
 
