@@ -1,6 +1,7 @@
 mod cloudflare;
 mod analytics;
 mod incident_policy;
+mod security;
 #[cfg(target_os = "linux")]
 mod linux_surface;
 #[cfg(target_os = "linux")]
@@ -55,6 +56,8 @@ struct HistoryEvent {
     key: String,
     name: String,
     message: String,
+    #[serde(default)]
+    url: String,
 }
 
 #[derive(Serialize)]
@@ -238,7 +241,19 @@ fn open_resource(state: State<'_, AppState>, key: String) -> Result<(), String> 
 
 #[tauri::command]
 fn open_history_resource(state: State<'_, AppState>, key: String) -> Result<(), String> {
-    open_key(&state, &key)
+    if open_key(&state, &key).is_ok() {
+        return Ok(());
+    }
+    // Resolved WAF alerts disappear from the resource drawer but must remain
+    // actionable in the saved event history.
+    let event = state.history.lock().unwrap().iter()
+        .find(|event| event.key == key)
+        .cloned()
+        .ok_or("History resource no longer available")?;
+    if !event.url.starts_with("https://dash.cloudflare.com/") {
+        return Err("Invalid Cloudflare history destination".into());
+    }
+    open::that(event.url).map_err(|_| "Could not open browser".into())
 }
 
 async fn refresh_once(app: AppHandle) {
@@ -313,24 +328,36 @@ async fn refresh_once(app: AppHandle) {
             }
         }
     }
-    let initialized = state.ready.swap(true, Ordering::AcqRel);
+    let security_complete = match security::detect(&config.account_id, &token).await {
+        Ok(waf_issues) => {
+            resources.extend(waf_issues);
+            true
+        }
+        Err(_) => {
+            // WAF analytics outage cannot resolve a previously active alert.
+            for old in previous.iter().filter(|r| r.kind == "zone") {
+                let mut stale = old.clone();
+                stale.status = "unknown".into();
+                stale.detail = "WAF analytics unavailable; previous alert unverified".into();
+                resources.push(stale);
+            }
+            false
+        }
+    };
+    resources.sort_by(|a,b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    state.ready.store(true, Ordering::Release);
     *state.resources.lock().unwrap() = resources.clone();
     let _ = app.emit("cfvigil-resources", &resources);
-    if !initialized {
-        return;
-    }
-
     let mut events = Vec::new();
     for current in &resources {
         let old = previous.iter().find(|entry| entry.key == current.key);
-        // A resource identity alone is not an event. A new build ID or state transition is.
-        let old = match old {
-            Some(old) => old,
-            None => continue,
+        // Only zone-level WAF incidents alert on first observation. Pre-existing
+        // Workers/Pages deployment attempts do not spam at initial launch.
+        let message = match old {
+            Some(old) => incident_policy::describe_transition(old, current),
+            None => incident_policy::initial_security_event(current),
         };
-        let Some(message) = incident_policy::describe_transition(old, current) else {
-            continue;
-        };
+        let Some(message) = message else { continue; };
         if message == "Workers runtime error spike cleared" {
             state.last_notified.lock().unwrap().remove(
                 &format!("{}:runtime-spike", current.key)
@@ -349,6 +376,7 @@ async fn refresh_once(app: AppHandle) {
             key: current.key.clone(),
             name: current.name.clone(),
             message: message.into(),
+            url: current.url.clone(),
         });
         if notification.is_some() {
             show_card(&app);
@@ -356,6 +384,20 @@ async fn refresh_once(app: AppHandle) {
                 "key":current.key,
                 "message":format!("{}: {}", current.name, message),
             }));
+        }
+    }
+    if security_complete {
+        for old in previous.iter().filter(|r| r.kind == "zone" && r.status == "failed") {
+            if !resources.iter().any(|r| r.key == old.key) {
+                state.last_notified.lock().unwrap().remove(&format!("{}:waf-spike", old.key));
+                events.push(HistoryEvent {
+                    at: chrono::Utc::now().to_rfc3339(),
+                    key: old.key.clone(),
+                    name: old.name.clone(),
+                    message: "WAF block spike cleared".into(),
+                    url: old.url.clone(),
+                });
+            }
         }
     }
     if !events.is_empty() {
