@@ -6,7 +6,7 @@ Initial source: `dev`. Release branch: `main`. No change may be fast-forwarded o
 
 - Implemented provider rules for Workers Builds and Pages latest attempts in Rust.
 - Included deterministic Node.js status tests and Rust unit tests, including negative tests for error-rate thresholds, script attribution, spike transitions and GraphQL outages. Node tests were executed in a local copied source snapshot (6 passed); the Rust tests have not been run.
-- GitHub checks workflow runs on self-hosted Linux runners for code changes, excluding documentation-only changes.
+- GitHub Preflight checks now target standard GitHub-hosted Ubuntu 24.04 runners for source changes; documentation-only commits do not trigger push CI.
 - Native KDE GTK Layer Shell and StatusNotifierItem support has been added in source; Tauri Settings Cancel has a settings-only `core:window:allow-hide` permission. Rust compilation, live Cloudflare API acceptance, native KDE tray/Wayland behavior and Windows runtime are **not yet verified**.
 
 ## Required before announcing v0.1.0
@@ -62,30 +62,52 @@ cargo test -p cfvigil-desktop
 
 Inspect Rust compiler diagnostics, correct root causes and rerun only affected checks plus the stable gate before any fast-forward to `main`. Do not ship release artifacts until platform smoke acceptance.
 
-## CI repair: container-required Alcotester runners (2026-10-23)
+## Current CI strategy — public GitHub-hosted runners
 
-**Primary task mode:** B — Testing / verification infrastructure.
+The old container-required Alcotester/self-hosted workflow was superseded.
+CFVigil is public; standard GitHub-hosted runner usage is free for public
+repositories. Its CI should follow RepoTicker's structure rather than changing
+the existing user's self-hosted runner configuration.
 
-**Root cause from existing runner configuration:** both `Alcotester` and `Alcotester-2` are organization-level self-hosted runners using rootless Docker (`DOCKER_HOST=unix:///run/user/1001/docker.sock`). Their configuration requires job containers via `ACTIONS_RUNNER_REQUIRE_JOB_CONTAINER=true`. The existing CFVigil `checks.yml` targets `[self-hosted, Linux, X64]` but has **no `container:` declaration**, so it is incompatible with that requirement before source checkout or compilation.
+- `.github/workflows/checks.yml`: **Preflight** on pushes to `dev`/`main`,
+  PRs against those branches (only for temporary owner/agent conflict PRs),
+  and manual dispatch.
+- `ui` on `ubuntu-24.04`: Node.js 24, JavaScript syntax checks and stable
+  deterministic tests.
+- `desktop` on `ubuntu-24.04`: stable Rust + Linux Tauri dependencies,
+  `cargo check -p cfvigil-desktop` and `cargo test -p cfvigil-desktop`.
+- `preflight` requires both jobs to succeed; a skipped or failed job does
+  not count as success.
+- Docs-only commits are excluded from push-triggered CI; code and documentation
+  commits stay separate. No custom commit-status POST or `statuses: write`
+  permissions are necessary.
+- Standard hosted runners only: **no Alcotester, Alcotester-2 or rootless
+  Docker configuration changes**. Do not run the public-repo CI on the user's
+  private machines.
 
-**Implementation plan (single CI-only stage):**
-1. Add an explicit `ubuntu:24.04` job container, retaining self-hosted runner labels. Do **not** remove/relax container restrictions or change runner service configuration.
-2. Install the Tauri 2 Linux development packages in the ephemeral job container (WebKitGTK 4.1, GTK3, GTK Layer Shell, appindicator, OpenSSL, Wayland, base build tools).
-3. Provision Node.js 24 and a stable Rust toolchain inside that container so CI does not assume software is installed on the host or runner user.
-4. Execute JavaScript syntax checks and unit tests, then `cargo check` and `cargo test` in one stable suite. No repeated suite executions during implementation.
-5. Publish a native GitHub Commit Status named `cfvigil/stable` on completion (whether passed or failed). This does not change release gating; it makes the actual outcome visible through GitHub's standard commit-status API when the connected client cannot list push-workflow jobs. Failure remains a failure and is never suppressed.
-6. Preserve existing docs-only path exclusions, no new `main` commit, no tags, no publishing.
+### What has been checked versus what remains pending
 
-**Validation evidence required:** GitHub status context `cfvigil/stable` for the exact `dev` SHA, job logs for any failed native step, and eventually physical KDE acceptance. Publishing an action or creating a commit is **not proof** that the workflow ran, compiled, or passed.
+The workflow has been committed and confirmed present in `dev`; this is not
+equivalent to successful execution. Rust compilation, native smoke tests,
+Cloudflare API contracts and package installers remain unverified until actual
+workflow logs and physical system evidence are available.
 
-**Risks:** first container pull and Rust/Tauri compilation may require significant network/cache time; the rootless daemon must be available to the runner service. The new workflow needs `statuses: write` permission scoped to the same repository. If the job cannot even start, its reporting step cannot run; the absence of a status must remain `unknown`, not success.
+The repo's **Apache License 2.0** matches RepoTicker byte for byte; `NOTICE`
+provides copyright attribution. Public upstream accepts only structured bug
+reports, not arbitrary Issues, feature requests, external code contributions
+or additional maintainers. Security vulnerabilities should use private
+GitHub advisories; independent forks are allowed under the license.
 
-**Rollback:** revert only the CI workflow commit. No changes to production code, persistent storage, security credentials or runner host configuration.
+### Localization gate before the final test campaign
 
-### CI repair implementation
+See [ROADMAP_TO_1_0.md](ROADMAP_TO_1_0.md). Implement all other features and
+distribution foundations first, then finish **all 20 standard UI locales** and
+document their individual contextual, typography, RTL, grammar and meaning
+audits. Only **after that milestone** run the exhaustive Mode B QA campaign.
+Development-time unit checks and CI remain mandatory during earlier features;
+the ordering rule governs final full release acceptance.
 
-- **Implemented:** `.github/workflows/checks.yml` now declares `container: ubuntu:24.04` and keeps `runs-on: [self-hosted, Linux, X64]`; this complies with the existing `ACTIONS_RUNNER_REQUIRE_JOB_CONTAINER=true` runner policy without changing either runner host.
-- **Implemented:** container-scoped installation of the Tauri/GTK/WebKit/Layer Shell development libraries; Node.js 24 and stable Rust installed by versioned actions; JS syntax/unit tests followed by `cargo check` and `cargo test`.
-- **Implemented:** completion step writes native GitHub Commit Status `cfvigil/stable` to the exact commit being tested. If a test fails, the published state is `failure`, and the job still fails. An unavailable status is **not** success.
-- **Observed from connected GitHub after commit:** the commit-status query for `bcbe07a8949326979fc414ae3bb03862dbbe5fd2` returned an empty `statuses` array. Therefore CI startup and Rust results are still **unverified** at this point, including whether the new container can pull or initialize.
-- **Further verification:** obtain the `cfvigil/stable` result for the actual latest code commit plus Actions job log before proceeding to a release or `main`. If there is no status, inspect `gh run list --repo morozhenko-apps/cfvigil --branch dev --limit 5` from an authorized terminal on Alcotester. Do not infer success from a push or from absence of an error.
+The working branch is `dev`. Create a short-lived branch and PR only if
+another agent is already writing to `dev`. Merge, close the temporary PR
+and delete its merged branch after the feature. `main` and release tags
+require explicit owner approval and passing release gates.
