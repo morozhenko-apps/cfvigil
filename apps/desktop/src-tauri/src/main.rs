@@ -345,7 +345,16 @@ async fn refresh_once(app: AppHandle) {
         }
     }
     let security_complete = match security::detect(&config.account_id, &token).await {
-        Ok(waf_issues) => {
+        Ok(mut waf_issues) => {
+            for current in &mut waf_issues {
+                // Show when the ongoing spike was first detected, not the
+                // latest polling time. Preserve this across API outages.
+                if let Some(old) = previous.iter().find(|old| {
+                    old.key == current.key && old.attempt_id == "waf-block-spike"
+                }) {
+                    current.changed_at = old.changed_at.clone();
+                }
+            }
             resources.extend(waf_issues);
             true
         }
