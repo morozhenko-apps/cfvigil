@@ -1,4 +1,5 @@
 mod cloudflare;
+mod analytics;
 #[cfg(target_os = "linux")]
 mod linux_surface;
 #[cfg(target_os = "linux")]
@@ -8,6 +9,7 @@ use cloudflare::{Cloudflare, Resource};
 use serde::{Deserialize, Serialize};
 use std::{
     fs,
+    collections::HashSet,
     path::PathBuf,
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -144,6 +146,8 @@ async fn save_settings(
         tauri::async_runtime::spawn_blocking(load_token)
             .await.map_err(|_| "Credential service unavailable")??;
     }
+    // Prevent a completed fetch for the old account from overwriting new settings.
+    let _refresh_guard = state.refresh_lock.lock().await;
     let next = Config { account_id, refresh_seconds };
     write_json(&app, "settings.json", &next)?;
     *state.config.lock().unwrap() = next;
@@ -252,7 +256,7 @@ async fn refresh_once(app: AppHandle) {
         Ok(api) => api.discover(&config.account_id, &token).await,
         Err(message) => Err(message),
     };
-    let resources = match result {
+    let mut resources = match result {
         Ok(resources) => resources,
         Err(message) => {
             // Stale resources must not be presented as verified green.
@@ -268,6 +272,28 @@ async fn refresh_once(app: AppHandle) {
     };
 
     let previous = state.resources.lock().unwrap().clone();
+    let worker_names: HashSet<String> = resources.iter()
+        .filter(|resource| resource.kind == "worker")
+        .map(|resource| resource.name.clone()).collect();
+    // Metrics never probe the deployed application. Unavailable analytics
+    // leave deployment status unchanged rather than inventing an incident.
+    if let Ok(spikes) = analytics::query_spikes(&config.account_id, &token, &worker_names).await {
+        for resource in resources.iter_mut().filter(|resource| resource.kind == "worker") {
+            if let Some(spike) = spikes.get(&resource.name) {
+                let old_alert = previous.iter().find(|old| old.key == resource.key)
+                    .filter(|old| old.detail.starts_with("Workers errors spiking:"));
+                resource.changed_at = old_alert
+                    .map(|old| old.changed_at.clone())
+                    .unwrap_or_else(|| chrono::Utc::now().to_rfc3339());
+                resource.status = "failed".into();
+                resource.detail = format!(
+                    "Workers errors spiking: {} errors / {} requests ({:.1}%)",
+                    spike.errors, spike.requests, spike.ratio * 100.0
+                );
+                resource.attempt_id = "runtime-error-spike".into();
+            }
+        }
+    }
     let initialized = state.ready.swap(true, Ordering::AcqRel);
     *state.resources.lock().unwrap() = resources.clone();
     let _ = app.emit("cfvigil-resources", &resources);
@@ -279,18 +305,29 @@ async fn refresh_once(app: AppHandle) {
     for current in &resources {
         let old = previous.iter().find(|entry| entry.key == current.key);
         // A resource identity alone is not an event. A new build ID or state transition is.
-        if let Some(old) = old {
-            if old.attempt_id == current.attempt_id && old.status == current.status {
-                continue;
-            }
-        } else {
+        let old = match old {
+            Some(old) => old,
+            None => continue,
+        };
+        let current_spike = current.detail.starts_with("Workers errors spiking:");
+        let old_spike = old.detail.starts_with("Workers errors spiking:");
+        // Do not re-alert each poll, even if the Worker was redeployed while
+        // the same runtime error spike remained active.
+        if current_spike && old_spike { continue; }
+        if old.attempt_id == current.attempt_id && old.status == current.status {
             continue;
         }
-        let message = match current.status.as_str() {
-            "failed" => "Latest Cloudflare build/deployment failed",
-            "deploying" => "New Cloudflare build/deployment started",
-            "healthy" => "Latest Cloudflare deployment succeeded",
-            _ => continue,
+        let message = if current_spike {
+            "Workers runtime error spike detected"
+        } else if old_spike {
+            "Workers runtime error spike cleared"
+        } else {
+            match current.status.as_str() {
+                "failed" => "Latest Cloudflare build/deployment failed",
+                "deploying" => "New Cloudflare build/deployment started",
+                "healthy" => "Latest Cloudflare deployment succeeded",
+                _ => continue,
+            }
         };
         events.push(HistoryEvent {
             at: chrono::Utc::now().to_rfc3339(),
@@ -302,7 +339,7 @@ async fn refresh_once(app: AppHandle) {
             show_card(&app);
             let _ = app.emit("cfvigil-incident", serde_json::json!({
                 "key":current.key,
-                "message":format!("{}: latest deployment failed", current.name),
+                "message":format!("{}: {}", current.name, message),
             }));
         }
     }
