@@ -70,6 +70,21 @@ The name CFVigil appears in About, not in the card.
 
 GitHub CI, HTTP probing, automatic rollbacks, WAF management, request graphs, Telegram, paid services, direct edits of Workers/Pages, and a cloud relay.
 
-## Planned before stable v1.0
+## Planned before stable v1.0.0
 
-Full WAF/zone API verification, account/zone scoping, native KDE Layer Shell anchoring, native Windows smoke acceptance, signed APT/R2 distribution like RepoTicker, autostart, EN/RU UI, negative tests and a final Mode B QA campaign.
+The authoritative phase order is in [ROADMAP_TO_1_0.md](ROADMAP_TO_1_0.md):
+complete and validate all monitoring, incident, native desktop and distribution
+features first; then add the **same 20 UI locales as PersonalLanding**
+(`en`, `ru`, `es`, `pt`, `de`, `fr`, `it`, `pl`, `hi`,
+`zh-Hant`, `ja`, `nl`, `sv`, `tr`, `ko`, `bn`, `th`,
+`id`, `fil`, `ar`); perform a **contextual and UX audit for every locale**;
+only then run the comprehensive Mode B QA, physical acceptance, version/release
+audit and stable 1.0.0 release.
+
+`pt` means European Portuguese; `zh-Hant` means Traditional Chinese;
+Arabic UI must have correct RTL handling. A simple translation-key existence
+check is not sufficient for the contextual audit.
+
+CFVigil remains Apache-2.0, free and open-source, but upstream only accepts
+reproducible bug reports through its Issue Form. No outside code contributions,
+maintainers or feature request queue. See [CONTRIBUTING.md](../CONTRIBUTING.md).
