@@ -19,6 +19,20 @@ on:
       - '.github/PULL_REQUEST_TEMPLATE.md'
   pull_request:
     branches: [dev, main]
+    paths-ignore:
+      - 'docs/**'
+      - 'doc/**'
+      - '**/docs/**'
+      - '**/doc/**'
+      - 'README.md'
+      - '**/README.md'
+      - 'AGENTS.md'
+      - '**/AGENTS.md'
+      - 'CONTRIBUTING.md'
+      - 'NOTICE'
+      - 'LICENSE'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
   workflow_dispatch:
 
 permissions:
