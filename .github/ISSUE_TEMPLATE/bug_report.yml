@@ -1,0 +1,103 @@
+name: Bug report
+description: Report a reproducible CFVigil defect (no feature requests)
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        CFVigil accepts reproducible bug reports only.
+        Before submitting, remove Cloudflare API tokens, account and zone IDs,
+        private Worker names, private domains, request headers, personal paths,
+        usernames and other sensitive data from logs and screenshots.
+        Report security vulnerabilities privately using the Security link.
+        Feature requests and external code contributions are not accepted upstream;
+        fork the repository if you want a different feature set.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - System tray and compact card
+        - Resource discovery
+        - Worker build or deployment status
+        - Pages deployment status
+        - Worker error-spike analytics
+        - WAF or security incident
+        - Alerts and event history
+        - Settings or Cloudflare API token
+        - Installation or update
+        - Other reproducible defect
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: CFVigil version or Git commit SHA
+      placeholder: "0.1.0 or a commit SHA from dev"
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: OS, desktop environment and session
+      placeholder: "Ubuntu 26.04, KDE Plasma 6, Wayland / Windows 11"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: installation
+    attributes:
+      label: Installation method
+      options:
+        - From source (cargo run)
+        - DEB
+        - AppImage
+        - Windows installer
+        - Other / not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open CFVigil.
+        2. ...
+        3. Observe the problem.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Sanitized logs, screenshots and approximate event time (optional)
+      description: Use non-sensitive examples and include the time zone if reporting incorrect event timestamps.
+
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Before submitting
+      options:
+        - label: I checked for an existing report of this bug.
+          required: true
+        - label: I removed all credentials, API tokens and sensitive Cloudflare details.
+          required: true
