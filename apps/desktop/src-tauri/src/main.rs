@@ -21,7 +21,7 @@ use std::{
         atomic::{AtomicBool, Ordering},
         Mutex,
     },
- };
+};
 use tauri::{AppHandle, Emitter, Manager, State};
 #[cfg(not(target_os = "linux"))]
 use tauri::{
@@ -692,6 +692,37 @@ mod security_tests {
         let recovery = super::new_history_event(&resource, "WAF block spike cleared", 0);
         assert_eq!(recovery.category, "recovery");
         assert!(!recovery.id.is_empty());
+    }
+
+    #[test]
+    fn provider_and_keyring_failures_invalidate_verified_status() {
+        use super::*;
+        let (poll_refresh, _rx) = tokio::sync::watch::channel(0u64);
+        let previously_healthy = cloudflare::Resource {
+            key: "worker:api".into(), name: "api".into(), kind: "worker".into(),
+            status: "healthy".into(), changed_at: "2026-10-23T12:00:00Z".into(),
+            attempt_id: "build-123".into(), url: "https://dash.cloudflare.com/x".into(),
+            detail: "Latest Cloudflare Workers build".into(),
+        };
+        let state = AppState {
+            config: Mutex::new(Config {account_id:"a".repeat(32),refresh_seconds:60}),
+            resources: Mutex::new(vec![previously_healthy]),
+            history: Mutex::new(Vec::new()),
+            last_notified: Mutex::new(NotificationWindow::default()),
+            journal: Mutex::new(IncidentJournal::empty(&"a".repeat(32))),
+            pending_incident: Mutex::new(None),
+            ready: AtomicBool::new(true),
+            refresh_lock: tokio::sync::Mutex::new(()),
+            poll_refresh,
+        };
+        invalidate_resources(&state, "Credentials unavailable");
+        let snapshot = current_snapshot(&state);
+        assert!(!snapshot.ready);
+        assert!(snapshot.configured);
+        assert_eq!(snapshot.resources.len(), 1);
+        assert_eq!(snapshot.resources[0].status, "unknown");
+        assert_eq!(snapshot.resources[0].detail, "Credentials unavailable");
+        assert_eq!(snapshot.resources[0].attempt_id, "build-123");
     }
 
     #[test]
