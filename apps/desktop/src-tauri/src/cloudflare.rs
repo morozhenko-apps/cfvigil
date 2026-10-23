@@ -37,6 +37,12 @@ fn str_field<'a>(value: &'a Value, key: &str) -> &'a str {
     value.get(key).and_then(Value::as_str).unwrap_or("")
 }
 
+fn parse_worker_scripts(result: &Value) -> Result<Vec<Value>, String> {
+    result.as_array()
+        .cloned()
+        .ok_or_else(|| "Cloudflare Worker Scripts response must be an array".into())
+}
+
 // A new in-progress attempt must turn a previously failed resource yellow.
 pub fn worker_state(build: &Value) -> &'static str {
     match str_field(build, "status") {
@@ -51,6 +57,9 @@ pub fn worker_state(build: &Value) -> &'static str {
 }
 
 pub fn pages_state(deployment: &Value) -> &'static str {
+    if deployment.get("is_skipped").and_then(Value::as_bool) == Some(true) {
+        return "unknown";
+    }
     let status = deployment
         .get("latest_stage")
         .and_then(|stage| stage.get("status"))
@@ -116,6 +125,13 @@ impl Cloudflare {
         Ok((body["result"].clone(), pages))
     }
 
+    // Worker Scripts List is NOT a paginated endpoint. Do not supply
+    // page/per_page parameters that are not in its documented contract.
+    async fn list_workers(&self, token: &str, base: &str) -> Result<Vec<Value>, String> {
+        let (result, _) = self.get(token, &format!("{base}/workers/scripts")).await?;
+        parse_worker_scripts(&result)
+    }
+
     async fn list_paginated(
         &self,
         token: &str,
@@ -140,7 +156,7 @@ impl Cloudflare {
     pub async fn discover(&self, account: &str, token: &str) -> Result<Vec<Resource>, String> {
         let base = format!("/accounts/{account}");
         // Independent failures are explicit. Never turn an unobservable build into green.
-        let workers = self.list_paginated(token, &format!("{base}/workers/scripts")).await;
+        let workers = self.list_workers(token, &base).await;
         let pages = self.list_paginated(token, &format!("{base}/pages/projects")).await;
         if workers.is_err() || pages.is_err() {
             // A temporarily unavailable provider must not silently remove its
@@ -271,6 +287,14 @@ mod tests {
     use serde_json::json;
 
     #[test]
+    fn worker_list_contract_expects_array_without_silent_defaults() {
+        let workers = json!([{"id":"a", "tag":"1234"}, {"id":"b"}]);
+        assert_eq!(parse_worker_scripts(&workers).unwrap().len(), 2);
+        assert!(parse_worker_scripts(&json!({"result":[]})).is_err());
+        assert!(parse_worker_scripts(&Value::Null).is_err());
+    }
+
+    #[test]
     fn next_worker_attempt_overrides_previous_failure() {
         assert_eq!(worker_state(&json!({"status":"stopped","build_outcome":"fail"})), "failed");
         assert_eq!(worker_state(&json!({"status":"running","build_outcome":null})), "deploying");
@@ -291,6 +315,10 @@ mod tests {
         assert_eq!(pages_state(&json!({"latest_stage":{"status":"failure"}})), "failed");
         assert_eq!(pages_state(&json!({"latest_stage":{"status":"success"}})), "healthy");
         assert_eq!(pages_state(&json!({"latest_stage":{"status":"skipped"}})), "unknown");
+        assert_eq!(pages_state(&json!({"latest_stage":{"status":"canceled"}})), "unknown");
+        assert_eq!(pages_state(&json!({"is_skipped":true,"latest_stage":{"status":"success"}})), "unknown");
+        assert_eq!(pages_state(&json!({"is_skipped":false,"latest_stage":{"status":"success"}})), "healthy");
+        assert_eq!(pages_state(&json!({"latest_stage":{"status":"active"}})), "deploying");
     }
 
     #[test]
