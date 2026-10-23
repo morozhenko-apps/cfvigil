@@ -1,38 +1,22 @@
 name: Preflight
 
+# dev is the primary working branch. Pushes to code, docs and agent rules
+# do NOT start CI. An owner/agent requests one complete verification run
+# only after finishing a feature by changing ci/run-preflight.txt.
+# PR verification remains automatic for the exceptional temporary branch.
 on:
   push:
-    branches: [dev, main]
-    paths-ignore:
-      - 'docs/**'
-      - 'doc/**'
-      - '**/docs/**'
-      - '**/doc/**'
-      - 'README.md'
-      - '**/README.md'
-      - 'AGENTS.md'
-      - '**/AGENTS.md'
-      - 'CONTRIBUTING.md'
-      - 'NOTICE'
-      - 'LICENSE'
-      - '.github/ISSUE_TEMPLATE/**'
-      - '.github/PULL_REQUEST_TEMPLATE.md'
+    branches: [dev]
+    paths:
+      - 'ci/run-preflight.txt'
   pull_request:
     branches: [dev, main]
-    paths-ignore:
-      - 'docs/**'
-      - 'doc/**'
-      - '**/docs/**'
-      - '**/doc/**'
-      - 'README.md'
-      - '**/README.md'
-      - 'AGENTS.md'
-      - '**/AGENTS.md'
-      - 'CONTRIBUTING.md'
-      - 'NOTICE'
-      - 'LICENSE'
-      - '.github/ISSUE_TEMPLATE/**'
-      - '.github/PULL_REQUEST_TEMPLATE.md'
+    paths:
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'apps/desktop/**'
+      - 'tests/**'
+      - '.github/workflows/checks.yml'
   workflow_dispatch:
 
 permissions:
@@ -43,33 +27,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  ui:
-    name: JavaScript syntax and stable tests
+  stable:
+    name: Stable UI and Rust verification
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 80
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-      - name: Check all UI module syntax
+      - name: Check JavaScript syntax
         shell: bash
         run: |
           set -euo pipefail
           for file in apps/desktop/ui/*.mjs; do
             node --check "$file"
           done
-      - name: Run stable UI unit tests
+      - name: Run stable JavaScript tests
         run: node --test tests/*.test.mjs
-
-  desktop:
-    name: Rust desktop check and tests (Linux)
-    runs-on: ubuntu-24.04
-    timeout-minutes: 75
-    steps:
-      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
-      - name: Install Tauri 2 Linux build dependencies
+      - name: Install Tauri 2 Linux dependencies
         shell: bash
         run: |
           set -euo pipefail
@@ -82,18 +59,5 @@ jobs:
             libwayland-bin wayland-protocols
       - name: Check Rust desktop
         run: cargo check -p cfvigil-desktop
-      - name: Run Rust desktop and policy tests
+      - name: Run Rust desktop unit and provider tests
         run: cargo test -p cfvigil-desktop
-
-  preflight:
-    name: Preflight result
-    if: always()
-    needs: [ui, desktop]
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Require both jobs green
-        env:
-          RESULTS: ${{ join(needs.*.result, ',') }}
-        run: |
-          echo "$RESULTS"
-          test "$RESULTS" = "success,success"
