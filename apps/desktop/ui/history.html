@@ -1,1 +1,27 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Event History</title><link rel="stylesheet" href="./window.css"><script type="module" src="./history.mjs"></script></head><body><h2>Event History</h2><div id="history" role="list">Loading...</div></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Event History</title>
+  <link rel="stylesheet" href="./window.css">
+  <script type="module" src="./history.mjs"></script>
+</head>
+<body>
+  <h2>Event History</h2>
+  <div class="history-controls">
+    <label for="history-search">Search events
+      <input id="history-search" type="search" placeholder="Resource, event or message..." autocomplete="off">
+    </label>
+    <label for="history-category">Event type
+      <select id="history-category">
+        <option value="all">All events</option>
+        <option value="incident">Incidents</option>
+        <option value="recovery">Recoveries</option>
+        <option value="update">Status updates</option>
+      </select>
+    </label>
+  </div>
+  <p id="history-summary" class="hint" role="status">Loading events...</p>
+  <div id="history" role="list" aria-label="Chronological Cloudflare events"></div>
+</body>
+</html>

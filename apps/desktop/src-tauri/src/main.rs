@@ -53,12 +53,63 @@ impl Default for Config {
 
 #[derive(Clone, Serialize, Deserialize)]
 struct HistoryEvent {
+    #[serde(default)]
+    id: String,
+    #[serde(default)]
+    category: String,
     at: String,
     key: String,
     name: String,
     message: String,
     #[serde(default)]
     url: String,
+}
+
+// Preserve old events.json records, which lacked event IDs and categories.
+// IDs remain stable when new items are prepended or the list is filtered.
+fn classify_history(message: &str) -> &'static str {
+    match message {
+        "Latest Cloudflare build/deployment failed"
+        | "Workers runtime error spike detected"
+        | "WAF block spike detected" => "incident",
+        "Workers runtime error spike cleared"
+        | "WAF block spike cleared" => "recovery",
+        _ => "update",
+    }
+}
+
+fn normalize_history(events: &mut [HistoryEvent]) {
+    for (index, event) in events.iter_mut().enumerate() {
+        if event.id.is_empty() {
+            event.id = format!("legacy:{}:{}", index, event.at);
+        }
+        if event.category.is_empty() {
+            event.category = classify_history(&event.message).into();
+        }
+    }
+}
+
+fn new_history_event(current: &Resource, message: &str, index: usize) -> HistoryEvent {
+    let at = chrono::Utc::now().to_rfc3339();
+    HistoryEvent {
+        id: format!("event:{}:{}", at, index),
+        category: classify_history(message).into(),
+        at,
+        key: current.key.clone(),
+        name: current.name.clone(),
+        message: message.into(),
+        url: current.url.clone(),
+    }
+}
+
+fn history_url<'a>(events: &'a [HistoryEvent], id: &str) -> Result<&'a str, String> {
+    let event = events.iter()
+        .find(|event| !id.is_empty() && event.id == id)
+        .ok_or("History event not found")?;
+    if !trusted_dashboard_url(&event.url) {
+        return Err("Invalid Cloudflare history destination".into());
+    }
+    Ok(&event.url)
 }
 
 #[derive(Clone, Serialize)]
@@ -269,20 +320,14 @@ fn open_resource(state: State<'_, AppState>, key: String) -> Result<(), String> 
 }
 
 #[tauri::command]
-fn open_history_resource(state: State<'_, AppState>, key: String) -> Result<(), String> {
-    if state.resources.lock().unwrap().iter().any(|resource| resource.key == key) {
-        return open_key(&state, &key);
-    }
-    // Resolved WAF alerts disappear from the resource drawer but must remain
-    // actionable in the saved event history.
-    let event = state.history.lock().unwrap().iter()
-        .find(|event| event.key == key)
-        .cloned()
-        .ok_or("History resource no longer available")?;
-    if !trusted_dashboard_url(&event.url) {
-        return Err("Invalid Cloudflare history destination".into());
-    }
-    open::that(event.url).map_err(|_| "Could not open browser".into())
+fn open_history_event(state: State<'_, AppState>, id: String) -> Result<(), String> {
+    // The URL belongs to the selected historical event, not the current
+    // resource (which may now point at a different deployment).
+    let url = {
+        let history = state.history.lock().unwrap();
+        history_url(&history, &id)?.to_owned()
+    };
+    open::that(url).map_err(|_| "Could not open browser".into())
 }
 
 async fn refresh_once(app: AppHandle) {
@@ -409,13 +454,7 @@ async fn refresh_once(app: AppHandle) {
                 continue;
             }
         }
-        events.push(HistoryEvent {
-            at: chrono::Utc::now().to_rfc3339(),
-            key: current.key.clone(),
-            name: current.name.clone(),
-            message: message.into(),
-            url: current.url.clone(),
-        });
+        events.push(new_history_event(current, message, events.len()));
         if notification.is_some() {
             let notice = IncidentNotice {
                 key: current.key.clone(),
@@ -430,13 +469,7 @@ async fn refresh_once(app: AppHandle) {
         for old in previous.iter().filter(|r| r.kind == "zone" && r.attempt_id == "waf-block-spike") {
             if !resources.iter().any(|r| r.key == old.key) {
                 state.last_notified.lock().unwrap().remove(&format!("{}:waf-spike", old.key));
-                events.push(HistoryEvent {
-                    at: chrono::Utc::now().to_rfc3339(),
-                    key: old.key.clone(),
-                    name: old.name.clone(),
-                    message: "WAF block spike cleared".into(),
-                    url: old.url.clone(),
-                });
+                events.push(new_history_event(old, "WAF block spike cleared", events.len()));
             }
         }
     }
@@ -466,7 +499,11 @@ fn main() {
             app.manage(AppState {
                 config: Mutex::new(read_json(&handle, "settings.json")),
                 resources: Mutex::new(Vec::new()),
-                history: Mutex::new(read_json(&handle, "events.json")),
+                history: Mutex::new({
+                    let mut events: Vec<HistoryEvent> = read_json(&handle, "events.json");
+                    normalize_history(&mut events);
+                    events
+                }),
                 last_notified: Mutex::new(HashSet::new()),
                 pending_incident: Mutex::new(None),
                 ready: AtomicBool::new(false),
@@ -528,7 +565,7 @@ fn main() {
             hide_card,
             set_card_expanded,
             open_resource,
-            open_history_resource,
+            open_history_event,
         ])
         .run(tauri::generate_context!())
         .expect("CFVigil startup failed");
@@ -537,6 +574,48 @@ fn main() {
 #[cfg(test)]
 mod security_tests {
     use super::trusted_dashboard_url;
+
+    #[test]
+    fn migrates_legacy_json_history_and_opens_exact_attempt() {
+        let json = r#"[{"at":"2026-10-23T10:00:00Z","key":"worker:alpha",
+            "name":"alpha","message":"Latest Cloudflare build/deployment failed",
+            "url":"https://dash.cloudflare.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/workers/services/view/alpha/production/builds/11111111-1111-4111-8111-111111111111"},
+            {"at":"2026-10-23T10:01:00Z","key":"worker:alpha",
+            "name":"alpha","message":"Latest Cloudflare deployment succeeded",
+            "url":"https://dash.cloudflare.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/workers/services/view/alpha/production/builds/22222222-2222-4222-8222-222222222222"}]"#;
+        let mut history: Vec<super::HistoryEvent> = serde_json::from_str(json).unwrap();
+        super::normalize_history(&mut history);
+        assert_eq!(history.len(), 2);
+        assert_ne!(history[0].id, history[1].id);
+        assert_eq!(history[0].category, "incident");
+        assert_eq!(history[1].category, "update");
+        let first = super::history_url(&history, &history[0].id).unwrap();
+        assert!(first.ends_with("/11111111-1111-4111-8111-111111111111"));
+        let second = super::history_url(&history, &history[1].id).unwrap();
+        assert!(second.ends_with("/22222222-2222-4222-8222-222222222222"));
+        assert!(super::history_url(&history, "missing").is_err());
+        assert_eq!(serde_json::to_value(&history).unwrap()[0]["id"], history[0].id);
+    }
+
+    #[test]
+    fn historical_link_rejects_attacker_host_and_stores_recovery_kind() {
+        let event = super::HistoryEvent {
+            id: "event:1".into(), category: "incident".into(),
+            at: "2026-10-23T10:00:00Z".into(), key: "worker:alpha".into(),
+            name: "alpha".into(), message: "Failed".into(),
+            url: "https://dash.cloudflare.com.evil.example/a".into(),
+        };
+        assert!(super::history_url(&[event], "event:1").is_err());
+        let resource = super::cloudflare::Resource {
+            key: "zone:example".into(), name: "example.net".into(), kind: "zone".into(),
+            status: "failed".into(), changed_at: "".into(), attempt_id: "waf-block-spike".into(),
+            url: "https://dash.cloudflare.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/example.net/security/analytics/events".into(),
+            detail: "".into(),
+        };
+        let recovery = super::new_history_event(&resource, "WAF block spike cleared", 0);
+        assert_eq!(recovery.category, "recovery");
+        assert!(!recovery.id.is_empty());
+    }
 
     #[test]
     fn only_exact_cloudflare_dashboard_host_is_accepted() {
