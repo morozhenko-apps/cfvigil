@@ -30,14 +30,14 @@ A unified alphabetical list of detected Workers and Pages. No type column, branc
 
 For a given resource, inspect the **latest Cloudflare build/deployment attempt**, not the last successful deployment:
 
-- Red: most recent attempt failed, or verified Worker invocation-error spike. WAF attack detection remains planned.
+- Red: most recent attempt failed, a verified Worker invocation-error spike, or a verified zone-level WAF block spike.
 - Yellow: most recent attempt is queued/initializing/running, even if the previous attempt was red.
 - Green: most recent attempt completed successfully.
 - Grey: unknown/unsupported outcome, insufficient permissions, stale response, or unavailable information.
 
 A published version serving traffic does not make a newer failing attempt green. No HTTP health checks or runtime application availability monitoring.
 
-A zone-level security event must not be assigned to a Worker/Pages resource without reliable attribution. Future security monitoring should represent zone-level events truthfully.
+Zone-level WAF monitoring adds a **temporary domain row only while a WAF block spike is detected**; it disappears from the resource drawer when the spike clears. Do not attribute zone security events to Workers/Pages without reliable evidence, and do not label mere WAF blocks as a confirmed attack. The context menu opens the zone Security Events page.
 
 ## Worker runtime error spikes (implemented source, unverified live)
 
@@ -47,7 +47,13 @@ A fresh spike needs at least 100 requests, at least 10 errors and at least 10% e
 
 A repeating incident creates one alert. A missing Analytics response does **not** prove recovery: a previously red error-spike resource becomes grey until metrics are available again. On a new build attempt, a prior build failure no longer determines the status, but a simultaneously active runtime spike stays red.
 
-The token requires **Account Analytics Read** in addition to Workers Scripts Read, Workers CI Read and Pages Read.
+The token requires **Account Analytics Read**, **Zone Read** and **Zone Analytics Read** in addition to Workers Scripts Read, Workers CI Read and Pages Read.
+
+## Zone WAF block spike monitoring (implemented source, unverified live)
+
+Cloudflare zone discovery is automatic, using an account-scoped Zone Read query. A short-time-window aggregated GraphQL query compares blocked WAF events from the latest 10 minutes with the preceding 30 minutes. To reduce false positives, an incident needs at least 100 recent blocks, a 5× increase relative to the equivalent baseline interval, and at least 80 additional blocks. Adaptive sampling and plan-dependent GraphQL responses require real-account validation.
+
+A WAF incident displays a **domain row**, not a fictitious Worker-level attack. Its Cloudflare link opens `/security/analytics/events?action=block`. The row disappears when metrics confirm recovery, while the incident remains in Event History. Failed GraphQL queries preserve the previous zone alert as unknown (grey) rather than indicating recovery.
 
 ## Notifications
 
@@ -66,4 +72,4 @@ GitHub CI, HTTP probing, automatic rollbacks, WAF management, request graphs, Te
 
 ## Planned before stable v1.0
 
-WAF and zone-level attack detection, account/zone scoping, native KDE Layer Shell anchoring, native Windows smoke acceptance, signed APT/R2 distribution like RepoTicker, autostart, EN/RU UI, negative tests and a final Mode B QA campaign.
+Full WAF/zone API verification, account/zone scoping, native KDE Layer Shell anchoring, native Windows smoke acceptance, signed APT/R2 distribution like RepoTicker, autostart, EN/RU UI, negative tests and a final Mode B QA campaign.
