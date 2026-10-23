@@ -61,7 +61,7 @@ function render() {
       menu.className = "resource-menu";
       const open = document.createElement("button");
       open.textContent = "Open in Cloudflare ↗";
-      open.onclick = async () => { clearMenu(); try { await invoke("open_resource", { key: resource.key }); } catch { showIncident("Unable to open Cloudflare"); } };
+      open.onclick = async () => { clearMenu(); try { await invoke("open_resource", { key: resource.key }); } catch { alertOnResources("Unable to open Cloudflare"); } };
       menu.append(open);
       menu.style.top = Math.max(3, Math.min(window.innerHeight - 45, row.getBoundingClientRect().bottom)) + "px";
       row.append(menu);
@@ -74,10 +74,15 @@ function render() {
     if (row.dataset.key === focusedKey) row.scrollIntoView({block:"nearest"});
   });
 }
-function showIncident(message) {
-  const node = byId("incident");
-  node.textContent = message;
-  node.hidden = false;
+// An accessible status message, not a visible overlay over the five-cell card.
+function announce(message) {
+  byId("announcement").textContent = message;
+}
+function alertOnResources(message) {
+  announce(message);
+  const button = byId("toggle-list");
+  button.title = message;
+  if (!expanded) button.classList.add("blink");
 }
 async function toggleList() {
   const next = !expanded;
@@ -89,7 +94,7 @@ async function toggleList() {
     byId("toggle-list").setAttribute("aria-pressed", String(expanded));
     if (expanded) {
       byId("toggle-list").classList.remove("blink");
-      byId("incident").hidden = true;
+      byId("toggle-list").title = "Toggle resource list";
       await invoke("acknowledge_incident");
       render();
     } else {
@@ -98,7 +103,7 @@ async function toggleList() {
       clearMenu();
     }
   } catch {
-    showIncident("Unable to resize the card");
+    alertOnResources("Unable to resize the card");
   }
 }
 byId("toggle-list").onclick = toggleList;
@@ -116,8 +121,9 @@ await listen("cfvigil-card-hidden", () => {
   byId("drawer").hidden = true;
   byId("search-row").hidden = true;
   byId("toggle-list").setAttribute("aria-pressed","false");
-  byId("incident").hidden = true;
   byId("toggle-list").classList.remove("blink");
+  byId("toggle-list").title = "Toggle resource list";
+  announce("");
   clearMenu();
 });
 await listen("cfvigil-resources", ({payload}) => {
@@ -130,16 +136,18 @@ function presentIncident(payload) {
   focusedKey = payload.key;
   // The active text search must not hide the incident target.
   byId("search").value = "";
-  showIncident(payload.message);
-  if (!expanded) byId("toggle-list").classList.add("blink");
-  else render();
+  alertOnResources(payload.message);
+  if (expanded) render();
 }
 await listen("cfvigil-incident", ({payload}) => presentIncident(payload));
-await listen("cfvigil-sync-error", ({payload}) => { showIncident(payload || "Cloudflare API unavailable"); });
+await listen("cfvigil-sync-error", ({payload}) => {
+  announce(payload || "Cloudflare API unavailable");
+  byId("toggle-list").title = payload || "Cloudflare API unavailable";
+});
 try {
   const snapshot = await invoke("get_snapshot");
   resources = snapshot.resources;
   syncAvailable = snapshot.ready;
   render();
   if (snapshot.pending_incident) presentIncident(snapshot.pending_incident);
-} catch { showIncident("Unable to load resources"); }
+} catch { alertOnResources("Unable to load resources"); }
