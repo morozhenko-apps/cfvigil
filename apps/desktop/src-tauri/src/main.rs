@@ -241,7 +241,10 @@ async fn set_card_expanded(app: AppHandle, expanded: bool) -> Result<(), String>
 
 fn trusted_dashboard_url(candidate: &str) -> bool {
     let Ok(parsed) = reqwest::Url::parse(candidate) else { return false };
-    parsed.scheme() == "https"
+    // URL parsers canonicalize :443 away, so insist on the literal
+    // native Dashboard authority as well as validating the parsed origin.
+    candidate.starts_with("https://dash.cloudflare.com/")
+        && parsed.scheme() == "https"
         && parsed.host_str() == Some("dash.cloudflare.com")
         && parsed.port().is_none()
         && parsed.username().is_empty()
