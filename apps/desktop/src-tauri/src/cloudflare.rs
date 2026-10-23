@@ -270,32 +270,34 @@ impl Cloudflare {
                 let result = self
                     .get(token, &format!("{base}/pages/projects/{name}/deployments?per_page=1&page=1"))
                     .await;
+                // Own the strings before the REST result is dropped. Holding
+                // &str into a JSON Value from this match caused Rust E0597.
                 let (state, attempt, timestamp, detail) = match result {
                     Ok((result, _)) => {
                         if let Some(deployment) = result.as_array().and_then(|arr| arr.first()) {
                             (
-                                pages_state(deployment),
-                                str_field(deployment, "id"),
-                                pages_event_time(deployment),
-                                "Latest Cloudflare Pages deployment",
+                                pages_state(deployment).to_owned(),
+                                str_field(deployment, "id").to_owned(),
+                                pages_event_time(deployment).to_owned(),
+                                "Latest Cloudflare Pages deployment".to_owned(),
                             )
                         } else {
-                            ("unknown", "", "", "No Pages deployments")
+                            ("unknown".into(), String::new(), String::new(), "No Pages deployments".into())
                         }
                     }
-                    Err(_) => ("unknown", "", "", "Pages deployment status unavailable"),
+                    Err(_) => ("unknown".into(), String::new(), String::new(), "Pages deployment status unavailable".into()),
                 };
                 let mut url = format!("https://dash.cloudflare.com/{account}/pages/view/{name}");
-                if valid_uuid(attempt) { url.push_str(&format!("/{attempt}")); }
+                if valid_uuid(&attempt) { url.push_str(&format!("/{attempt}")); }
                 resources.push(Resource {
                     key: format!("pages:{name}"),
                     name: name.clone(),
                     kind: "pages".into(),
-                    status: state.into(),
-                    changed_at: timestamp.into(),
-                    attempt_id: attempt.into(),
+                    status: state,
+                    changed_at: timestamp,
+                    attempt_id: attempt,
                     url,
-                    detail: detail.into(),
+                    detail,
                 });
             }
         }
