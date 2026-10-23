@@ -6,3 +6,6 @@ The push containing a change to THIS file requests exactly one Preflight.
 
 2026-10-23: Verify single-job hosted workflow, JS regression and Rust tests
 after correcting the per-commit Actions queue storm.
+
+2026-10-23: Completed Event History milestone — verify event-specific links,
+legacy JSON migration, category/search UX and native Rust unit tests.
