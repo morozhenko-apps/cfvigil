@@ -116,6 +116,7 @@ await listen("cfvigil-card-hidden", () => {
   byId("search-row").hidden = true;
   byId("toggle-list").setAttribute("aria-pressed","false");
   byId("incident").hidden = true;
+  byId("toggle-list").classList.remove("blink");
   clearMenu();
 });
 await listen("cfvigil-resources", ({payload}) => {
@@ -125,6 +126,8 @@ await listen("cfvigil-resources", ({payload}) => {
 });
 await listen("cfvigil-incident", ({payload}) => {
   focusedKey = payload.key;
+  // The active text search must not hide the incident target.
+  byId("search").value = "";
   showIncident(payload.message);
   if (!expanded) byId("toggle-list").classList.add("blink");
   else render();
