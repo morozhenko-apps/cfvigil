@@ -3,6 +3,6 @@
 <label>Cloudflare Account ID<input id="account" placeholder="32-character account ID" autocomplete="off" required></label>
 <label>API Token<input id="token" type="password" autocomplete="new-password" placeholder="Leave blank to keep existing token"></label>
 <label>Refresh interval<select id="interval"><option value="60">1 minute</option><option value="180">3 minutes</option><option value="300">5 minutes</option><option value="600">10 minutes</option></select></label>
-<p class="hint">Use a user API token with Workers Scripts Read, Workers CI Read and Pages Read. Token stays in the operating system's credential store.</p>
+<p class="hint">Use a user API token with Workers Scripts Read, Workers CI Read, Pages Read and Account Analytics Read. Analytics permission is needed for Worker error spikes. Token stays in the OS credential store.</p>
 <div id="message" role="status"></div>
 <div class="footer"><button type="button" id="cancel">Cancel</button><button type="submit">Apply</button></div></form></body></html>
