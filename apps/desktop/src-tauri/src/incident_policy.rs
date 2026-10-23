@@ -39,6 +39,17 @@ pub fn should_notify(current: &Resource, message: &str) -> bool {
             || message == "Workers runtime error spike detected")
 }
 
+pub fn notification_identity(current: &Resource, message: &str) -> Option<String> {
+    if !should_notify(current, message) {
+        return None;
+    }
+    if runtime_spike(current) {
+        Some(format!("{}:runtime-spike", current.key))
+    } else {
+        Some(format!("{}:failed:{}", current.key, current.attempt_id))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -99,6 +110,19 @@ mod tests {
         assert_eq!(describe_transition(&incident, &offline), None);
         assert_eq!(describe_transition(&offline, &resuming), None);
         assert_eq!(describe_transition(&offline, &resolved), Some("Workers runtime error spike cleared"));
+    }
+
+    #[test]
+    fn incident_keys_deduplicate_reconnects_but_distinguish_new_failed_builds() {
+        let old = make("failed", "first", "Cloudflare build");
+        let newer = make("failed", "second", "Cloudflare build");
+        let msg = "Latest Cloudflare build/deployment failed";
+        assert_eq!(notification_identity(&old, msg), notification_identity(&old, msg));
+        assert_ne!(notification_identity(&old, msg), notification_identity(&newer, msg));
+        let spike = make("failed", "runtime-error-spike", "Workers errors spiking: 20 errors / 100 requests");
+        assert_eq!(notification_identity(&spike, "Workers runtime error spike detected"),
+            Some("worker:example:runtime-spike".to_string()));
+        assert_eq!(notification_identity(&spike, "Workers runtime error spike cleared"), None);
     }
 
     #[test]
