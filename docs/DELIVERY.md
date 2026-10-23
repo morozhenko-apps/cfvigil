@@ -107,6 +107,21 @@ audits. Only **after that milestone** run the exhaustive Mode B QA campaign.
 Development-time unit checks and CI remain mandatory during earlier features;
 the ordering rule governs final full release acceptance.
 
+### GitHub default-branch activation boundary
+
+GitHub loads repository Issue Forms from the **default branch**. Currently
+`main` remains the default branch, while the bug-report template and
+`blank_issues_enabled: false` have only been written to `dev`. Thus the
+public Bug report chooser is **configured in source but not yet active**.
+It becomes active after those policy files reach the default branch, or if
+the repository owner explicitly changes its GitHub default branch to `dev`.
+Do not silently change `main` or GitHub repository settings to activate it.
+
+Likewise `workflow_dispatch` requires the workflow file on the default
+branch; push-triggered Preflight on `dev` is the available CI path until
+the owner chooses a default-branch policy or approves integrating the workflow.
+Nothing here authorizes a premature app release.
+
 The working branch is `dev`. Create a short-lived branch and PR only if
 another agent is already writing to `dev`. Merge, close the temporary PR
 and delete its merged branch after the feature. `main` and release tags
