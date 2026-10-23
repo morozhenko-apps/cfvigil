@@ -135,8 +135,10 @@ impl Cloudflare {
         // Independent failures are explicit. Never turn an unobservable build into green.
         let workers = self.list_paginated(token, &format!("{base}/workers/scripts")).await;
         let pages = self.list_paginated(token, &format!("{base}/pages/projects")).await;
-        if workers.is_err() && pages.is_err() {
-            return Err("Cloudflare denied access to Workers and Pages. Check token scopes.".into());
+        if workers.is_err() || pages.is_err() {
+            // A temporarily unavailable provider must not silently remove its
+            // resources or make the aggregate counters look healthier.
+            return Err("Workers or Pages discovery unavailable. Check token scopes and retry.".into());
         }
         let mut resources = Vec::new();
 
