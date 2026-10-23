@@ -336,16 +336,11 @@ async fn refresh_once(app: AppHandle) {
                 &format!("{}:runtime-spike", current.key)
             );
         }
-        let notify = incident_policy::should_notify(current, message);
-        if notify {
-            let identity = if current.detail.starts_with("Workers errors spiking:") {
-                format!("{}:runtime-spike", current.key)
-            } else {
-                format!("{}:failed:{}", current.key, current.attempt_id)
-            };
+        let notification = incident_policy::notification_identity(current, message);
+        if let Some(identity) = notification.as_ref() {
             // Reconnects and transient API errors must not re-alert an
             // already acknowledged attempt as if it were a new failure.
-            if !state.last_notified.lock().unwrap().insert(identity) {
+            if !state.last_notified.lock().unwrap().insert(identity.clone()) {
                 continue;
             }
         }
@@ -355,7 +350,7 @@ async fn refresh_once(app: AppHandle) {
             name: current.name.clone(),
             message: message.into(),
         });
-        if notify {
+        if notification.is_some() {
             show_card(&app);
             let _ = app.emit("cfvigil-incident", serde_json::json!({
                 "key":current.key,
