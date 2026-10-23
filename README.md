@@ -44,8 +44,15 @@ For Ubuntu KDE development, install Tauri's WebKitGTK and GTK dependencies befor
 - No destructive Cloudflare API requests. Native code owns the API token, network requests and browser destination validation.
 - No hosted backend or paid tier.
 
-## Project
+## Project and contribution policy
 
-[Product contract](docs/PRODUCT.md) · [Release/testing gates](docs/DELIVERY.md)
+[Product contract](docs/PRODUCT.md) · [Roadmap to 1.0.0](docs/ROADMAP_TO_1_0.md) ·
+[Release/testing gates](docs/DELIVERY.md) · [Working rules](AGENTS.md)
 
-Apache License 2.0, with [NOTICE](NOTICE). © 2026 Stanislav Moseyko (morozhenko).
+- Open source, free, Apache License 2.0 (identical to RepoTicker), with [NOTICE](NOTICE).
+- **Working branch: `dev`.** `main` is for owner-approved stable integrations/releases.
+- CI uses standard **GitHub-hosted Actions** on the public repository, following RepoTicker's preflight structure. CI is not a CFVigil product integration.
+- **20 UI languages are planned** as the last functionality milestone, after all other MVP features and before the final end-to-end QA campaign; the required locale set and per-language contextual audit are in the roadmap.
+- Upstream [Issues](https://github.com/morozhenko-apps/cfvigil/issues/new/choose) accept **bug reports only** through the structured template. Feature requests and third-party PRs are not accepted; independent forks are permitted under Apache-2.0. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+© 2026 Stanislav Moseyko (morozhenko).
