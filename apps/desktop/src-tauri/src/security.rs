@@ -63,8 +63,11 @@ fn count_group(data: &Value, key: &str) -> Result<f64, String> {
     if groups.len() > 1 {
         return Err("WAF query returned multiple aggregate groups".into());
     }
-    let count = groups.first().map(|g| g.get("count")).flatten()
-        .and_then(Value::as_f64).unwrap_or(0.0);
+    let count = match groups.first() {
+        None => 0.0,
+        Some(group) => group.get("count").and_then(Value::as_f64)
+            .ok_or("WAF aggregate contains an invalid count")?,
+    };
     if !count.is_finite() || count < 0.0 {
         return Err("Invalid WAF aggregate count".into());
     }
