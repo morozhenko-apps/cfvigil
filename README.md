@@ -53,6 +53,6 @@ For Ubuntu KDE development, install Tauri's WebKitGTK and GTK dependencies befor
 - **Working branch: `dev`.** `main` is for owner-approved stable integrations/releases.
 - CI uses standard **GitHub-hosted Actions** on the public repository, following RepoTicker's preflight structure. CI is not a CFVigil product integration.
 - **20 UI languages are planned** as the last functionality milestone, after all other MVP features and before the final end-to-end QA campaign; the required locale set and per-language contextual audit are in the roadmap.
-- Upstream [Issues](https://github.com/morozhenko-apps/cfvigil/issues/new/choose) accept **bug reports only** through the structured template. Feature requests and third-party PRs are not accepted; independent forks are permitted under Apache-2.0. See [CONTRIBUTING.md](CONTRIBUTING.md).
+- Upstream is designed for **structured bug reports only**; feature requests and third-party PRs are not accepted, while independent forks are permitted. The [Bug report form](.github/ISSUE_TEMPLATE/bug_report.yml) is prepared on `dev` but only becomes visible in GitHub's Issues chooser once it reaches the repository's default branch (`main` at present). See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 © 2026 Stanislav Moseyko (morozhenko).
