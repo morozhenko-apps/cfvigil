@@ -387,7 +387,7 @@ async fn refresh_once(app: AppHandle) {
         }
     }
     if security_complete {
-        for old in previous.iter().filter(|r| r.kind == "zone" && r.status == "failed") {
+        for old in previous.iter().filter(|r| r.kind == "zone" && r.attempt_id == "waf-block-spike") {
             if !resources.iter().any(|r| r.key == old.key) {
                 state.last_notified.lock().unwrap().remove(&format!("{}:waf-spike", old.key));
                 events.push(HistoryEvent {
