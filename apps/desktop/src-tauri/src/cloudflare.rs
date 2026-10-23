@@ -26,6 +26,13 @@ fn valid_name(input: &str) -> bool {
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
 }
 
+fn valid_uuid(value: &str) -> bool {
+    value.len() == 36 && value.bytes().enumerate().all(|(i, byte)| {
+        if matches!(i, 8 | 13 | 18 | 23) { byte == b'-' }
+        else { byte.is_ascii_hexdigit() }
+    })
+}
+
 fn str_field<'a>(value: &'a Value, key: &str) -> &'a str {
     value.get(key).and_then(Value::as_str).unwrap_or("")
 }
@@ -198,6 +205,10 @@ impl Cloudflare {
                 } else {
                     ("unknown", "", "", "Workers Builds unavailable")
                 };
+                let mut url = format!("https://dash.cloudflare.com/{account}/workers/services/view/{name}/production");
+                if detail == "Latest Cloudflare Workers build" && valid_uuid(attempt) {
+                    url.push_str(&format!("/builds/{attempt}"));
+                }
                 resources.push(Resource {
                     key: format!("worker:{name}"),
                     name: name.clone(),
@@ -205,7 +216,7 @@ impl Cloudflare {
                     status: state.into(),
                     changed_at: timestamp.into(),
                     attempt_id: attempt.into(),
-                    url: format!("https://dash.cloudflare.com/{account}/workers/services/view/{name}/production"),
+                    url,
                     detail: detail.into(),
                 });
             }
@@ -234,6 +245,8 @@ impl Cloudflare {
                     }
                     Err(_) => ("unknown", "", "", "Pages deployment status unavailable"),
                 };
+                let mut url = format!("https://dash.cloudflare.com/{account}/pages/view/{name}");
+                if valid_uuid(attempt) { url.push_str(&format!("/{attempt}")); }
                 resources.push(Resource {
                     key: format!("pages:{name}"),
                     name: name.clone(),
@@ -241,7 +254,7 @@ impl Cloudflare {
                     status: state.into(),
                     changed_at: timestamp.into(),
                     attempt_id: attempt.into(),
-                    url: format!("https://dash.cloudflare.com/{account}/pages/view/{name}"),
+                    url,
                     detail: detail.into(),
                 });
             }
@@ -288,6 +301,14 @@ mod tests {
         assert!(deployed_after_build(&newer, &build));
         assert!(!deployed_after_build(&older, &build));
         assert!(!deployed_after_build(&json!({}), &build));
+    }
+
+    #[test]
+    fn accepts_only_real_uuid_shapes_for_deep_links() {
+        assert!(valid_uuid("d1a48d17-1547-4097-9ac4-26f092366eb4"));
+        assert!(!valid_uuid("unknown"));
+        assert!(!valid_uuid("a1234567-aaaa-bbbb-cccc-dddddddddddd/redirect"));
+        assert!(!valid_uuid(""));
     }
 
     #[test]
