@@ -37,6 +37,30 @@ fn str_field<'a>(value: &'a Value, key: &str) -> &'a str {
     value.get(key).and_then(Value::as_str).unwrap_or("")
 }
 
+fn first_time<'a>(value: &'a Value, fields: &[&str]) -> &'a str {
+    fields.iter().map(|field| str_field(value, field))
+        .find(|timestamp| !timestamp.is_empty()).unwrap_or("")
+}
+
+fn worker_event_time(build: &Value) -> &str {
+    match str_field(build, "status") {
+        "stopped" => first_time(build, &["stopped_on", "modified_on", "created_on"]),
+        "running" => first_time(build, &["running_on", "modified_on", "created_on"]),
+        "initializing" => first_time(build, &["initializing_on", "modified_on", "created_on"]),
+        _ => first_time(build, &["created_on", "modified_on"]),
+    }
+}
+
+fn pages_event_time(deployment: &Value) -> &str {
+    let stage = &deployment["latest_stage"];
+    let latest = match str_field(stage, "status") {
+        "active" | "idle" => first_time(stage, &["started_on", "ended_on"]),
+        _ => first_time(stage, &["ended_on", "started_on"]),
+    };
+    if !latest.is_empty() { latest }
+    else { first_time(deployment, &["modified_on", "created_on"]) }
+}
+
 fn parse_worker_scripts(result: &Value) -> Result<Vec<Value>, String> {
     result.as_array()
         .cloned()
@@ -212,7 +236,7 @@ impl Cloudflare {
                     let deployed = active.as_ref().expect("checked above");
                     ("healthy", str_field(deployed, "id"), str_field(deployed, "created_on"), "Latest Worker deployment")
                 } else if let Some(build) = build.filter(|_| builds_available) {
-                    (worker_state(build), str_field(build, "build_uuid"), str_field(build, "created_on"), "Latest Cloudflare Workers build")
+                    (worker_state(build), str_field(build, "build_uuid"), worker_event_time(build), "Latest Cloudflare Workers build")
                 } else if builds_available {
                     match active.as_ref() {
                         Some(deployed) => ("healthy", str_field(deployed, "id"), str_field(deployed, "created_on"), "Latest Worker deployment"),
@@ -252,7 +276,7 @@ impl Cloudflare {
                             (
                                 pages_state(deployment),
                                 str_field(deployment, "id"),
-                                str_field(deployment, "created_on"),
+                                pages_event_time(deployment),
                                 "Latest Cloudflare Pages deployment",
                             )
                         } else {
@@ -329,6 +353,36 @@ mod tests {
         assert!(deployed_after_build(&newer, &build));
         assert!(!deployed_after_build(&older, &build));
         assert!(!deployed_after_build(&json!({}), &build));
+    }
+
+    #[test]
+    fn status_transition_time_is_not_build_creation_time() {
+        let build = json!({
+            "status": "stopped", "created_on":"2026-10-23T09:00:00Z",
+            "running_on":"2026-10-23T09:01:00Z",
+            "stopped_on":"2026-10-23T09:20:00Z"
+        });
+        assert_eq!(worker_event_time(&build), "2026-10-23T09:20:00Z");
+        let running = json!({
+            "status":"running", "created_on":"2026-10-23T09:00:00Z",
+            "running_on":"2026-10-23T09:05:00Z"
+        });
+        assert_eq!(worker_event_time(&running), "2026-10-23T09:05:00Z");
+        assert_eq!(worker_event_time(&json!({"status":"queued","created_on":"2026-10-23T09:00:00Z"})),
+            "2026-10-23T09:00:00Z");
+    }
+
+    #[test]
+    fn pages_stage_event_time_tracks_completion() {
+        let done = json!({
+            "created_on":"2026-10-23T09:00:00Z",
+            "latest_stage":{"status":"failure","started_on":"2026-10-23T09:01:00Z","ended_on":"2026-10-23T09:03:00Z"}
+        });
+        assert_eq!(pages_event_time(&done), "2026-10-23T09:03:00Z");
+        let active = json!({"latest_stage":{"status":"active","started_on":"2026-10-23T09:02:00Z"}});
+        assert_eq!(pages_event_time(&active), "2026-10-23T09:02:00Z");
+        let missing = json!({"created_on":"2026-10-23T09:00:00Z","latest_stage":{}});
+        assert_eq!(pages_event_time(&missing), "2026-10-23T09:00:00Z");
     }
 
     #[test]
