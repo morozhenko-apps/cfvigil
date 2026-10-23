@@ -81,3 +81,11 @@ Inspect Rust compiler diagnostics, correct root causes and rerun only affected c
 **Risks:** first container pull and Rust/Tauri compilation may require significant network/cache time; the rootless daemon must be available to the runner service. The new workflow needs `statuses: write` permission scoped to the same repository. If the job cannot even start, its reporting step cannot run; the absence of a status must remain `unknown`, not success.
 
 **Rollback:** revert only the CI workflow commit. No changes to production code, persistent storage, security credentials or runner host configuration.
+
+### CI repair implementation
+
+- **Implemented:** `.github/workflows/checks.yml` now declares `container: ubuntu:24.04` and keeps `runs-on: [self-hosted, Linux, X64]`; this complies with the existing `ACTIONS_RUNNER_REQUIRE_JOB_CONTAINER=true` runner policy without changing either runner host.
+- **Implemented:** container-scoped installation of the Tauri/GTK/WebKit/Layer Shell development libraries; Node.js 24 and stable Rust installed by versioned actions; JS syntax/unit tests followed by `cargo check` and `cargo test`.
+- **Implemented:** completion step writes native GitHub Commit Status `cfvigil/stable` to the exact commit being tested. If a test fails, the published state is `failure`, and the job still fails. An unavailable status is **not** success.
+- **Observed from connected GitHub after commit:** the commit-status query for `bcbe07a8949326979fc414ae3bb03862dbbe5fd2` returned an empty `statuses` array. Therefore CI startup and Rust results are still **unverified** at this point, including whether the new container can pull or initialize.
+- **Further verification:** obtain the `cfvigil/stable` result for the actual latest code commit plus Actions job log before proceeding to a release or `main`. If there is no status, inspect `gh run list --repo morozhenko-apps/cfvigil --branch dev --limit 5` from an authorized terminal on Alcotester. Do not infer success from a push or from absence of an error.
