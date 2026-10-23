@@ -60,10 +60,17 @@ struct HistoryEvent {
     url: String,
 }
 
+#[derive(Clone, Serialize)]
+struct IncidentNotice {
+    key: String,
+    message: String,
+}
+
 #[derive(Serialize)]
 struct Snapshot {
     ready: bool,
     resources: Vec<Resource>,
+    pending_incident: Option<IncidentNotice>,
 }
 
 struct AppState {
@@ -71,6 +78,7 @@ struct AppState {
     resources: Mutex<Vec<Resource>>,
     history: Mutex<Vec<HistoryEvent>>,
     last_notified: Mutex<HashSet<String>>,
+    pending_incident: Mutex<Option<IncidentNotice>>,
     ready: AtomicBool,
     refresh_lock: tokio::sync::Mutex<()>,
 }
@@ -118,7 +126,13 @@ fn get_snapshot(state: State<'_, AppState>) -> Snapshot {
     Snapshot {
         ready: state.ready.load(Ordering::Acquire),
         resources: state.resources.lock().unwrap().clone(),
+        pending_incident: state.pending_incident.lock().unwrap().clone(),
     }
+}
+
+#[tauri::command]
+fn acknowledge_incident(state: State<'_, AppState>) {
+    *state.pending_incident.lock().unwrap() = None;
 }
 
 #[tauri::command]
@@ -159,6 +173,7 @@ async fn save_settings(
     state.ready.store(false, Ordering::Release);
     state.resources.lock().unwrap().clear();
     state.last_notified.lock().unwrap().clear();
+    *state.pending_incident.lock().unwrap() = None;
     let handle = app.clone();
     tauri::async_runtime::spawn(async move { refresh_once(handle).await; });
     Ok(())
@@ -185,6 +200,7 @@ fn show_card(app: &AppHandle) {
 
 #[tauri::command]
 fn hide_card(app: AppHandle) {
+    *app.state::<AppState>().pending_incident.lock().unwrap() = None;
     #[cfg(target_os = "linux")]
     if linux_surface::enabled() {
         let _ = linux_surface::hide(&app);
@@ -379,11 +395,13 @@ async fn refresh_once(app: AppHandle) {
             url: current.url.clone(),
         });
         if notification.is_some() {
+            let notice = IncidentNotice {
+                key: current.key.clone(),
+                message: format!("{}: {}", current.name, message),
+            };
+            *state.pending_incident.lock().unwrap() = Some(notice.clone());
             show_card(&app);
-            let _ = app.emit("cfvigil-incident", serde_json::json!({
-                "key":current.key,
-                "message":format!("{}: {}", current.name, message),
-            }));
+            let _ = app.emit("cfvigil-incident", &notice);
         }
     }
     if security_complete {
@@ -428,6 +446,7 @@ fn main() {
                 resources: Mutex::new(Vec::new()),
                 history: Mutex::new(read_json(&handle, "events.json")),
                 last_notified: Mutex::new(HashSet::new()),
+                pending_incident: Mutex::new(None),
                 ready: AtomicBool::new(false),
                 refresh_lock: tokio::sync::Mutex::new(()),
             });
@@ -482,6 +501,7 @@ fn main() {
             get_settings,
             save_settings,
             get_snapshot,
+            acknowledge_incident,
             get_history,
             hide_card,
             set_card_expanded,
