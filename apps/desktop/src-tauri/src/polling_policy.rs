@@ -22,6 +22,22 @@ mod tests {
         assert_eq!(poll_delay(10000, 0), Duration::from_secs(600));
     }
 
+    #[tokio::test]
+    async fn settings_revisions_are_coalesced_and_not_lost() {
+        let (sender, mut receiver) = tokio::sync::watch::channel(0u64);
+        let _ = *receiver.borrow_and_update();
+        for _ in 0..3 {
+            sender.send_modify(|revision| *revision += 1);
+        }
+        assert!(receiver.has_changed().unwrap());
+        receiver.changed().await.unwrap();
+        assert_eq!(*receiver.borrow_and_update(), 3);
+        assert!(!receiver.has_changed().unwrap());
+        sender.send_modify(|revision| *revision += 1);
+        receiver.changed().await.unwrap();
+        assert_eq!(*receiver.borrow_and_update(), 4);
+    }
+
     #[test]
     fn failures_back_off_without_busy_retries() {
         assert_eq!(poll_delay(60, 1), Duration::from_secs(120));
