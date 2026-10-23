@@ -11,16 +11,17 @@ Free, local-first desktop monitoring for Cloudflare Workers and Pages.
 - Row layout: resource name, relative event time, state lamp, and `⋯` menu for opening the Cloudflare Dashboard.
 - Green: latest Cloudflare build/deployment succeeded; yellow: a newer attempt is running; red: latest attempt failed. Grey means unknown. A new running attempt takes precedence over a failed previous attempt.
 - Automatic resource discovery via Cloudflare REST APIs and a configurable polling interval.
-- Native API-token handling with OS keychain, local event history and failed-attempt notifications that focus the affected row.
+- Native API-token handling with OS keychain, local event history and failed-attempt/Worker-error notifications that focus the affected row.
 
 ### Known limitations of this initial implementation
 
-- **No attack detection or error-spike monitoring yet.** These will be implemented independently, without HTTP health checks or guessed zone-to-Worker attribution.
+- Worker execution error-spike detection is implemented through **read-only Cloudflare GraphQL Analytics**. It compares a recent 10-minute window against the preceding 30-minute window with a 5-minute ingestion buffer, and requires at least 100 recent requests and 10 errors plus a substantial change over baseline. It has not yet been validated against a live account.
+- **Attack detection/WAF monitoring is not implemented yet.** We will not assign a zone-level security event to an unrelated Worker.
 - A previous failed build followed by a newer running build is yellow. A currently serving deployment is not used as proof that an application is healthy.
 - Linux KDE Wayland anchoring now has a native GTK Layer Shell implementation and KSNI tray integration adapted from RepoTicker, but has **not** been physically tested on KDE; fallback window repositioning can be rejected by unsupported Wayland compositors.
 - No signed APT, DEB/AppImage/Windows release workflow, production icons, autostart configuration or localized interface has been accepted for CFVigil.
 - Rust application compilation, Cloudflare live-account API responses and installers have not yet been verified.
-- An account ID and a **user-scoped** API Token with Workers Scripts Read, Workers CI Read and Pages Read are required. Availability of APIs can vary by token and account.
+- An account ID and a **user-scoped** API Token with Workers Scripts Read, Workers CI Read, Pages Read and Account Analytics Read are required. Availability of APIs can vary by token and account.
 - The source currently supports one configured Cloudflare account at a time.
 
 ## Development
