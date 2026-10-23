@@ -57,7 +57,7 @@ A WAF incident displays a **domain row**, not a fictitious Worker-level attack. 
 
 ## Notifications
 
-An important incident brings up the compact card and highlights/blinks **Resources**. Selecting Resources expands the drawer upwards and focuses the affected resource. The user may open the corresponding Cloudflare screen via `⋯`, or ignore it. Repeated polls of an unchanged attempt do not create repeated incidents. A pending alert is stored in native process state until the user opens the resource list or hides the card, so notifications are not lost when WebView event listeners have not started yet.
+An important incident brings up the compact card and highlights/blinks **Resources**. **No extra visual banner/toast overlays the five-cell compact strip.** Incident text is exposed through the Resources tooltip and an offscreen screen-reader live region; the expanded resource row has a detail tooltip. Selecting Resources expands the drawer upwards and focuses the affected resource. The user may open the corresponding Cloudflare screen via `⋯`, or ignore it. Repeated polls of an unchanged attempt do not create repeated incidents. A pending alert is stored in native process state until the user opens the resource list or hides the card, so notifications are not lost when WebView event listeners have not started yet.
 
 ## Settings and tray menu
 
