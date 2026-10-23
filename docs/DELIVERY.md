@@ -15,7 +15,7 @@ Initial source: `dev`. Release branch: `main`. No change may be fast-forwarded o
 2. Confirm token storage under KWallet (Linux), Credential Manager (Windows); credentials never appear in UI payloads/logs.
 3. Run Cloudflare integration tests for successful, failed, running, missing-privilege, no-build, and manually deployed resources. Verify that per-project/build deep links open the correct Cloudflare screen.
 4. Confirm pagination/rate limiting/partial failures and relative event times. Verify account-scoped Zone Read and sampled WAF GraphQL behaviour on Free, including permissions and error thresholds.
-5. Verify upward drawer anchored to tray on KDE Wayland and X11, auto-focus on incidents, right-click menu, settings and history.
+5. Verify upward drawer anchored to tray on KDE Wayland and X11, auto-focus on incidents including cold-start notification delivery, right-click menu, settings and history.
 6. Verify install/upgrade/removal, signed artifacts, release tag-to-main SHA and immutable distribution checksums if a package is shipped.
 
 ## Follow-up scope before 1.0
