@@ -5,7 +5,7 @@ Initial source: `dev`. Release branch: `main`. No change may be fast-forwarded o
 ## Current verification
 
 - Implemented provider rules for Workers Builds and Pages latest attempts in Rust.
-- Included deterministic Node.js status tests and Rust unit tests.
+- Included deterministic Node.js status tests and Rust unit tests, including negative tests for error-rate thresholds, script attribution, spike transitions and GraphQL outages. Node tests were executed in a local copied source snapshot (6 passed); the Rust tests have not been run.
 - GitHub checks workflow runs on self-hosted Linux runners for code changes, excluding documentation-only changes.
 - Native KDE GTK Layer Shell and StatusNotifierItem support has been added in source, but Rust compilation, live Cloudflare API acceptance, native KDE tray/Wayland behavior and Windows runtime are **not yet verified**.
 
@@ -20,7 +20,7 @@ Initial source: `dev`. Release branch: `main`. No change may be fast-forwarded o
 
 ## Follow-up scope before 1.0
 
-- Cloudflare zone/worker error metrics and anomalous traffic with defensible alert thresholds.
+- Worker error-spike detection exists in source but requires live GraphQL validation and conservative threshold tuning. Zone-level WAF/attack detection remains planned.
 - Deduplicated alert transitions, local history retention, notifications and reconciliation after resume/offline.
 - Same Apache-2.0 + NOTICE model and tagged GitHub Releases / R2 / signed APT distribution as RepoTicker.
 - Complete Mode B inventory, positive/negative matrix, branch coverage, stable/flaky separation and physical OS acceptance at release-candidate stage.
