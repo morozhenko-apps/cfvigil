@@ -104,3 +104,23 @@ Do not expand Mode B test coverage until an updated Linux candidate is
 installed and these issues rechecked. Compare implementation against
 RepoTicker's native Wayland drag and Layer Shell anchoring; avoid CSS-only
 fixes for GTK geometry. Keep runtime/config changes separate from docs.
+
+### Remediation batch after first live KDE screenshots
+
+Source remediation includes the RepoTicker-compatible GTK/GDK Wayland
+relative-pointer bridge (Apache-2.0; see NOTICE), persistent bottom/right
+Layer Shell margins in dedicated `card-position.json`, explicit compact
+geometry reallocation on show/collapse, pointer-background drag gestures,
+15-second compact-only inactivity hide, localized Settings content-fit,
+and a single Apply-only write path for language/Cloudflare options.
+
+The old `0.1.0` installed binary is unchanged. **All fixes are UNVERIFIED
+until new Linux/Windows candidate(s) are built and installed.** No Mode B
+coverage may proceed while these reports remain open.
+
+Icon provenance: the repository contains a 1,308-byte `icon.png` with no
+original vector source, explicit creation record or asset attribution. The
+same icon is NOT byte-identical to RepoTicker's current `icon.png`.
+This does **not** establish that the icon is licensed or independently
+created. Treat provenance as **UNRESOLVED**, review/replace it before release;
+do not claim copyright clearance on the basis of source ownership alone.
