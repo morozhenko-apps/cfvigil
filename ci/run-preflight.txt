@@ -82,3 +82,9 @@ no tags, packaging, main, Cloudflare or R2 mutations.
 CLDR plural category parity incl Arabic six forms, UI/native locale parity,
 RTL direction, stable JavaScript/Python and Rust source tests. Deliberate
 feature-validation-only run before any unsigned machine inspection candidate.
+
+2026-10-24: Alcotester physical KDE smoke remediation, compare native
+RepoTicker drag/Wayland layer anchors. Validate relative pointer bridge,
+card bottom/right persistence, compact geometry, 15 s compact-only
+auto-hide, native content-sized Settings and Apply-only language changes.
+One stable JS/Python/Rust source gate, then unreleased candidate retest.
