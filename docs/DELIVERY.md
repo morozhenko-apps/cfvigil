@@ -461,3 +461,27 @@ until the next **single marker-driven** candidate build completes.
 The prior incomplete candidate [#40090926586](https://github.com/morozhenko-apps/cfvigil/actions/runs/40090926586)
 was cancelled by workflow concurrency. No package was published, no
 `main` fast-forward or tag was created.
+
+## 2026-10-24 — Candidate #40092833835, Debian package name mismatch
+
+GitHub-hosted [Linux candidate #40092833835](https://github.com/morozhenko-apps/cfvigil/actions/runs/40092833835)
+at `1a6275fc30bb` completed with failure after Tauri successfully
+built the application, 6.63 MiB DEB and 81.43 MiB AppImage. Node
+and Rust tests passed. The failing step was final Debian artifact
+verification, with `Unexpected Debian package identity/version/architecture`.
+Checksums and artifact uploads did not execute.
+
+Root-cause hypothesis verified against Tauri bundler source: its Debian
+control `Package` field uses `heck::AsKebabCase(settings.product_name())`,
+so the brand `CFVigil` corresponds to Debian package identity
+`cf-vigil`, not `cfvigil` (and not the Rust binary
+`cfvigil-desktop`). The validator was incorrectly enforcing
+`cfvigil`. Updated the exact expected metadata and added explicit
+sanitized field values to future mismatch errors; added a regression
+test rejecting the legacy spelling. The actual DEB control values
+were not printed by that failed run; the next candidate run must
+confirm them before claiming the mismatch fixed.
+
+There were no published packages, release tags, or changes to
+`main`. The workflow must run once more only after code and docs
+are complete; physical installation still requires separate acceptance.
