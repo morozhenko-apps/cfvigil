@@ -39,6 +39,7 @@ This file applies to all coding agents working in this repository.
 
 - Follow `docs/PRODUCT.md` and `docs/ROADMAP_TO_1_0.md` as feature scope.
 - Read existing RepoTicker conventions before modifying tray, packaging or CI.
+- Release publication is enabled only by owner-approved version tag matching exact `main` HEAD AND a protected `cfvigil-release` environment with a matching `CFVIGIL_RELEASE_APPROVED_TAG`. Never create or populate release credentials, advance `main`, add tags, deploy the Worker, or publish R2 objects without explicit owner approval. Use a separate `cfvigil-dist` bucket and dedicated secrets, never the RepoTicker bucket token. See `docs/DISTRIBUTION.md`.
   Public GitHub Actions use **standard GitHub-hosted runners** (ubuntu-24.04,
   and windows-2025 only when Windows CI is introduced). Do not consume or
   change the user's Alcotester self-hosted runners for this open-source app.

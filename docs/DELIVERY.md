@@ -582,3 +582,16 @@ assets to a GitHub Release. No signing key, R2 token, release or deletion
 of previous test artifacts was performed in this development change.
 
 Reference: https://docs.github.com/en/rest/actions/artifacts
+
+## 2026-10-24 — Source implementation: separate signed CFVigil R2 release
+
+The previous R2 artifact retention [Preflight #40103001805](https://github.com/morozhenko-apps/cfvigil/actions/runs/40103001805) completed with success, including stable JS and Rust checks. Both Linux and Windows unsigned candidates had previously passed standalone CI (Linux #40095935553, Windows #40099983469).
+
+Implemented on `dev` without live publication:
+- `infra/download-worker`: CFVigil-specific read-only GET/HEAD download Worker, strictly whitelisted release/APT keys, no mutation endpoints, separate hostname path `/dist/CFVigil/*`, binding to dedicated bucket `cfvigil-dist`. RepoTicker Worker and bucket are untouched.
+- `scripts/apt_repository.py`: offline signed CFVigil APT metadata (Package `cf-vigil`, pool `pool/main/c/cf-vigil/`, Packages, Packages.gz, SHA256 by-hash, InRelease and independent gpgv verification). `verify_signing_key.py` rejects full certification primary material and enforces a dedicated signing subkey.
+- `scripts/r2_release.py`: validates exact Linux/Windows candidate manifest names, checksums, source commit and version, and signed APT pool; uploads immutable objects only under `dist/CFVigil/`; verifies R2 bytes and public GET size/SHA256; updates mutable APT indexes then InRelease last. Only emits a verified receipt after every required readback. No R2 credentials are present in source.
+- `.github/workflows/protected-release.yml`: tag-only version gate requiring exact `main` SHA and committed Cargo.lock; Linux/Windows hosted native builds, independent signed APT, `cfvigil-release` protected environment and per-tag `CFVIGIL_RELEASE_APPROVED_TAG` owner variable. A separate `actions:write` job deletes only matching temporary GitHub release binaries after receipt, then a text-only GitHub Release publishes R2 links (no attachments). Candidates remain separate marker-triggered, read-only one-day builds.
+- Automated Node tests check public Worker whitelists/methods and protected workflow policies. Offline Python unit tests cover release source provenance, tampering, signed APT pool, symlink injection, and public readback without any Cloudflare request.
+
+**No deployment or approval claimed.** The dedicated bucket, Worker route, signing subkey, protected environment, scoped S3 token and WAF exception still require manual provision. The new release workflow lives only on `dev`; source validation CI does NOT exercise real R2, key import, signing or Windows installer runtime. Real deployment and tag/main integration remain blocked until post-localization acceptance and explicit owner authorization. Setup and precise limitations: `docs/DISTRIBUTION.md`.

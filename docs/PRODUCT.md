@@ -282,13 +282,15 @@ This pipeline does **not** create a GitHub Release, push a tag, merge into
 A compiled candidate is not a release acceptance. Verified live installer,
 uninstall, Wayland/X11, keychain, APT and Windows behaviors are still required.
 
-**Outstanding release admission requirements:** commit a reviewed,
-`cargo generate-lockfile`-generated `Cargo.lock`, provide and validate
-complete Windows x64 installer icons and packaging, implement separate
-owner-approved, main/tag-gated signed APT and R2/GitHub publication with
-dedicated CFVigil signing credentials and a unique
-`/dist/CFVigil/` namespace. Never copy RepoTicker signing secrets or publish
-unsigned APT metadata.
+**Release admission is still pending:** a generated `Cargo.lock`
+is now committed, and Linux and Windows unsigned candidate CI jobs have
+passed. Separate signed APT creation, private/public R2 checksum verification,
+and main-tag protected GitHub archive cleanup are implemented in source,
+but not exercised with production signing credentials or deployed R2.
+The CFVigil-only Worker, `cfvigil-dist` bucket and protected release
+environment require explicit owner provisioning. Never reuse RepoTicker
+credentials or publish unsigned APT metadata. See
+[DISTRIBUTION.md](DISTRIBUTION.md).
 
 ## Windows x64 unsigned NSIS candidate and reproducible dependencies
 

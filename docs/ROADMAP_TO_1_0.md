@@ -57,7 +57,8 @@ not claims that a feature has passed acceptance.
 ### 0.6 — Distribution and developer documentation
 - Follow RepoTicker's Apache-2.0 and NOTICE terms.
 - Linux amd64 DEB and AppImage, signed APT publication, Windows x64
-  installer, controlled Cloudflare R2 path/key separation, deterministic
+  installer, dedicated CFVigil R2 bucket `cfvigil-dist` and scoped credentials,
+  controlled Cloudflare R2 path/key separation, deterministic
   versioning and checksums. Tags and optional metadata-only GitHub Releases
   reference R2-hosted downloads; GitHub Releases MUST NOT carry installers,
   checksums, APT repository files or binary attachments.
