@@ -595,3 +595,20 @@ Implemented on `dev` without live publication:
 - Automated Node tests check public Worker whitelists/methods and protected workflow policies. Offline Python unit tests cover release source provenance, tampering, signed APT pool, symlink injection, and public readback without any Cloudflare request.
 
 **No deployment or approval claimed.** The dedicated bucket, Worker route, signing subkey, protected environment, scoped S3 token and WAF exception still require manual provision. The new release workflow lives only on `dev`; source validation CI does NOT exercise real R2, key import, signing or Windows installer runtime. Real deployment and tag/main integration remain blocked until post-localization acceptance and explicit owner authorization. Setup and precise limitations: `docs/DISTRIBUTION.md`.
+
+### Source Preflight failure and corrections
+
+[Preflight #40105010077](https://github.com/morozhenko-apps/cfvigil/actions/runs/40105010077)
+failed at the Node test gate (46 passed, one failed). The Worker originally
+accepted an incorrectly versioned package filename under another release
+directory, e.g. `releases/v1.2.3/linux/cfvigil_1.2.4_amd64.deb`.
+Corrected this at the route-mapping root by extracting the path version
+once and comparing it against exact allowed filenames for that version.
+Regression tests cover mismatched DEB, AppImage and Windows checksums.
+
+Source review also exposed malformed single-brace GitHub Actions expressions
+in the new, unexecuted protected-release YAML. Converted all expressions to
+the required `${{ context.value }}` syntax and added a Node guard rejecting
+single-brace variants. These fixes were committed as source/test changes
+before requesting the next single comprehensive Preflight. No release
+jobs, Cloudflare network calls, secrets or user environment were changed.
