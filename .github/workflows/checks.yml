@@ -16,7 +16,12 @@ on:
       - 'Cargo.lock'
       - 'apps/desktop/**'
       - 'tests/**'
+      - 'scripts/**'
+      - 'infra/**'
       - '.github/workflows/checks.yml'
+      - '.github/workflows/protected-release.yml'
+      - '.github/workflows/package-candidate.yml'
+      - '.github/workflows/windows-candidate.yml'
   workflow_dispatch:
 
 permissions:
@@ -40,11 +45,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in apps/desktop/ui/*.mjs; do
+          for file in apps/desktop/ui/*.mjs scripts/*.mjs infra/download-worker/src/*.mjs; do
             node --check "$file"
           done
       - name: Run stable JavaScript tests
         run: node --test tests/*.test.mjs
+      - name: Run offline release/Cloudflare distribution tests
+        run: python3 -m unittest discover -s tests -p 'test_release_*.py'
       - uses: dtolnay/rust-toolchain@stable
       - name: Install Tauri 2 Linux dependencies
         shell: bash
