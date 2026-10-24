@@ -444,7 +444,24 @@ async fn stop_card_drag(app: AppHandle) -> Result<(), String> {
 fn fit_settings(app: AppHandle, height: f64) -> Result<(), String> {
     if !height.is_finite() { return Err("Invalid settings height".into()); }
     let window = app.get_webview_window("settings").ok_or("Settings window unavailable")?;
-    window.set_size(tauri::LogicalSize::new(460.0, height.clamp(370.0, 740.0)))
+    let height = height.clamp(370.0, 740.0);
+    let scale = window.scale_factor().unwrap_or(1.0);
+    let target_width = (460.0 * scale).round() as i64;
+    let target_height = (height * scale).round() as i64;
+    if let Ok(actual) = window.inner_size() {
+        // Skip an identical OS resize. A no-op must not alter placement on KDE.
+        if (i64::from(actual.width) - target_width).abs() <= 1 &&
+            (i64::from(actual.height) - target_height).abs() <= 1 {
+            return Ok(());
+        }
+        if std::env::var_os("CFVIGIL_UI_DEBUG").is_some() {
+            eprintln!(
+                "CFVigil Settings fit: current={}x{} target={}x{} scale={scale}",
+                actual.width, actual.height, target_width, target_height
+            );
+        }
+    }
+    window.set_size(tauri::LogicalSize::new(460.0, height))
         .map_err(|_| "Unable to size settings window".into())
 }
 
