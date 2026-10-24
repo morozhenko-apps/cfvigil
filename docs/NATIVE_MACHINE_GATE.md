@@ -247,3 +247,22 @@ compact allocation, preserved bottom/right position through repeat
 toggle/restart, no Settings bottom gap, a single close control, and
 window dragging. If native surface is still a fallback, inspect the
 session/GDK report rather than iterating CSS.
+
+### Alcotester fourth observation and compact/Settings visual polish
+
+The owner confirms the KDE Wayland candidate now preserves card position.
+Only a small remaining compact top gap is visible. Settings' undecorated
+window works but its flat white surface blends into a light desktop.
+
+The compact UI consists of fixed 70px action cells within 10px vertical
+padding and 1px borders, so its canonical exact native and Tauri window
+height is now **92px** (previously 122px); preserve the existing card
+bottom/right margins and all drag and expansion logic. The Settings
+surface now has an explicit contrasting background, dark neutral border,
+subtle inset shadow and distinct header/content regions, without
+introducing a second window or resetting its position.
+
+Acceptance **not yet granted**: inspect the new Linux candidate, verify
+there is no compact top gap and no clipping on EN/RU, that Settings has a
+visible perimeter against a light browser/desktop, and that expand/collapse,
+position retention and close/reopen remain correct. No Mode B before this.
