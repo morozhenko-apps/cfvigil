@@ -153,6 +153,9 @@ pub struct Discovery {
     pub complete: bool,
     pub workers_complete: bool,
     pub pages_complete: bool,
+    /// Sanitized endpoint labels + HTTP status only, never request URLs,
+    /// resource names, account IDs, response bodies or credentials.
+    pub warnings: Vec<String>,
 }
 
 impl Cloudflare {
@@ -247,6 +250,13 @@ impl Cloudflare {
             return Err(msg::CF_DISCOVERY_UNAVAILABLE.into());
         }
         let mut complete = workers_complete && pages_complete;
+        let mut warnings = Vec::<String>::new();
+        if let Err(error) = &workers {
+            warnings.push(format!("Workers: {error}"));
+        }
+        if let Err(error) = &pages {
+            warnings.push(format!("Pages: {error} (requires Pages Read)"));
+        }
         let mut resources = Vec::new();
 
         if let Ok(workers) = workers {
@@ -281,9 +291,17 @@ impl Cloudflare {
                             checked_tags.extend(chunk.iter().cloned());
                         } else {
                             complete = false;
+                            if !warnings.iter().any(|w| w.starts_with("Workers Builds:")) {
+                                warnings.push("Workers Builds: invalid Cloudflare response".into());
+                            }
                         }
                     }
-                    Err(_) => { complete = false; }
+                    Err(error) => {
+                        complete = false;
+                        if !warnings.iter().any(|w| w.starts_with("Workers Builds:")) {
+                            warnings.push(format!("Workers Builds: {error} (check Workers CI Read)"));
+                        }
+                    }
                 }
             }
             for (name, tag, _) in script_list {
@@ -298,7 +316,14 @@ impl Cloudflare {
                     .and_then(Value::as_array);
                 let deployment_known = active_result.is_ok() && active.is_some();
                 let builds_known = checked_tags.contains(&tag);
-                if !deployment_known || !builds_known { complete = false; }
+                if !deployment_known || !builds_known {
+                    complete = false;
+                    if !deployment_known && !warnings.iter().any(|w| w.starts_with("Worker deployments:")) {
+                        let reason = active_result.as_ref().err().map(String::as_str)
+                            .unwrap_or("unexpected Cloudflare response");
+                        warnings.push(format!("Worker deployments: {reason}"));
+                    }
+                }
                 let choice = if !deployment_known {
                     select_worker_attempt(None, None, false)
                 } else {
@@ -347,8 +372,11 @@ impl Cloudflare {
                             ("unknown".into(), String::new(), String::new(), msg::DETAIL_PAGES_MALFORMED.into())
                         }
                     }
-                    Err(_) => {
+                    Err(error) => {
                         complete = false;
+                        if !warnings.iter().any(|w| w.starts_with("Pages deployments:")) {
+                            warnings.push(format!("Pages deployments: {error} (requires Pages Read)"));
+                        }
                         ("unknown".into(), String::new(), String::new(), msg::DETAIL_PAGES_UNAVAILABLE.into())
                     },
                 };
@@ -368,7 +396,7 @@ impl Cloudflare {
         }
         resources.sort_by(|a, b| a.name.to_ascii_lowercase().cmp(&b.name.to_ascii_lowercase())
             .then_with(|| a.kind.cmp(&b.kind)));
-        Ok(Discovery { resources, complete, workers_complete, pages_complete })
+        Ok(Discovery { resources, complete, workers_complete, pages_complete, warnings })
     }
 }
 
