@@ -33,3 +33,9 @@ RepoTicker-derived idempotent GTK resize, saved Wayland margins, and
 intrinsic Settings content sizing. NOT A RELEASE. Preserve the exact dev
 SHA and checksum sidecars. Owner must verify Preflight success and Linux
 candidate success before local installation; do not start Mode B.
+
+2026-10-24: Linux native-machine retest candidate v4, unpublished and unsigned.
+Includes RepoTicker-derived early Wayland GDK preference, visible backend log,
+bounded GTK Settings viewport, undecorated draggable Settings with a single
+close control and native card anchor. Check Preflight #40135018274 PASS before
+installation; keep checksum sidecars, dev-only, no Mode B and no R2 upload.
