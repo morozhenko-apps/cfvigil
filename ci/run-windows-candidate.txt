@@ -1,0 +1,5 @@
+CFVigil Windows package candidate explicit gate
+================================================
+This file exclusively triggers an unsigned Windows x64 NSIS candidate
+build on windows-2025. Do not use it for releases or during ordinary dev
+commits. No signing, R2, public URLs or GitHub Releases.

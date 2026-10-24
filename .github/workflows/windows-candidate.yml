@@ -1,0 +1,79 @@
+name: Windows package candidate
+
+# Explicit dev-only Windows build, never a release or R2 publication.
+on:
+  push:
+    branches: [dev]
+    paths:
+      - 'ci/run-windows-candidate.txt'
+
+permissions:
+  contents: read
+concurrency:
+  group: cfvigil-windows-candidate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    name: Build unsigned Windows x64 NSIS candidate
+    runs-on: windows-2025
+    timeout-minutes: 110
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+      - name: Validate source and stable tests
+        run: |
+          node scripts/candidate-version.mjs --check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/*.test.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo check -p cfvigil-desktop
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo test -p cfvigil-desktop
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Install Tauri CLI
+        run: |
+          cargo install tauri-cli --version '^2' --locked
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Generate icon set from committed source PNG
+        working-directory: apps/desktop/src-tauri
+        run: |
+          cargo tauri icon icons/icon.png --output icons/ci-windows
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (!(Test-Path icons/ci-windows/icon.ico)) { throw "Missing generated ICO" }
+      - name: Build unsigned Windows NSIS package
+        working-directory: apps/desktop/src-tauri
+        run: |
+          cargo tauri build --bundles nsis --config tauri.windows.conf.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify Windows PE installer and checksums
+        run: |
+          $target = Join-Path $env:RUNNER_TEMP "cfvigil-windows-candidate"
+          node scripts/windows-candidate-assets.mjs collect --source target/release/bundle --target "$target"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Push-Location $target
+          try {
+            $exe = Get-ChildItem -Filter "*.exe" -File
+            if ($exe.Count -ne 1) { throw "Exactly one NSIS installer required" }
+            $hash = (Get-FileHash $exe[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            $sidecar = (Get-Content ($exe[0].FullName + ".sha256") -Raw).Trim()
+            if ($sidecar -ne "$hash  $($exe[0].Name)") { throw "NSIS SHA256 mismatch" }
+            $signature = Get-AuthenticodeSignature $exe[0].FullName
+            if ($signature.Status -ne "NotSigned") { throw "Unexpected installer signing state" }
+          } finally { Pop-Location }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cfvigil-windows-unreleased-unsigned-candidate
+          path: ${{ runner.temp }}/cfvigil-windows-candidate/*
+          if-no-files-found: error
+          retention-days: 7
