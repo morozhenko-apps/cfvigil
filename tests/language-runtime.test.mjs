@@ -98,7 +98,7 @@ test("independent native language storage cannot wake Cloudflare polling", () =>
   assert.match(read("apps/desktop/src-tauri/src/linux_tray.rs"),/language::menu\(&locale, "open"\)/);
   assert.match(main,/tray\.set_menu\(Some\(menu\)\)/);
   const settings=read("apps/desktop/ui/settings.mjs");
-  assert.doesNotMatch(settings, /invoke\\("set_language"/);
+  assert.ok(!settings.includes('invoke("set_language"'));
   assert.match(settings, /language: language.value/);
   assert.match(settings, /invoke\\("save_settings"/);
   assert.match(settings,/language\.value = confirmedLanguage/);
