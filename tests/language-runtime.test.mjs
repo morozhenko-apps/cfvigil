@@ -186,7 +186,7 @@ test("newly enabled EU locales preserve every key and CLDR category", () => {
     for (const key of ["age.minute", "age.hour", "age.day", "history.eventCount"]) {
       assert.deepEqual(Object.keys(dictionary[key]).sort(), required, locale + ":" + key);
     }
-    assert.match(native, new RegExp('\\("' + locale + '", "settings"\\) => '));
+    assert.ok(native.includes('("'+locale+'", "settings")'), locale);
   }
   assert.equal(t("card.issues", {}, "it"), "Problemi");
   assert.equal(t("card.issues", {}, "pl"), "Problemy");
@@ -199,8 +199,8 @@ test("newly enabled EU locales preserve every key and CLDR category", () => {
 
 test("enabled locales and native supported locales remain in exact sync", () => {
   const native=read("apps/desktop/src-tauri/src/language.rs");
-  const match=native.match(/pub const ACTIVE: &\\[&str\\] = &\\[([^\\]]+)\\]/);
-  assert.ok(match);
-  const actual=[...match[1].matchAll(/"([^"]+)"/g)].map(x=>x[1]);
+  const line=native.split("\n").find(text => text.startsWith("pub const ACTIVE:"));
+  assert.ok(line);
+  const actual=[...line.matchAll(/"([^"]+)"/g)].map(x=>x[1]);
   assert.deepEqual(actual, ACTIVE_LOCALES);
 });

@@ -57,8 +57,8 @@ export default Object.freeze({
   "history.loading": "Wczytywanie zdarzeń...",
   "history.listLabel": "Zdarzenia Cloudflare w porządku chronologicznym",
   "history.eventCount": {
-    "one": "Wyświetlono {shown} z {total} zdarzenia",
-    "few": "Wyświetlono {shown} z {total} zdarzeń",
+    "one": "Wyświetlono {shown} z {total} zdarzenie",
+    "few": "Wyświetlono {shown} z {total} zdarzenia",
     "many": "Wyświetlono {shown} z {total} zdarzeń",
     "other": "Wyświetlono {shown} z {total} zdarzenia"
   },
