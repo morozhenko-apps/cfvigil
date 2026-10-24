@@ -59,7 +59,7 @@ pub fn read_or_default<T: DeserializeOwned + Default>(
         Err(_) => return Err("Cannot open persisted state".into()),
     };
     let mut bytes = Vec::new();
-    file.by_ref().take(max_size.saturating_add(1)).read_to_end(&mut bytes)
+    (&mut file).take(max_size.saturating_add(1)).read_to_end(&mut bytes)
         .map_err(|_| "Cannot read persisted state")?;
     if bytes.len() as u64 > max_size {
         drop(file);
