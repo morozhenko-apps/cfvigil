@@ -87,7 +87,7 @@ test("independent native language storage cannot wake Cloudflare polling", () =>
   assert.match(main,/language: Mutex<LanguagePreference>/);
   assert.match(main,/fn get_language\(/);
   assert.match(main,/fn set_language\(/);
-  assert.match(main,/write_json\(&app, "language.json", &next\)/);
+  assert.match(main,/write_json\(app, "language.json", &next\)/);
   assert.match(main,/app.emit\("cfvigil-language-changed", language\)/);
   const start=main.indexOf("fn set_language(");
   const end=main.indexOf("fn update_native_language(",start);
@@ -98,7 +98,9 @@ test("independent native language storage cannot wake Cloudflare polling", () =>
   assert.match(read("apps/desktop/src-tauri/src/linux_tray.rs"),/language::menu\(&locale, "open"\)/);
   assert.match(main,/tray\.set_menu\(Some\(menu\)\)/);
   const settings=read("apps/desktop/ui/settings.mjs");
-  assert.match(settings,/invoke\("set_language", \{language:selected\}\)/);
+  assert.doesNotMatch(settings, /invoke\\("set_language"/);
+  assert.match(settings, /language: language.value/);
+  assert.match(settings, /invoke\\("save_settings"/);
   assert.match(settings,/language\.value = confirmedLanguage/);
 });
 
@@ -242,4 +244,23 @@ test("Arabic layout applies RTL while resource identifiers are not translated", 
     assert.equal(t("card.menuLabel", {name:"worker:alpha"}),
       "إجراءات المورد worker:alpha");
   } finally {setLocale(original);}
+});
+
+test("user-reported machine fixes have minimum source-level protection", () => {
+  const app=read("apps/desktop/ui/app.mjs");
+  const surface=read("apps/desktop/src-tauri/src/linux_surface.rs");
+  const native=read("apps/desktop/src-tauri/src/main.rs");
+  const settings=read("apps/desktop/ui/settings.mjs");
+  assert.match(app,/AUTO_HIDE_MS = 15_000/);
+  assert.match(app,/cardVisible \|\| expanded \|\| resizing/);
+  assert.match(app,/invoke\("start_card_drag"\)/);
+  assert.match(app,/invoke\("stop_card_drag"\)/);
+  assert.match(surface,/card-position.json/);
+  assert.match(surface,/cfvigil_relative_begin/);
+  assert.match(surface,/cfvigil_relative_end/);
+  assert.match(surface,/MARGINS.with/);
+  assert.match(native,/fn fit_settings\(/);
+  assert.match(native,/account_id.is_empty\(\) && token.is_some\(\)/);
+  assert.match(settings,/function restoreDraft\(/);
+  assert.doesNotMatch(settings,/addEventListener\("change", async/);
 });
