@@ -65,6 +65,14 @@ pub fn read_or_default<T: DeserializeOwned + Default>(
             return Ok(Loaded { value: T::default(), quarantined: false }),
         Err(_) => return Err("Cannot open persisted state".into()),
     };
+    // Harden permissions on pre-existing valid JSON created by older
+    // releases as well as every new file written by this storage module.
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        file.set_permissions(fs::Permissions::from_mode(0o600))
+            .map_err(|_| "Cannot secure persisted state permissions")?;
+    }
     let mut bytes = Vec::new();
     (&mut file).take(max_size.saturating_add(1)).read_to_end(&mut bytes)
         .map_err(|_| "Cannot read persisted state")?;
@@ -159,6 +167,20 @@ mod tests {
             use std::os::unix::fs::PermissionsExt;
             assert_eq!(fs::metadata(&path).unwrap().permissions().mode() & 0o777, 0o600);
         }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn preexisting_valid_json_is_hardened_to_private_permissions() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = TestDir::new();
+        let path = dir.file();
+        fs::write(&path, b"[\"private\"]").unwrap();
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).unwrap();
+        let result = read_or_default::<Vec<String>>(&path, MAX_JSON_BYTES).unwrap();
+        assert!(!result.quarantined);
+        assert_eq!(result.value, vec!["private"]);
+        assert_eq!(fs::metadata(&path).unwrap().permissions().mode() & 0o777, 0o600);
     }
 
     #[test]
