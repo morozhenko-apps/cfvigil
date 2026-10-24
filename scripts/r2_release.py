@@ -15,7 +15,7 @@ import subprocess
 import time
 import urllib.request
 
-BUCKET = "app-dist"
+BUCKET = "cfvigil-dist"
 PREFIX = "dist/CFVigil/"
 BASE = "https://download.morozhenko.com/" + PREFIX
 VERSION = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\Z")
