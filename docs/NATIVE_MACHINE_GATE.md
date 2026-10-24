@@ -84,3 +84,23 @@ Do not change self-hosted runner settings or use Alcotester Actions runners.
 All stable/flaky regression coverage written **after** this checkpoint should
 target observed and agreed app behavior. The preexisting basic unit/contract
 checks remain necessary to build safe candidates.
+
+## 2026-10-24: Alcotester native KDE smoke — FAILED, remediation 0.8.1
+
+Owner installed the Linux 0.1.0 DEB from candidate run 40125762836;
+SHA256 for DEB/AppImage matched the delivered sidecars. Actual machine
+screenshots of the compact card and the Russian Settings window identify:
+
+1. Card cannot be dragged in compact or expanded mode.
+2. Position is not durable; top/bottom coordinates drift during collapse.
+3. Compact native popup retains unwanted empty area above the metrics.
+4. Settings window contains excessive unused vertical space.
+5. Language selection takes effect on dropdown change, before Apply.
+6. Icon provenance/rights are not yet documented (needs evidence, not guess).
+7. Card lacks the 15-second compact-only idle auto-hide used by RepoTicker.
+
+**Acceptance status: FAIL**. The eighth numbered item has no description.
+Do not expand Mode B test coverage until an updated Linux candidate is
+installed and these issues rechecked. Compare implementation against
+RepoTicker's native Wayland drag and Layer Shell anchoring; avoid CSS-only
+fixes for GTK geometry. Keep runtime/config changes separate from docs.
