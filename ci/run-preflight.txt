@@ -72,3 +72,8 @@ Python distribution invariants, Rust native-language wiring and unit tests.
 native menus/windows, CLDR forms, translated status/search UI, and locale
 bootstrap event-vs-IPC race regression. One JS/Python/Rust stable Preflight;
 do not trigger release, R2 deployment or packaging gates.
+
+2026-10-24: Verify complete Italian/Polish/Dutch/Swedish draft dictionaries,
+CLDR plural syntax and Polish event count forms, WebView/native active-code
+parity, stable JS/Python/Rust suites. Third 0.8 locale batch only;
+no tags, packaging, main, Cloudflare or R2 mutations.
