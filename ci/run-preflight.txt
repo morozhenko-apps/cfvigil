@@ -102,3 +102,9 @@ RepoTicker historical audit (801c74f, e65e1df, 79bae25, 49287b9):
 idempotent GTK compact/expanded resize, preserved anchored margins,
 no duplicate show-time reallocations, and intrinsic Settings form height
 with deduplicated native fit. Foundation CI only, NOT Mode B coverage.
+
+2026-10-24: Verify KDE v3 native smoke root fixes: RepoTicker early
+GDK_BACKEND=wayland selection before GTK initialization, unconditional
+surface-mode logging, bounded non-scrolling WebKitGTK Settings viewport,
+frameless Settings single-close titlebar and native dragging, preserving
+all 20 draft locales. One stable JS/Python/Rust preflight; no Mode B.
