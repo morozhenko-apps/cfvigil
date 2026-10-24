@@ -264,3 +264,29 @@ test("user-reported machine fixes have minimum source-level protection", () => {
   assert.match(settings,/function restoreDraft\(/);
   assert.doesNotMatch(settings,/addEventListener\("change", async/);
 });
+
+test("KDE backend selection and Settings surface are native before machine retest", () => {
+  const main = read("apps/desktop/src-tauri/src/main.rs");
+  const settingsNative = read("apps/desktop/src-tauri/src/linux_settings.rs");
+  const config = JSON.parse(read("apps/desktop/src-tauri/tauri.conf.json"));
+  const shell = read("apps/desktop/ui/settings.html");
+  const ui = read("apps/desktop/ui/settings.mjs");
+  const mainStart = main.indexOf("fn main() {");
+  assert.ok(mainStart > 0);
+  assert.ok(main.indexOf("configure_gdk_for_native_wayland();", mainStart) >
+    mainStart && main.indexOf("configure_gdk_for_native_wayland();", mainStart) <
+    main.indexOf("tauri::Builder::default()", mainStart));
+  assert.match(main, /CFVigil surface mode=/);
+  assert.match(main, /linux_settings::install\(app\)\?/);
+  assert.match(main, /linux_settings::fit\(&app, height\.ceil\(\) as i32\)/);
+  assert.match(settingsNative, /set_propagate_natural_height\(false\)/);
+  assert.match(settingsNative, /viewport\.add\(&content\)/);
+  assert.match(settingsNative, /window\.set_decorated\(false\)/);
+  assert.ok(shell.includes('id="close-settings"'));
+  assert.ok(shell.includes('id="settings-drag-area"'));
+  assert.ok(ui.includes('invoke("start_settings_drag")'));
+  const settingsConfig = config.app.windows.find(item => item.label === "settings");
+  assert.equal(settingsConfig.decorations, false);
+  assert.equal(settingsConfig.maximizable, false);
+  assert.equal(settingsConfig.minimizable, false);
+});
