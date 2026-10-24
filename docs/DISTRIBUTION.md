@@ -113,3 +113,31 @@ WAF exception are not provisioned by this source change. Require real KDE
 Wayland/X11 and Windows installer/upgrade/uninstall smoke; Windows NSIS
 is currently unsigned. Full cross-platform validation, 20 locale audit,
 and Mode B acceptance remain before approving stable 1.0.0.
+
+## Distribution workflow artifact-path hardening (2026-10-24)
+
+Root cause observed by source inspection: four Linux/Windows upload/download
+artifact paths in the protected tag workflow contain one extra closing brace
+after the GitHub Actions `runner.temp` expression. The extra character is a
+literal part of the resolved path, so both source archives and publish job
+download destinations can diverge from the validated staging directories.
+The preflight source tests previously checked only that some valid expressions
+were present; they did not reject valid expressions followed by stray braces.
+
+Implementation plan (code changes separate from this documentation commit):
+1. Correct all four upload/download paths in
+   `.github/workflows/protected-release.yml` with the same exact
+   `runner.temp` expression as the existing Linux/Windows candidate jobs.
+2. Add regression assertions in `tests/protected-release.test.mjs` covering
+   both platforms, both upload/download steps, exact target directories and
+   rejection of extra closing braces in GitHub expressions.
+3. Run the final stable check through a single explicit `dev` Preflight marker.
+   Do not trigger a release tag, protected publish job or R2/Cloudflare changes.
+
+Risks: static expression checking is not a replacement for the owner-approved
+protected release dry run with real installers and public R2 SHA256 readback.
+Rollback: revert only the code/test commit if a subsequent validation exposes
+an unexpected packaging contract. The R2-only distribution invariants and
+release permissions remain unchanged.
+
+Status: analysis complete; implementation and final CI verification pending.
