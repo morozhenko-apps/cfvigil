@@ -11,6 +11,12 @@ use std::{
 
 pub const MAX_JSON_BYTES: u64 = 4 * 1024 * 1024;
 
+pub struct Loaded<T> {
+    pub value: T,
+    pub quarantined: bool,
+}
+
+
 fn unique_suffix() -> String {
     let nanos = SystemTime::now().duration_since(UNIX_EPOCH)
         .unwrap_or_default().as_nanos();
@@ -51,11 +57,12 @@ fn quarantine(path: &Path) -> Result<(), String> {
 pub fn read_or_default<T: DeserializeOwned + Default>(
     path: &Path,
     max_size: u64,
-) -> Result<T, String> {
+) -> Result<Loaded<T>, String> {
     refuse_link(path)?;
     let mut file = match File::open(path) {
         Ok(file) => file,
-        Err(err) if err.kind() == std::io::ErrorKind::NotFound => return Ok(T::default()),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound =>
+            return Ok(Loaded { value: T::default(), quarantined: false }),
         Err(_) => return Err("Cannot open persisted state".into()),
     };
     let mut bytes = Vec::new();
@@ -65,15 +72,15 @@ pub fn read_or_default<T: DeserializeOwned + Default>(
         drop(file);
         quarantine(path)?;
         eprintln!("CFVigil: oversized JSON was preserved in a damaged-state backup");
-        return Ok(T::default());
+        return Ok(Loaded { value: T::default(), quarantined: true });
     }
     match serde_json::from_slice(&bytes) {
-        Ok(value) => Ok(value),
+        Ok(value) => Ok(Loaded { value, quarantined: false }),
         Err(_) => {
             drop(file);
             quarantine(path)?;
             eprintln!("CFVigil: malformed JSON was preserved in a damaged-state backup");
-            Ok(T::default())
+            Ok(Loaded { value: T::default(), quarantined: true })
         }
     }
 }
@@ -144,9 +151,9 @@ mod tests {
         let dir = TestDir::new();
         let path = dir.file();
         write_atomic(&path, &vec!["old"], MAX_JSON_BYTES).unwrap();
-        assert_eq!(read_or_default::<Vec<String>>(&path, MAX_JSON_BYTES).unwrap(), vec!["old"]);
+        assert_eq!(read_or_default::<Vec<String>>(&path, MAX_JSON_BYTES).unwrap().value, vec!["old"]);
         write_atomic(&path, &vec!["new", "event"], MAX_JSON_BYTES).unwrap();
-        assert_eq!(read_or_default::<Vec<String>>(&path, MAX_JSON_BYTES).unwrap(), vec!["new","event"]);
+        assert_eq!(read_or_default::<Vec<String>>(&path, MAX_JSON_BYTES).unwrap().value, vec!["new","event"]);
         assert_eq!(fs::read_dir(&dir.0).unwrap().count(), 1);
         #[cfg(unix)] {
             use std::os::unix::fs::PermissionsExt;
@@ -159,8 +166,9 @@ mod tests {
         let dir = TestDir::new();
         let path = dir.file();
         fs::write(&path, b"{truncated").unwrap();
-        let loaded: Vec<String> = read_or_default(&path, MAX_JSON_BYTES).unwrap();
-        assert!(loaded.is_empty());
+        let loaded: Loaded<Vec<String>> = read_or_default(&path, MAX_JSON_BYTES).unwrap();
+        assert!(loaded.value.is_empty());
+        assert!(loaded.quarantined);
         assert!(!path.exists());
         let backups: Vec<_> = fs::read_dir(&dir.0).unwrap()
             .map(|entry| entry.unwrap().path())
@@ -169,7 +177,7 @@ mod tests {
         assert_eq!(fs::read(&backups[0]).unwrap(), b"{truncated");
         write_atomic(&path, &vec!["safe"], MAX_JSON_BYTES).unwrap();
         assert_eq!(fs::read(&backups[0]).unwrap(), b"{truncated");
-        assert_eq!(read_or_default::<Vec<String>>(&path, MAX_JSON_BYTES).unwrap(), vec!["safe"]);
+        assert_eq!(read_or_default::<Vec<String>>(&path, MAX_JSON_BYTES).unwrap().value, vec!["safe"]);
     }
 
     #[test]
@@ -177,8 +185,9 @@ mod tests {
         let dir = TestDir::new();
         let path = dir.file();
         fs::write(&path, vec![b'x'; 128]).unwrap();
-        let values: Vec<String> = read_or_default(&path, 32).unwrap();
-        assert!(values.is_empty());
+        let values: Loaded<Vec<String>> = read_or_default(&path, 32).unwrap();
+        assert!(values.value.is_empty());
+        assert!(values.quarantined);
         assert!(!path.exists());
         assert!(write_atomic(&path, &vec!["too-long-item"], 5).is_err());
         assert!(!path.exists());
@@ -188,7 +197,9 @@ mod tests {
     fn absent_file_is_empty_but_directory_is_an_error() {
         let dir = TestDir::new();
         let path = dir.file();
-        assert!(read_or_default::<Vec<String>>(&path, MAX_JSON_BYTES).unwrap().is_empty());
+        let loaded = read_or_default::<Vec<String>>(&path, MAX_JSON_BYTES).unwrap();
+        assert!(loaded.value.is_empty());
+        assert!(!loaded.quarantined);
         assert!(read_or_default::<Vec<String>>(&dir.0, MAX_JSON_BYTES).is_err());
         assert!(write_atomic(&dir.0, &vec!["x"], MAX_JSON_BYTES).is_err());
     }
