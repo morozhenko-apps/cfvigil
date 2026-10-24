@@ -339,8 +339,11 @@ impl Cloudflare {
                                 pages_event_time(deployment).to_owned(),
                                 "Latest Cloudflare Pages deployment".to_owned(),
                             )
-                        } else {
+                        } else if result.as_array().is_some() {
                             ("unknown".into(), String::new(), String::new(), "No Pages deployments".into())
+                        } else {
+                            complete = false;
+                            ("unknown".into(), String::new(), String::new(), "Malformed Pages deployment response".into())
                         }
                     }
                     Err(_) => {
