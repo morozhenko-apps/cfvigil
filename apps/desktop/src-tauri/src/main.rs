@@ -381,6 +381,36 @@ fn open_history_event(state: State<'_, AppState>, id: String) -> Result<(), Stri
     open::that(url).map_err(|_| "Could not open browser".into())
 }
 
+// A temporarily unavailable catalog cannot prove resource removal.
+fn preserve_unverified_catalogs(
+    current: &mut Vec<Resource>,
+    previous: &[Resource],
+    workers_complete: bool,
+    pages_complete: bool,
+) {
+    for old in previous {
+        let missing_catalog = (old.kind == "worker" && !workers_complete)
+            || (old.kind == "pages" && !pages_complete);
+        if missing_catalog && !current.iter().any(|item| item.key == old.key) {
+            let mut stale = old.clone();
+            stale.status = "unknown".into();
+            stale.detail = "Resource catalog unavailable; previous state unverified".into();
+            current.push(stale);
+        }
+    }
+}
+
+// Only a successfully queried zone may resolve a previous WAF incident.
+fn preserved_waf(previous: &[Resource], verified: &HashSet<String>) -> Vec<Resource> {
+    previous.iter().filter(|old| old.kind == "zone" && !verified.contains(&old.key))
+        .map(|old| {
+            let mut stale = old.clone();
+            stale.status = "unknown".into();
+            stale.detail = "WAF analytics unavailable; previous alert unverified".into();
+            stale
+        }).collect()
+}
+
 async fn refresh_once(app: AppHandle, budget: &ApiBudget) -> bool {
     let state = app.state::<AppState>();
     let _refresh_guard = state.refresh_lock.lock().await;
@@ -412,18 +442,8 @@ async fn refresh_once(app: AppHandle, budget: &ApiBudget) -> bool {
         .filter(|resource| resource.kind == "worker")
         .map(|resource| resource.name.clone()).collect();
     let mut resources = discovery.resources;
-    // Only replace the kinds whose catalog was actually retrieved. An
-    // unavailable list cannot prove a previously known resource vanished.
-    for old in &previous {
-        let missing_catalog = (old.kind == "worker" && !discovery.workers_complete)
-            || (old.kind == "pages" && !discovery.pages_complete);
-        if missing_catalog && !resources.iter().any(|item| item.key == old.key) {
-            let mut stale = old.clone();
-            stale.status = "unknown".into();
-            stale.detail = "Resource catalog unavailable; previous state unverified".into();
-            resources.push(stale);
-        }
-    }
+    preserve_unverified_catalogs(&mut resources, &previous,
+        discovery.workers_complete, discovery.pages_complete);
     // Metrics never probe the deployed application. Unavailable analytics
     // leave deployment status unchanged rather than inventing an incident.
     match analytics::query_spikes(&config.account_id, &token, &worker_names, budget).await {
@@ -479,23 +499,11 @@ async fn refresh_once(app: AppHandle, budget: &ApiBudget) -> bool {
             resources.extend(report.incidents);
             // Do not grey out or resolve the zones that did answer; only
             // unverified previous incidents remain grey.
-            for old in previous.iter().filter(|old| old.kind == "zone") {
-                if !report.verified_zones.contains(&old.key) {
-                    let mut stale = old.clone();
-                    stale.status = "unknown".into();
-                    stale.detail = "WAF analytics unavailable; previous alert unverified".into();
-                    resources.push(stale);
-                }
-            }
+            resources.extend(preserved_waf(&previous, &report.verified_zones));
             report.verified_zones
         }
         Err(_) => {
-            for old in previous.iter().filter(|old| old.kind == "zone") {
-                let mut stale = old.clone();
-                stale.status = "unknown".into();
-                stale.detail = "WAF analytics unavailable; previous alert unverified".into();
-                resources.push(stale);
-            }
+            resources.extend(preserved_waf(&previous, &HashSet::new()));
             HashSet::new()
         }
     };
@@ -758,6 +766,49 @@ mod security_tests {
         assert_eq!(snapshot.resources[0].status, "unknown");
         assert_eq!(snapshot.resources[0].detail, "Credentials unavailable");
         assert_eq!(snapshot.resources[0].attempt_id, "build-123");
+    }
+
+    #[test]
+    fn an_unavailable_worker_catalog_keeps_only_its_old_rows_grey() {
+        use super::*;
+        let old_worker = cloudflare::Resource {
+            key: "worker:alpha".into(), name: "alpha".into(), kind: "worker".into(),
+            status: "failed".into(), changed_at: "2026-10-23T12:00:00Z".into(),
+            attempt_id: "build-3".into(), url: "https://dash.cloudflare.com/example".into(),
+            detail: "Latest build failed".into(),
+        };
+        let mut old_pages = old_worker.clone();
+        old_pages.key = "pages:site".into();
+        old_pages.kind = "pages".into();
+        let mut actual = vec![old_pages.clone()];
+        preserve_unverified_catalogs(&mut actual, &[old_worker.clone(),old_pages], false, true);
+        assert_eq!(actual.len(),2);
+        assert_eq!(actual[0].status,"failed");
+        assert_eq!(actual[1].key,"worker:alpha");
+        assert_eq!(actual[1].status,"unknown");
+        assert_eq!(actual[1].attempt_id,"build-3");
+        preserve_unverified_catalogs(&mut actual, &[old_worker], false, true);
+        assert_eq!(actual.len(),2);
+    }
+
+    #[test]
+    fn only_verified_waf_zones_can_recover() {
+        use super::*;
+        let make = |key: &str| cloudflare::Resource {
+            key: key.into(), name: key.into(), kind: "zone".into(),
+            status: "failed".into(), changed_at: "2026-10-23T12:00:00Z".into(),
+            attempt_id: "waf-block-spike".into(),
+            url: "https://dash.cloudflare.com/example".into(),
+            detail: "WAF blocks spiking".into(),
+        };
+        let old = vec![make("zone:ok"), make("zone:offline")];
+        let verified = HashSet::from(["zone:ok".to_owned()]);
+        let retained = preserved_waf(&old, &verified);
+        assert_eq!(retained.len(),1);
+        assert_eq!(retained[0].key,"zone:offline");
+        assert_eq!(retained[0].status,"unknown");
+        assert_eq!(retained[0].attempt_id,"waf-block-spike");
+        assert_eq!(preserved_waf(&old, &HashSet::new()).len(),2);
     }
 
     #[test]
