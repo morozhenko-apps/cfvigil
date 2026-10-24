@@ -114,3 +114,9 @@ height 92px (70px action row + vertical padding + borders), preserve
 stable Wayland anchor/drag and 510px expansion; Settings gets a visible
 framed contrasting light surface. Stable JS/Python/Rust tests only,
 no Mode B, no R2, no release tags.
+
+2026-10-25: Validate real Cloudflare-connected smoke remediation:
+nonselectable drag-safe static UI text; per-endpoint redacted Pages/Builds
+diagnostics; verified Workers counters on partial scope failure; no
+exponential poll backoff while one catalog remains available. Stable
+JS/Python/Rust checks only, then unsigned Linux native retest. No Mode B.
