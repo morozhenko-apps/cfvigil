@@ -8,7 +8,7 @@
     "withGlobalTauri": true,
     "windows": [
       {"label":"main","url":"index.html","title":"CFVigil","width":390,"height":122,"resizable":false,"visible":false,"decorations":false,"alwaysOnTop":true,"skipTaskbar":true,"transparent":true},
-      {"label":"settings","url":"settings.html","title":"Settings","width":460,"height":330,"resizable":false,"visible":false,"maximizable":false},
+      {"label":"settings","url":"settings.html","title":"Settings","width":460,"height":390,"resizable":false,"visible":false,"maximizable":false},
       {"label":"history","url":"history.html","title":"Event History","width":650,"height":480,"resizable":true,"visible":false},
       {"label":"about","url":"about.html","title":"About CFVigil","width":400,"height":260,"resizable":false,"visible":false,"maximizable":false}
     ],

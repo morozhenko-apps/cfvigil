@@ -26,6 +26,7 @@ use std::{
     },
 };
 use tauri::{AppHandle, Emitter, Manager, State};
+use tauri_plugin_autostart::ManagerExt as _;
 #[cfg(not(target_os = "linux"))]
 use tauri::{
     image::Image,
@@ -209,6 +210,30 @@ fn report_sync_failure(app: &AppHandle, state: &AppState, message: &str) {
     let _ = app.emit("cfvigil-sync-error", message);
 }
 
+fn needs_refresh(old: &Config, next: &Config, token_replaced: bool) -> bool {
+    token_replaced
+        || old.account_id != next.account_id
+        || old.refresh_seconds != next.refresh_seconds
+}
+
+// No start-at-login entry is installed unless the user explicitly opts in.
+// Read the real platform registration, not a potentially stale JSON flag.
+#[tauri::command]
+fn get_autostart(app: AppHandle) -> Result<bool, String> {
+    app.autolaunch().is_enabled()
+        .map_err(|_| "Could not check launch-at-login registration".into())
+}
+
+fn update_autostart(app: &AppHandle, requested: Option<bool>) -> Result<(), String> {
+    let Some(enabled) = requested else { return Ok(()) };
+    let manager = app.autolaunch();
+    let current = manager.is_enabled()
+        .map_err(|_| "Could not read launch-at-login registration")?;
+    if current == enabled { return Ok(()) }
+    if enabled { manager.enable() } else { manager.disable() }
+        .map_err(|_| "Could not update launch-at-login registration".into())
+}
+
 #[tauri::command]
 fn get_snapshot(state: State<'_, AppState>) -> Snapshot {
     current_snapshot(&state)
@@ -231,6 +256,7 @@ async fn save_settings(
     account_id: String,
     token: Option<String>,
     refresh_seconds: u64,
+    autostart: Option<bool>,
 ) -> Result<(), String> {
     if account_id.len() != 32 || !account_id.bytes().all(|ch| ch.is_ascii_hexdigit()) {
         return Err("Account ID must be 32 hexadecimal characters".into());
@@ -246,6 +272,7 @@ async fn save_settings(
     // Serialize credentials, settings and network reads: no request may use
     // an old account ID with a newly replaced OS-keyring token.
     let _refresh_guard = state.refresh_lock.lock().await;
+    let token_replaced = token.is_some();
     if let Some(token) = token {
         tauri::async_runtime::spawn_blocking(move || {
             token_entry()?.set_password(&token).map_err(|_| "Could not store token in OS keychain".to_string())
@@ -255,30 +282,38 @@ async fn save_settings(
             .await.map_err(|_| "Credential service unavailable")??;
     }
     let next = Config { account_id, refresh_seconds };
-    let old_account = state.config.lock().unwrap().account_id.clone();
-    write_json(&app, "settings.json", &next)?;
-    *state.config.lock().unwrap() = next.clone();
-    state.ready.store(false, Ordering::Release);
-    if old_account != next.account_id {
-        // Never reuse WAF or Worker incident identities across Cloudflare
-        // accounts. The persisted journal is scoped to exactly one account.
-        state.resources.lock().unwrap().clear();
-        state.last_notified.lock().unwrap().clear();
-        let journal = IncidentJournal::empty(&next.account_id);
-        *state.journal.lock().unwrap() = journal.clone();
-        if write_json(&app, "incident-state.json", &journal).is_err() {
-            eprintln!("CFVigil: could not reset the incident journal");
-        }
-    } else {
-        // Changes in settings never count as a verified recovery.
-        invalidate_resources(&state, "Cloudflare data pending refresh");
+    let previous = state.config.lock().unwrap().clone();
+    let should_refresh = needs_refresh(&previous, &next, token_replaced);
+    if previous.account_id != next.account_id ||
+        previous.refresh_seconds != next.refresh_seconds {
+        write_json(&app, "settings.json", &next)?;
+        *state.config.lock().unwrap() = next.clone();
     }
-    *state.pending_incident.lock().unwrap() = None;
-    publish_snapshot(&app, &state);
-    // The existing poller wakes once; no second asynchronous polling task.
-    state.poll_refresh.send_modify(|revision| {
-        *revision = revision.wrapping_add(1);
-    });
+    if should_refresh {
+        state.ready.store(false, Ordering::Release);
+        if previous.account_id != next.account_id {
+            // Never reuse incidents or identities from another account.
+            state.resources.lock().unwrap().clear();
+            state.last_notified.lock().unwrap().clear();
+            let journal = IncidentJournal::empty(&next.account_id);
+            *state.journal.lock().unwrap() = journal.clone();
+            if write_json(&app, "incident-state.json", &journal).is_err() {
+                eprintln!("CFVigil: could not reset the incident journal");
+            }
+        } else {
+            invalidate_resources(&state, "Cloudflare data pending refresh");
+        }
+        *state.pending_incident.lock().unwrap() = None;
+        publish_snapshot(&app, &state);
+        // One refresh per substantive credentials/polling change.
+        state.poll_refresh.send_modify(|revision| {
+            *revision = revision.wrapping_add(1);
+        });
+    }
+    // Settings may have saved even when the OS prevents autostart updates.
+    // Report the partial outcome instead of silently claiming success.
+    update_autostart(&app, autostart)
+        .map_err(|message| format!("Connection settings saved; {message}"))?;
     Ok(())
 }
 
@@ -608,6 +643,7 @@ fn run_polling(app: AppHandle) {
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_autostart::Builder::new().build())
         .setup(|app| {
             let handle = app.handle().clone();
             let config: Config = read_json(&handle, "settings.json");
@@ -678,6 +714,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             get_settings,
+            get_autostart,
             save_settings,
             get_snapshot,
             acknowledge_incident,
@@ -809,6 +846,19 @@ mod security_tests {
         assert_eq!(retained[0].status,"unknown");
         assert_eq!(retained[0].attempt_id,"waf-block-spike");
         assert_eq!(preserved_waf(&old, &HashSet::new()).len(),2);
+    }
+
+    #[test]
+    fn startup_only_changes_never_repoll_cloudflare() {
+        use super::*;
+        let original = Config { account_id: "a".repeat(32), refresh_seconds: 180 };
+        let current = original.clone();
+        assert!(!needs_refresh(&original, &current, false));
+        assert!(needs_refresh(&original, &current, true));
+        let changed = Config { account_id: "b".repeat(32), refresh_seconds: 180 };
+        assert!(needs_refresh(&original, &changed, false));
+        let shorter = Config { account_id: "a".repeat(32), refresh_seconds: 60 };
+        assert!(needs_refresh(&original, &shorter, false));
     }
 
     #[test]
