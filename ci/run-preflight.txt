@@ -33,3 +33,7 @@ unchanged five-cell compact card, plus all stable JS and Rust tests.
 2026-10-24: Completed atomic private JSON persistence and quarantine recovery.
 Verify Rust crash-safe storage tests, permissions, symlink defense, native
 startup integration, and all stable JavaScript/Rust regressions once.
+
+2026-10-24: Verify R2-only release artifact policy and deletion safety:
+no deletion without verified public readback, correct source run/SHA,
+unrelated artifacts unaffected, idempotent cleanup, one-day candidate TTL.
