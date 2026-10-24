@@ -100,7 +100,7 @@ test("independent native language storage cannot wake Cloudflare polling", () =>
   const settings=read("apps/desktop/ui/settings.mjs");
   assert.ok(!settings.includes('invoke("set_language"'));
   assert.match(settings, /language: language.value/);
-  assert.match(settings, /invoke\\("save_settings"/);
+  assert.ok(settings.includes('invoke("save_settings"'));
   assert.match(settings,/language\.value = confirmedLanguage/);
 });
 
