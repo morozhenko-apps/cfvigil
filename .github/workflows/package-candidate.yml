@@ -70,12 +70,4 @@ jobs:
           name: cfvigil-linux-unreleased-candidate
           path: ${{ runner.temp }}/cfvigil-candidate/*
           if-no-files-found: error
-          retention-days: 7
-      - name: Preserve dependency lock snapshot for review
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: cfvigil-cargo-lock-for-review
-          path: Cargo.lock
-          if-no-files-found: error
-          retention-days: 7
+          retention-days: 1
