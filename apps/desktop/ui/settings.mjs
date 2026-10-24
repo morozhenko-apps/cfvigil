@@ -8,6 +8,8 @@ const autostartHint = document.getElementById("autostart-hint");
 const language = document.getElementById("language");
 let autostartLoaded = false;
 let confirmedLanguage = "en";
+let fitFrame = null;
+let lastRequestedHeight = null;
 for (const code of ACTIVE_LOCALES) {
   const option = document.createElement("option");
   option.value = code;
@@ -39,8 +41,6 @@ function restoreDraft() {
 // The form is the last real content in Settings. Do not use body.scrollHeight:
 // it includes the current WebView viewport and can only grow after an oversized
 // window, causing a self-reinforcing bottom gap.
-let fitFrame = null;
-let lastRequestedHeight = null;
 function scheduleFit() {
   if (fitFrame !== null) return;
   fitFrame = requestAnimationFrame(() => {
