@@ -37,7 +37,7 @@ test("publication scopes credentials, R2 prefix and GitHub write permissions",()
   assert.doesNotMatch(release,/REPOTICKER_|repoticker-release|self-hosted/);
   assert.equal((release.match(/actions: write/g)||[]).length,1);
   assert.match(publisher,/PREFIX = "dist\/CFVigil\/"/);
-  assert.match(publisher,/BUCKET = "app-dist"/);
+  assert.match(publisher,/BUCKET = "cfvigil-dist"/);
   assert.match(publisher,/base_url/);
   assert.match(publisher,/public_readback/);
   assert.match(publisher,/apt\/dists\/stable\/InRelease/);
@@ -48,7 +48,7 @@ test("dedicated download Worker is read only and not a RepoTicker mirror",()=>{
   assert.equal(config.name,"cfvigil-download");
   assert.equal(config.workers_dev,false);
   assert.equal(config.preview_urls,false);
-  assert.equal(config.r2_buckets[0].bucket_name,"app-dist");
+  assert.equal(config.r2_buckets[0].bucket_name,"cfvigil-dist");
   assert.equal(config.routes[0].pattern,"https://download.morozhenko.com/dist/CFVigil/*");
   assert.doesNotMatch(worker,/dist\/RepoTicker|repoticker-download/);
   const source=read("infra/download-worker/src/worker.mjs");
