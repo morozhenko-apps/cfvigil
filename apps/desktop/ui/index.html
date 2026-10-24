@@ -10,7 +10,7 @@
 <body>
   <main id="card" class="card" data-view="compact">
     <section id="drawer" class="drawer" hidden aria-label="Monitored resources">
-      <div id="resource-list" class="rows"></div>
+      <div id="resource-list" class="rows" role="list" aria-label="Monitored Cloudflare resources"></div>
     </section>
     <div id="search-row" class="search-row" hidden>
       <input id="search" autocomplete="off" placeholder="Search resources..." aria-label="Search by resource name">
@@ -20,7 +20,7 @@
       <div class="metric metric-healthy"><strong id="healthy">—</strong><span>Healthy</span></div>
       <div class="metric metric-deploying"><strong id="deploying">—</strong><span>Deploying</span></div>
       <div class="metric metric-issues"><strong id="issues">—</strong><span>Issues</span></div>
-      <button id="toggle-list" class="action" type="button" aria-pressed="false" title="Toggle resource list"><span class="glyph" aria-hidden="true">▤</span><span>Resources</span></button>
+      <button id="toggle-list" class="action" type="button" aria-pressed="false" aria-expanded="false" aria-controls="drawer" title="Toggle resource list"><span class="glyph" aria-hidden="true">▤</span><span>Resources</span></button>
       <button id="hide" class="action" type="button" title="Hide in tray"><span class="glyph" aria-hidden="true">⌄</span><span>Hide</span></button>
     </div>
   </main>
