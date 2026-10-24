@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cfvigil-download",
+  "main": "src/worker.mjs",
+  "compatibility_date": "2026-10-24",
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{
+    "pattern": "https://download.morozhenko.com/dist/CFVigil/*",
+    "zone_name": "morozhenko.com"
+  }],
+  "r2_buckets": [{"binding": "ARCHIVE", "bucket_name": "app-dist"}],
+  "observability": {"enabled": true, "head_sampling_rate": 0.1}
+}
