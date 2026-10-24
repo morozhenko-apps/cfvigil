@@ -3,3 +3,7 @@ CFVigil Windows package candidate explicit gate
 This file exclusively triggers an unsigned Windows x64 NSIS candidate
 build on windows-2025. Do not use it for releases or during ordinary dev
 commits. No signing, R2, public URLs or GitHub Releases.
+
+2026-10-24: FINAL Windows x64 NSIS candidate after exact Cargo.lock commit,
+CRLF-safe tests, native ICO-before-build dependency, locked Rust suite,
+unsigned installer identity and SHA256 validation. One verification run.
