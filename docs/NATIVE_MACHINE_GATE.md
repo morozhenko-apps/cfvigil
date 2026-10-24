@@ -124,3 +124,40 @@ same icon is NOT byte-identical to RepoTicker's current `icon.png`.
 This does **not** establish that the icon is licensed or independently
 created. Treat provenance as **UNRESOLVED**, review/replace it before release;
 do not claim copyright clearance on the basis of source ownership alone.
+
+## 2026-10-24: second Alcotester inspection — three native geometry FAILs
+
+Source build #40129376669 was installed with SHA256 verification and ran on
+the owner's KDE workstation. **Observed**: drag PASS; anchor retention FAIL;
+compact card gap FAIL; Settings bottom gap FAIL; Apply-only language PASS;
+15-second compact-only autohide PASS. The native-machine gate stays **FAIL**.
+
+RepoTicker historical fixes were examined before changing more code:
+- `801c74fb65`: serialize viewport and embedded WebView geometry on GTK's
+  main thread; do not infer the new height from asynchronous callers.
+- `e65e1dfa9d`, `79bae25eca`: change GTK minimum/maximum heights in the
+  correct order to avoid transient invalid constraints.
+- RepoTicker's final `apply_card_height` returns immediately when height
+  is unchanged, whereas CFVigil's earlier `apply_height` repeatedly writes
+  geometry, queues allocation and resets layer anchors even at the same
+  height. CFVigil also resizes redundantly on each `show()`.
+- `49287b9e60`: the popup must restore the *saved* compositor margins on
+  show without introducing a fresh geometry transaction.
+
+Implementation decisions: native GTK uses one idempotent main-thread
+height transaction, with bounded viewport and WebView requests. A tray
+reopen can queue compact resize **once** before show. Show only reapplies
+stored bottom/right margins; it cannot resize again. Add opt-in geometry
+logs to compare actual allocation with requested dimensions. Do not reset
+user coordinates or use absolute Wayland positioning.
+
+Settings root cause is distinct: `document.body.scrollHeight` includes
+viewport height, so deriving a native window height from it creates
+self-referential sizing, especially after a prior oversize. Measure the
+actual last form element's DOM bounds instead and deduplicate native
+resize commands. Keep the form scrollable where the translation exceeds
+usable screen height.
+
+**Retest both compact and expanded card**, repeated reopen, process restart,
+and Settings on each language; do not mark any of these three PASS based
+on CI or a source diff. Leave Mode B gated.
