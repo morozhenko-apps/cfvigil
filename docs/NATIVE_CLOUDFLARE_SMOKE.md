@@ -1,0 +1,119 @@
+# CFVigil Cloudflare-connected native smoke (before broad test coverage)
+
+**Status: READY FOR MANUAL EXECUTION; NO LIVE CLOUD­FLARE PASS CLAIMED.**
+Owner's previously installed and checksum-verified KDE candidate is Linux
+Actions run [#40137438889](https://github.com/morozhenko-apps/cfvigil/actions/runs/40137438889)
+(`0.1.0`, source SHA `913f5d8e382369947e7a22b38bd97027ad2daf81`).
+Earlier KDE geometry, compact hide, and Settings Apply tests were accepted;
+**connected-provider behavior has not been observed**.
+
+## Access, credentials and safe test conditions
+
+Use a **separate user-scoped, read-only Cloudflare API token** for the exact
+Cloudflare account being tested. Account-scoped tokens cannot be used with
+the Workers Builds API. Create a token in the authenticated Cloudflare
+profile's API Tokens page. Restrict it to the account and zones under test.
+The CFVigil Settings help presently requires:
+
+- Account: Workers Scripts — Read
+- Account: Workers CI — Read
+- Account: Pages — Read
+- Account: Account Analytics — Read
+- Zone: Zone — Read
+- Zone: Analytics — Read (Cloudflare's permission UI may use this label,
+  also described as *Zone Analytics Read* in the API documentation)
+
+Do **not** grant Edit/Write privileges. Use the 32-character Account ID
+from the Cloudflare account Overview. Never commit, paste, screenshot,
+screen-share or send the token itself to a chat or CI log.
+The application stores the token in the OS keyring, not its JSON settings.
+Do not run independent curl commands that echo tokens or save credentials
+in shell history. Leave autostart disabled during the first smoke.
+
+Cloudflare API reference:
+- https://developers.cloudflare.com/api/resources/workers_builds/methods/get_latest_builds/
+- https://developers.cloudflare.com/workers/ci-cd/builds/api-reference/
+- https://developers.cloudflare.com/fundamentals/api/reference/permissions/
+
+## On the installed Alcotester candidate
+
+1. **Initial state:** start the installed `cf-vigil` normally (no sudo).
+   With no configured Cloudflare account, expand Resources. Expect a prompt
+   to connect in Settings, **not** fabricated green counts. Capture
+   `NOT TESTED` instead if the account was already configured.
+2. **Connect:** tray > Settings. Enter account ID + dedicated user API token,
+   leave refresh at 3 minutes, keep autostart off, choose a locale. Press
+   **Apply once**, verify the Saved response. If it fails, preserve only
+   the *error text*, never the token or Account ID. Other preferences and
+   token persistence should not be inferred from seeing "Saved".
+3. **First read:** dismiss Settings, open the card, expand Resources and
+   record approximate number of distinct Worker and Pages entries, three
+   compact counters, and any grey Unknown items. The Settings save signals
+   the existing poller; no manual application restart is necessary. Allow
+   the API request to finish; temporary Unknown while data is unverified
+   must **not** be marked a failure by itself.
+4. **Compare actual Cloudflare dashboard:** choose one existing Worker and
+   one Pages project (if available). Search/filter the list. Compare the
+   *latest build/deployment attempt* in Dashboard with the app status:
+   running/queued = yellow, latest failed = red, successful = green,
+   unavailable/unverified = grey. A previous successful production deploy
+   must **not** mask a newer failed build.
+5. **Navigation:** for each verified Worker/Pages row, use its contextual
+   `⋯` action and confirm the external browser opens the correct
+   Cloudflare dashboard **for that resource/latest attempt**. The app must
+   not open unrelated URLs or request write access.
+6. **History:** on first connection, zero events can be correct because
+   existing builds should not generate spurious *new incident* alerts.
+   Review history search, event labels and empty states; do not fabricate
+   incident evidence. Only naturally occurring later state transitions
+   count as live incident tests.
+7. **Refresh and persistence:** observe the next normal 3-minute update;
+   close and reopen the card, then exit CFVigil through the tray and relaunch.
+   Account ID, language, refresh interval and resource discovery should
+   survive. The token field is intentionally empty on reopen: that means
+   the secret is concealed, **not** that the keyring token was deleted.
+8. **Partial scope / errors:** if Workers load but Pages do not (or vice
+   versa), record both independently. If an API error appears, preserve
+   redacted error text and time. Never infer full access or zero resources
+   from a failed fetch. Do not deliberately break production deployments
+   or generate malicious traffic to create red incident states.
+9. **Unexecuted scenarios:** Worker runtime error spike, zone WAF block
+   spike, detection/recovery deduplication, offline network failure,
+   keyring lock, restart persistence of incidents, 20-language glyph
+   and RTL, and Windows installation remain `NOT TESTED` until physical
+   evidence exists.
+
+## Optional nonsecret runtime trace
+
+Exit existing CFVigil first. Launch its installed binary as the user:
+
+```bash
+APP=$(dpkg -L cf-vigil | grep -E '^/usr/bin/[^/]+$' | head -n 1)
+CFVIGIL_UI_DEBUG=1 "$APP" 2>&1 | tee "$HOME/Downloads/cfvigil-provider-smoke.log"
+```
+
+The UI_DEBUG flag diagnoses native layout; **it does not guarantee any
+per-request API tracing**. Do not imply that absence of an error line
+confirms a successful Cloudflare request. Inspect/redact the log before
+sharing it. In particular, remove tokens, account IDs, private hostnames,
+resource names, query parameters and user directory paths as appropriate.
+
+## Evidence record
+
+| Scenario | Owner result | Evidence needed |
+| --- | --- | --- |
+| Settings account/token Apply and keyring | NOT TESTED | Saved/error state, no secret |
+| Workers discovery | NOT TESTED | App list vs dashboard, approximate count |
+| Pages discovery | NOT TESTED | App list vs dashboard, approximate count |
+| Latest attempt and counter colors | NOT TESTED | A verified real Worker/Pages state |
+| Per-resource dashboard navigation | NOT TESTED | Correct destination, URL redacted |
+| History empty/initial state | NOT TESTED | Normal empty vs unexpected alert |
+| Normal refresh and restart | NOT TESTED | Before/after observed |
+| Unknown/partial error handling | NOT TESTED | Only if observed naturally |
+| Incident transitions/recovery | NOT TESTED | Real transition; never induce failures |
+| Windows native smoke | NOT TESTED | Installed unsigned Windows candidate |
+
+### Gate outcome
+
+**KDE geometry PASS, live Cloudflare connected smoke NOT TESTED.
+Full native-machine gate remains IN PROGRESS; Mode B BLOCKED.**
