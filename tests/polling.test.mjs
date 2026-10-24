@@ -20,6 +20,6 @@ test("one scheduler handles both timer and settings wake-ups", () => {
   assert.match(main,/tokio::select!/);
   assert.match(main,/poll_delay\(interval, failures\)/);
   assert.doesNotMatch(main,/spawn\(async move \{ refresh_once\(/);
-  assert.match(main,/report_sync_failure\(&app, &state, "Cloudflare credentials unavailable"\)/);
+  assert.match(main,/report_sync_failure\(&app, &state, msg::DATA_CREDENTIALS_UNAVAILABLE\)/);
   assert.match(main,/publish_snapshot\(&app, &state\)/);
 });
