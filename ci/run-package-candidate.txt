@@ -22,3 +22,8 @@ exact metadata and complete checksums/artifact uploads after #40092833835.
 20-locale Preflight #40125464476 PASS. Generate installable Linux DEB/AppImage
 and unsigned Windows NSIS for observed KDE/Windows inspection before Mode B.
 Do not release, publish R2 or use any self-hosted Actions runners.
+
+2026-10-24: Rebuild unsigned unreleased KDE / Windows native smoke
+candidates after Preflight #40129088182 PASS. Verify persisted drag
+margins, compact geometry, Settings Apply-only language, dynamic height
+and 15-second compact-only hide. Strict exact-SHA pairing; no release.
