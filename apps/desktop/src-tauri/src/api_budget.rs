@@ -1,5 +1,6 @@
 //! Shared per-poll budget for Cloudflare REST + GraphQL calls.
 //! No immediate retries, no token/URL logging, and no unbounded scans.
+use crate::native_messages as msg;
 use reqwest::{header::RETRY_AFTER, Response, StatusCode};
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 
@@ -19,11 +20,11 @@ impl ApiBudget {
 
     pub fn check(&self) -> Result<(), String> {
         if self.limited.load(Ordering::Acquire) {
-            return Err("Cloudflare rate limit active; waiting before next poll".into());
+            return Err(msg::BUDGET_RATE_LIMIT.into());
         }
         let previous = self.calls.fetch_add(1, Ordering::AcqRel);
         if previous >= MAX_CALLS_PER_POLL {
-            return Err("Cloudflare per-poll request budget exhausted".into());
+            return Err(msg::BUDGET_EXHAUSTED.into());
         }
         Ok(())
     }

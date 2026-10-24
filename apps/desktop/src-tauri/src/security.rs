@@ -1,6 +1,7 @@
 //! Read-only, zone-scoped WAF block anomaly detection.
 //! WAF events belong to Cloudflare zones; never attribute one to a Worker
 //! unless Cloudflare provides a trustworthy resource-level mapping.
+use crate::native_messages as msg;
 use chrono::{Duration as ChronoDuration, Utc};
 use reqwest::{redirect::Policy, Client};
 use serde_json::{json, Value};
@@ -67,17 +68,17 @@ fn valid_zone_name(name: &str) -> bool {
 
 fn count_group(data: &Value, key: &str) -> Result<f64, String> {
     let groups = data.get(key).and_then(Value::as_array)
-        .ok_or_else(|| "WAF aggregate is missing".to_string())?;
+        .ok_or_else(|| msg::WAF_GROUP_MISSING.to_string())?;
     if groups.len() > 1 {
-        return Err("WAF query returned multiple aggregate groups".into());
+        return Err(msg::WAF_AMBIGUOUS.into());
     }
     let count = match groups.first() {
         None => 0.0,
         Some(group) => group.get("count").and_then(Value::as_f64)
-            .ok_or("WAF aggregate contains an invalid count")?,
+            .ok_or(msg::WAF_INVALID_COUNT)?,
     };
     if !count.is_finite() || count < 0.0 {
-        return Err("Invalid WAF aggregate count".into());
+        return Err(msg::WAF_BAD_COUNT.into());
     }
     Ok(count)
 }
@@ -98,10 +99,10 @@ pub fn waf_spike(recent: f64, baseline_30m: f64) -> bool {
 pub fn parse_waf_counts(body: &Value) -> Result<(f64, f64), String> {
     if body.get("errors").and_then(Value::as_array)
         .is_some_and(|errors| !errors.is_empty()) {
-        return Err("Cloudflare WAF query rejected".into());
+        return Err(msg::WAF_REJECTED.into());
     }
     let zone = body.pointer("/data/viewer/zones/0")
-        .ok_or("Cloudflare WAF dataset unavailable")?;
+        .ok_or(msg::WAF_DATA_UNAVAILABLE)?;
     let recent = count_group(zone, "recent")?;
     let baseline = count_group(zone, "baseline")?;
     Ok((recent, baseline))
@@ -109,10 +110,10 @@ pub fn parse_waf_counts(body: &Value) -> Result<(f64, f64), String> {
 
 fn parse_zones(body: &Value, account: &str) -> Result<Vec<Zone>, String> {
     if body.get("success") != Some(&Value::Bool(true)) {
-        return Err("Cloudflare zones query failed".into());
+        return Err(msg::WAF_ZONES_ERROR.into());
     }
     let input = body.get("result").and_then(Value::as_array)
-        .ok_or("Invalid Cloudflare zones response")?;
+        .ok_or(msg::WAF_ZONES_INVALID)?;
     let mut output = Vec::new();
     for entry in input {
         // Defensive scope check: a user-scoped token may include multiple accounts.
@@ -132,7 +133,7 @@ fn http_client() -> Result<Client, String> {
     Client::builder().redirect(Policy::none())
         .timeout(Duration::from_secs(20))
         .user_agent("CFVigil/0.1.0")
-        .build().map_err(|_| "Could not start Cloudflare WAF client".into())
+        .build().map_err(|_| msg::WAF_CLIENT_INIT.into())
 }
 
 async fn list_zones(http: &Client, account: &str, token: &str, budget: &ApiBudget) -> Result<Vec<Zone>, String> {
@@ -141,17 +142,17 @@ async fn list_zones(http: &Client, account: &str, token: &str, budget: &ApiBudge
         let url = format!("{BASE}/zones?account.id={account}&page={page}&per_page=50");
         budget.check()?;
         let response = http.get(url).bearer_auth(token).send().await
-            .map_err(|_| "Cloudflare zone list unavailable")?;
+            .map_err(|_| msg::WAF_ZONES_UNAVAILABLE)?;
         budget.observe(&response);
         if !response.status().is_success() {
             return Err(format!("Cloudflare zones HTTP {}", response.status().as_u16()));
         }
-        let bytes = response.bytes().await.map_err(|_| "Could not read Cloudflare zones")?;
+        let bytes = response.bytes().await.map_err(|_| msg::WAF_ZONES_READ)?;
         if bytes.len() > MAX_GRAPHQL_BYTES {
-            return Err("Cloudflare zone list too large".into());
+            return Err(msg::WAF_ZONES_BIG.into());
         }
         let body: Value = serde_json::from_slice(&bytes)
-            .map_err(|_| "Malformed Cloudflare zones JSON")?;
+            .map_err(|_| msg::WAF_ZONES_JSON)?;
         zones.extend(parse_zones(&body, account)?);
         let pages = body.pointer("/result_info/total_pages")
             .and_then(Value::as_u64).unwrap_or(1);
@@ -160,11 +161,11 @@ async fn list_zones(http: &Client, account: &str, token: &str, budget: &ApiBudge
         }
         // Reject rather than omit zones silently.
         if page == 1 {
-            return Err("Too many Cloudflare zones to scan safely".into());
+            return Err(msg::WAF_ZONES_TOO_MANY.into());
         }
     }
     if zones.len() > MAX_ZONES {
-        return Err("Too many Cloudflare zones to scan safely".into());
+        return Err(msg::WAF_ZONES_TOO_MANY.into());
     }
     Ok(zones)
 }
@@ -192,17 +193,17 @@ async fn get_zone_counts(
     budget.check()?;
     let response = http.post(format!("{BASE}/graphql"))
         .bearer_auth(token).json(&body).send().await
-        .map_err(|_| "Cloudflare WAF GraphQL request failed")?;
+        .map_err(|_| msg::WAF_REQUEST_FAILED)?;
     budget.observe(&response);
     if !response.status().is_success() {
         return Err(format!("Cloudflare WAF HTTP {}", response.status().as_u16()));
     }
-    let bytes = response.bytes().await.map_err(|_| "Could not read WAF response")?;
+    let bytes = response.bytes().await.map_err(|_| msg::WAF_READ_FAILED)?;
     if bytes.len() > MAX_GRAPHQL_BYTES {
-        return Err("Cloudflare WAF response too large".into());
+        return Err(msg::WAF_RESPONSE_BIG.into());
     }
     let data: Value = serde_json::from_slice(&bytes)
-        .map_err(|_| "Malformed Cloudflare WAF JSON")?;
+        .map_err(|_| msg::WAF_RESPONSE_JSON)?;
     parse_waf_counts(&data)
 }
 
@@ -215,7 +216,7 @@ pub async fn detect(
     budget: &ApiBudget,
 ) -> Result<WafScan, String> {
     if !valid_id(account) {
-        return Err("Invalid Cloudflare account ID".into());
+        return Err(msg::WAF_BAD_ACCOUNT.into());
     }
     let http = http_client()?;
     let zones = list_zones(&http, account, token, budget).await?;
@@ -233,7 +234,7 @@ pub async fn detect(
                     changed_at: Utc::now().to_rfc3339(),
                     attempt_id: "waf-block-spike".into(),
                     url: format!("https://dash.cloudflare.com/{account}/{}/security/analytics/events?action=block", zone.name),
-                    detail: format!("WAF blocks spiking: {:.0} in 10m; previous 30m {:.0}", recent, baseline),
+                    detail: msg::waf_spike_detail(recent, baseline),
                 });
             }
             // A failed zone must not conceal the successful results for

@@ -489,10 +489,7 @@ async fn refresh_once(app: AppHandle, budget: &ApiBudget) -> bool {
                         .map(|old| old.changed_at.clone())
                         .unwrap_or_else(|| chrono::Utc::now().to_rfc3339());
                     resource.status = "failed".into();
-                    resource.detail = format!(
-                        "Workers errors spiking: {} errors / {} requests ({:.1}%)",
-                        spike.errors, spike.requests, spike.ratio * 100.0
-                    );
+                    resource.detail = msg::worker_spike_detail(spike.errors, spike.requests, spike.ratio);
                     resource.attempt_id = "runtime-error-spike".into();
                 } else if scan.unverified.contains(&resource.name) {
                     if let Some(old) = previous.iter().find(|old| old.key == resource.key)

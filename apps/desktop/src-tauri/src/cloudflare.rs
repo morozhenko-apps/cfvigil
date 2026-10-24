@@ -67,7 +67,7 @@ fn pages_event_time(deployment: &Value) -> &str {
 fn parse_worker_scripts(result: &Value) -> Result<Vec<Value>, String> {
     result.as_array()
         .cloned()
-        .ok_or_else(|| "Cloudflare Worker Scripts response must be an array".into())
+        .ok_or_else(|| msg::CF_WORKER_LIST.into())
 }
 
 // A new in-progress attempt must turn a previously failed resource yellow.
@@ -162,7 +162,7 @@ impl Cloudflare {
             .timeout(Duration::from_secs(20))
             .user_agent("CFVigil/0.1.0")
             .build()
-            .map_err(|_| "Cannot initialize HTTPS client".to_string())?;
+            .map_err(|_| msg::CF_BUILDER_INIT.to_string())?;
         Ok(Self { http })
     }
 
@@ -174,7 +174,7 @@ impl Cloudflare {
             .bearer_auth(token)
             .send()
             .await
-            .map_err(|_| "Cloudflare network request failed".to_string())?;
+            .map_err(|_| msg::CF_NETWORK.to_string())?;
         budget.observe(&response);
         let status = response.status();
         if !status.is_success() {
@@ -183,14 +183,14 @@ impl Cloudflare {
         let bytes = response
             .bytes()
             .await
-            .map_err(|_| "Cloudflare response read failed".to_string())?;
+            .map_err(|_| msg::CF_READ.to_string())?;
         if bytes.len() > 2 * 1024 * 1024 {
-            return Err("Cloudflare response exceeds safety limit".into());
+            return Err(msg::CF_TOO_LARGE.into());
         }
         let body: Value = serde_json::from_slice(&bytes)
-            .map_err(|_| "Cloudflare returned invalid JSON".to_string())?;
+            .map_err(|_| msg::CF_BAD_JSON.to_string())?;
         if body.get("success") != Some(&Value::Bool(true)) {
-            return Err("Cloudflare API returned an unsuccessful response".into());
+            return Err(msg::CF_UNSUCCESSFUL.into());
         }
         let pages = body
             .pointer("/result_info/total_pages")
@@ -205,7 +205,7 @@ impl Cloudflare {
         let (result, _) = self.get(token, &format!("{base}/workers/scripts"), budget).await?;
         let scripts = parse_worker_scripts(&result)?;
         if scripts.len() > MAX_RESOURCES_PER_TYPE {
-            return Err("Cloudflare Workers count exceeds safe per-poll limit".into());
+            return Err(msg::CF_WORKERS_TOO_MANY.into());
         }
         Ok(scripts)
     }
@@ -223,16 +223,16 @@ impl Cloudflare {
             let (result, total_pages) = self.get(token, &url, budget).await?;
             let items = result
                 .as_array()
-                .ok_or_else(|| "Cloudflare returned an unexpected list format".to_string())?;
+                .ok_or_else(|| msg::CF_LIST_FORMAT.to_string())?;
             if output.len() + items.len() > MAX_RESOURCES_PER_TYPE {
-                return Err("Cloudflare Pages count exceeds safe per-poll limit".into());
+                return Err(msg::CF_PAGES_TOO_MANY.into());
             }
             output.extend(items.iter().cloned());
             if page >= total_pages || items.is_empty() {
                 return Ok(output);
             }
         }
-        Err("Too many pages in Cloudflare API response".into())
+        Err(msg::CF_PAGES_PAGINATION.into())
     }
 
     pub async fn discover(&self, account: &str, token: &str, budget: &ApiBudget) -> Result<Discovery, String> {
@@ -244,7 +244,7 @@ impl Cloudflare {
         let workers_complete = workers.is_ok();
         let pages_complete = pages.is_ok();
         if !workers_complete && !pages_complete {
-            return Err("Workers and Pages discovery unavailable. Check token scopes or API limits.".into());
+            return Err(msg::CF_DISCOVERY_UNAVAILABLE.into());
         }
         let mut complete = workers_complete && pages_complete;
         let mut resources = Vec::new();

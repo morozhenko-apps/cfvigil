@@ -2,6 +2,7 @@
 //! Per-worker aggregations use Cloudflare's documented GraphQL query pattern
 //! with limit: 1 and scriptName filters. Summing a first page of sampled raw
 //! adaptive rows would silently omit traffic, so it is explicitly forbidden.
+use crate::native_messages as msg;
 use chrono::{Duration as ChronoDuration, Utc};
 use reqwest::{redirect::Policy, Client};
 use serde_json::Value;
@@ -41,17 +42,17 @@ fn parse_number(value: &Value) -> Option<f64> {
 
 fn read_aggregate(account: &Value, alias: &str) -> Result<Metrics, String> {
     let rows = account.get(alias).and_then(Value::as_array)
-        .ok_or("Missing Workers invocation aggregation")?;
+        .ok_or(msg::ANALYTICS_MISSING_AGGREGATE)?;
     if rows.len() > 1 {
         // A limit-one filter must never produce ambiguous partial results.
-        return Err("Workers invocation aggregation was not unique".into());
+        return Err(msg::ANALYTICS_AMBIGUOUS.into());
     }
     let Some(row) = rows.first() else { return Ok(Metrics::default()) };
     let requests = row.pointer("/sum/requests").and_then(parse_number)
-        .ok_or("Workers request total is missing")?;
+        .ok_or(msg::ANALYTICS_REQUESTS_MISSING)?;
     let errors = row.pointer("/sum/errors").and_then(parse_number)
-        .ok_or("Workers error total is missing")?;
-    if errors > requests { return Err("Workers errors exceed requests".into()); }
+        .ok_or(msg::ANALYTICS_ERRORS_MISSING)?;
+    if errors > requests { return Err(msg::ANALYTICS_ERRORS_EXCEED.into()); }
     Ok(Metrics { requests, errors })
 }
 
@@ -72,16 +73,16 @@ fn create_query(
     recent_end: &str, baseline_start: &str,
 ) -> Result<String, String> {
     if account.len() != 32 || !account.bytes().all(|b| b.is_ascii_hexdigit()) {
-        return Err("Invalid account for analytics request".into());
+        return Err(msg::ANALYTICS_BAD_ACCOUNT.into());
     }
     if names.is_empty() || names.len() > MAX_BATCH || names.iter().any(|n| !worker_name_safe(n)) {
-        return Err("Invalid Worker batch".into());
+        return Err(msg::ANALYTICS_BAD_BATCH.into());
     }
     // The only dynamic values are validated names/IDs and RFC3339 timestamps.
     // serde_json quoting is valid for a GraphQL string literal.
     let mut query = format!("query CFVigilMetrics {{ viewer {{ accounts(filter: {{accountTag: \"{account}\"}}) {{ ");
     for (index, name) in names.iter().enumerate() {
-        let script = serde_json::to_string(name).map_err(|_| "Could not encode Worker name")?;
+        let script = serde_json::to_string(name).map_err(|_| msg::ANALYTICS_NAME_ENCODING)?;
         query.push_str(&format!(
             "r{index}: workersInvocationsAdaptive(limit: 1, filter: {{scriptName: {script}, datetime_geq: \"{recent_start}\", datetime_lt: \"{recent_end}\"}}) {{sum {{requests errors}}}} "
         ));
@@ -98,10 +99,10 @@ fn parse_batch(
 ) -> Result<HashMap<String, Spike>, String> {
     if body.get("errors").and_then(Value::as_array)
         .is_some_and(|errors| !errors.is_empty()) {
-        return Err("Cloudflare Workers Analytics rejected the query".into());
+        return Err(msg::ANALYTICS_REJECTED.into());
     }
     let account = body.pointer("/data/viewer/accounts/0")
-        .ok_or("Cloudflare Workers Analytics account unavailable")?;
+        .ok_or(msg::ANALYTICS_ACCOUNT_UNAVAILABLE)?;
     let mut result = HashMap::new();
     for (index, name) in names.iter().enumerate() {
         let recent = read_aggregate(account, &format!("r{index}"))?;
@@ -124,7 +125,7 @@ pub async fn query_spikes(
         return Ok(MetricsScan { spikes: HashMap::new(), unverified: HashSet::new() });
     }
     if allowed_workers.len() > MAX_WORKERS {
-        return Err("Too many Workers for bounded analytics scan".into());
+        return Err(msg::ANALYTICS_TOO_MANY.into());
     }
     let mut names: Vec<String> = allowed_workers.iter().cloned().collect();
     names.sort();
@@ -134,7 +135,7 @@ pub async fn query_spikes(
     let baseline_start = recent_start - ChronoDuration::minutes(30);
     let http = Client::builder().redirect(Policy::none())
         .timeout(Duration::from_secs(20)).user_agent("CFVigil/0.1.0")
-        .build().map_err(|_| "Cannot initialize Analytics HTTPS client")?;
+        .build().map_err(|_| msg::ANALYTICS_CLIENT_INIT)?;
     let mut scan = MetricsScan { spikes: HashMap::new(), unverified: HashSet::new() };
     for batch in names.chunks(MAX_BATCH) {
         let query = create_query(account, batch, &recent_start.to_rfc3339(),
@@ -143,18 +144,18 @@ pub async fn query_spikes(
             budget.check()?;
             let response = http.post(GRAPHQL).bearer_auth(token)
                 .json(&serde_json::json!({"query":query}))
-                .send().await.map_err(|_| "Workers Analytics request failed".to_string())?;
+                .send().await.map_err(|_| msg::ANALYTICS_REQUEST_FAILED.to_string())?;
             budget.observe(&response);
             if !response.status().is_success() {
                 return Err(format!("Workers Analytics HTTP {}", response.status().as_u16()));
             }
             let bytes = response.bytes().await
-                .map_err(|_| "Workers Analytics response failed".to_string())?;
+                .map_err(|_| msg::ANALYTICS_RESPONSE_FAILED.to_string())?;
             if bytes.len() > 1024 * 1024 {
-                return Err("Workers Analytics response too large".into());
+                return Err(msg::ANALYTICS_RESPONSE_BIG.into());
             }
             let body: Value = serde_json::from_slice(&bytes)
-                .map_err(|_| "Invalid Workers Analytics JSON".to_string())?;
+                .map_err(|_| msg::ANALYTICS_JSON.to_string())?;
             parse_batch(&body, batch)
         }.await;
         match attempt {

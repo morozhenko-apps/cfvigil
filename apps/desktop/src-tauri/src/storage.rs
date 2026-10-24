@@ -1,6 +1,7 @@
 //! Durable private JSON persistence. A malformed file is preserved under a
 //! unique .corrupt.* sibling name; never silently destroy incident history.
 //! All disk errors are returned without leaking filenames, tokens or JSON.
+use crate::native_messages as msg;
 use serde::{de::DeserializeOwned, Serialize};
 use std::{
     fs::{self, File, OpenOptions},
@@ -26,10 +27,10 @@ fn unique_suffix() -> String {
 fn refuse_link(path: &Path) -> Result<(), String> {
     match fs::symlink_metadata(path) {
         Ok(info) if info.file_type().is_symlink() || !info.is_file() =>
-            Err("Persistent state path is not a regular file".into()),
+            Err(msg::STORAGE_NOT_FILE.into()),
         Ok(_) => Ok(()),
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        Err(_) => Err("Cannot inspect persisted state".into()),
+        Err(_) => Err(msg::STORAGE_INSPECT.into()),
     }
 }
 
@@ -39,16 +40,16 @@ fn quarantine(path: &Path) -> Result<(), String> {
     {
         use std::os::unix::fs::PermissionsExt;
         fs::set_permissions(path, fs::Permissions::from_mode(0o600))
-            .map_err(|_| "Cannot protect damaged state")?;
+            .map_err(|_| msg::STORAGE_PROTECT)?;
     }
     let name = path.file_name().and_then(|name| name.to_str())
-        .ok_or("Unexpected state filename")?;
+        .ok_or(msg::STORAGE_FILENAME)?;
     let backup = path.with_file_name(format!("{name}.corrupt.{}", unique_suffix()));
     if backup.exists() {
-        return Err("Damaged state backup already exists".into());
+        return Err(msg::STORAGE_BACKUP_EXISTS.into());
     }
     fs::rename(path, backup)
-        .map_err(|_| "Cannot preserve damaged state backup".into())
+        .map_err(|_| msg::STORAGE_BACKUP_FAILED.into())
 }
 
 /// Missing file is normal on first use. Invalid/oversized content is moved
@@ -63,7 +64,7 @@ pub fn read_or_default<T: DeserializeOwned + Default>(
         Ok(file) => file,
         Err(err) if err.kind() == std::io::ErrorKind::NotFound =>
             return Ok(Loaded { value: T::default(), quarantined: false }),
-        Err(_) => return Err("Cannot open persisted state".into()),
+        Err(_) => return Err(msg::STORAGE_OPEN.into()),
     };
     // Harden permissions on pre-existing valid JSON created by older
     // releases as well as every new file written by this storage module.
@@ -71,11 +72,11 @@ pub fn read_or_default<T: DeserializeOwned + Default>(
     {
         use std::os::unix::fs::PermissionsExt;
         file.set_permissions(fs::Permissions::from_mode(0o600))
-            .map_err(|_| "Cannot secure persisted state permissions")?;
+            .map_err(|_| msg::STORAGE_PERMISSIONS)?;
     }
     let mut bytes = Vec::new();
     (&mut file).take(max_size.saturating_add(1)).read_to_end(&mut bytes)
-        .map_err(|_| "Cannot read persisted state")?;
+        .map_err(|_| msg::STORAGE_READ)?;
     if bytes.len() as u64 > max_size {
         drop(file);
         quarantine(path)?;
@@ -99,12 +100,12 @@ pub fn read_or_default<T: DeserializeOwned + Default>(
 pub fn write_atomic<T: Serialize>(path: &Path, value: &T, max_size: u64) -> Result<(), String> {
     refuse_link(path)?;
     let bytes = serde_json::to_vec_pretty(value)
-        .map_err(|_| "Cannot serialize persisted state")?;
+        .map_err(|_| msg::STORAGE_SERIALIZE)?;
     if bytes.len() as u64 > max_size {
-        return Err("Persisted state exceeds safety limit".into());
+        return Err(msg::STORAGE_BIG.into());
     }
     let name = path.file_name().and_then(|name| name.to_str())
-        .ok_or("Unexpected state filename")?;
+        .ok_or(msg::STORAGE_FILENAME)?;
     let temp = path.with_file_name(format!("{name}.tmp.{}", unique_suffix()));
     let result = (|| -> std::io::Result<()> {
         let mut options = OpenOptions::new();
@@ -128,7 +129,7 @@ pub fn write_atomic<T: Serialize>(path: &Path, value: &T, max_size: u64) -> Resu
     })();
     if result.is_err() {
         let _ = fs::remove_file(&temp);
-        return Err("Cannot durably persist state".into());
+        return Err(msg::STORAGE_PERSIST.into());
     }
     Ok(())
 }
