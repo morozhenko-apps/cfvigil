@@ -148,3 +148,12 @@ Tradeoffs and rollback:
 Acceptance evidence: repository source parity; focused race/search/ARIA
 tests; a single successful JS/Python/Rust stable CI run. Physical Windows,
 KDE, RTL and native-review evidence are separate future requirements.
+
+## 0.8 source continuation: five languages beyond English
+
+`ru`, `pt`, `es`, `de`, and `fr` are fully keyed draft dictionaries.
+The editor/UI can choose among those plus `en`, with native shell labels.
+The initial-language read race now prefers a newer native event, and
+translated event terms are searchable without rewriting stored incident
+strings. The remaining 14 non-English language dictionaries are not yet
+implemented. Full editorial, physical, RTL and release acceptance is not claimed.

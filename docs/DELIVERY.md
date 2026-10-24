@@ -648,3 +648,13 @@ been corrected; follow-up CI validation is not yet recorded here.
 Do not label the feature milestone complete: 17 non-English dictionaries,
 full native error presentation localization, 20 contextual audit records,
 physical KDE/Windows verification and final Mode B testing remain.
+
+## 2026-10-24: 0.8 second translation batch, source scope
+
+Added complete Spanish, German and French locale drafts, native tray/menu labels
+and RTL-safe localized ARIA status words; corrected the async locale bootstrap
+race and translated history search. The 20-locale milestone remains partial:
+6 source-ready language catalogs including English, 14 missing dictionaries.
+New stable JavaScript source and negative race tests have been committed;
+Preflight verification status will be recorded after the explicit final gate.
+No change to `main`, R2 deployment, tagging or the read-only Cloudflare API.

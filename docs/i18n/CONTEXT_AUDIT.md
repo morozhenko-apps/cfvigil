@@ -1,6 +1,6 @@
 # CFVigil — 20-locale contextual audit ledger
 
-**Status: IN PROGRESS. Russian and European Portuguese draft dictionaries are implemented, not context-approved. No native language-specific audits have been completed.** This ledger will be populated in the final product-feature
+**Status: IN PROGRESS. Russian, European Portuguese, Spanish, German and French draft dictionaries are implemented, not context-approved. No native language-specific audits have been completed.** This ledger will be populated in the final product-feature
 milestone, after all other MVP functionality/distribution work and before
 the exhaustive v1.0.0 test campaign.
 
@@ -13,10 +13,10 @@ owner-approved product decision.
 | --- | --- | --- | --- |
 | en | English | Pending | Developer terminology baseline |
 | ru | Русский | Draft dictionary; audit pending | Deploy/build distinction, plural forms |
-| es | Español | Pending | Neutral software/monitoring terminology |
+| es | Español | Draft dictionary; audit pending | Neutral software/monitoring terminology |
 | pt | Português (Portugal) | Draft dictionary; audit pending | **pt-PT only**, not Brazilian Portuguese |
-| de | Deutsch | Pending | Technical compounds, clipped labels |
-| fr | Français | Pending | Native technical terms, articles/elision |
+| de | Deutsch | Draft dictionary; audit pending | Technical compounds, clipped labels |
+| fr | Français | Draft dictionary; audit pending | Native technical terms, articles/elision |
 | it | Italiano | Pending | Technical terms, gender agreement |
 | pl | Polski | Pending | Cases, complex plurals |
 | hi | हिन्दी | Pending | Devanagari fonts, natural IT terms |
@@ -61,3 +61,20 @@ native reviewer sign-off. Run context audit, screenshot/font-width review,
 relative-time, accessibility, RTL, plural and device acceptance when the
 remaining 17 dictionaries are implemented. `en` is the baseline, not an
 accepted target-language editorial review.
+
+## 2026-10-24: next locale tranche and runtime regression safeguards
+
+- Added complete source-level `es`, `de` and `fr` draft catalogs, including
+  their CLDR plural forms (Spanish/French `many`, German `one/other`).
+  Enabled them in WebView and native tray/window title mapping only after
+  matching baseline keys and placeholder structure. Language selection is
+  independent of Cloudflare credentials, refresh cadence and event storage.
+- Repaired the initial-language IPC race. During asynchronous `get_language`,
+  a newer `cfvigil-language-changed` event takes precedence. Added controlled
+  tests for out-of-order result and bootstrap-read failure.
+- History search now matches translated event names without rewriting saved
+  legacy English records. Screen-reader labels use localized status names,
+  including a distinct unverified/unknown state.
+- Static source key/plural checks are **not** native-speaker editorial approval.
+  Physical screenshots, width/RTL/font checks, localized native diagnostics,
+  and real Cloudflare smoke remain pending.
