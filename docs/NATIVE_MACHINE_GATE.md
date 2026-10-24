@@ -161,3 +161,26 @@ usable screen height.
 **Retest both compact and expanded card**, repeated reopen, process restart,
 and Settings on each language; do not mark any of these three PASS based
 on CI or a source diff. Leave Mode B gated.
+
+### Third candidate native retest protocol (AFTER successful build)
+
+On Alcotester, exit the old `cf-vigil` process through the tray before
+updating its .deb, then confirm checksum and install the matching candidate.
+Launch the new binary with `CFVIGIL_UI_DEBUG=1` and capture stderr locally.
+Diagnostic messages are opt-in, never include Cloudflare API tokens.
+
+1. Open compact ten times, hide ten times, and note actual height vs requested
+   `122`; inspect whether the five compact actions still have a top gap.
+2. Move it to a distinguishable position, expand/collapse five times, hide/show
+   five times, then exit/relaunch. The same bottom/right margins and the same
+   physical bottom edge should survive every action.
+3. Open Settings in Russian and English. Check footer at the intrinsic bottom
+   margin without a large empty area; close/reopen and check again. Confirm
+   language still changes only after Apply.
+4. Record compact/expanded screenshots and the opt-in allocation/Settings-fit
+   log. If a GTK allocation is oversized while its requested height is 122,
+   fix the native surface; if allocation is 122 but WebView contains blank
+   content, fix WebKit/DOM measurement instead.
+
+Source CI is not the result of the above physical experiment. Mode B
+remains blocked until actual owner-observed results are captured.
