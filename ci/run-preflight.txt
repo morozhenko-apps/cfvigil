@@ -77,3 +77,8 @@ do not trigger release, R2 deployment or packaging gates.
 CLDR plural syntax and Polish event count forms, WebView/native active-code
 parity, stable JS/Python/Rust suites. Third 0.8 locale batch only;
 no tags, packaging, main, Cloudflare or R2 mutations.
+
+2026-10-24: Gate final 20-locale source batch: all 91 catalog keys,
+CLDR plural category parity incl Arabic six forms, UI/native locale parity,
+RTL direction, stable JavaScript/Python and Rust source tests. Deliberate
+feature-validation-only run before any unsigned machine inspection candidate.
