@@ -114,6 +114,48 @@ missing metrics cannot prove recovery and do not automatically mark a
 successful independent deployment read stale. Polling never makes an uptime
 probe, retries at sub-minute frequency, or launches overlapping network jobs.
 
+## Partial API failures and request budget (implemented source; acceptance pending)
+
+Workers, Pages, Workers Analytics and zone WAF analytics are independent
+read-only sources. A failed resource catalog does not discard the other
+catalog's verified results. Previously known resources from an unavailable
+catalog remain in the drawer as **unknown (grey)**, rather than disappearing.
+When any Workers/Pages discovery is incomplete, aggregate counters are
+unverified, and the poller applies its normal error backoff. A malformed
+single Pages deployment result is distinct from a valid empty array.
+Unavailable build batches and per-resource deployment reads likewise keep
+the affected Worker unknown, not green.
+
+Workers Analytics reads are batched (maximum 8 Workers per GraphQL query).
+One batch failing no longer cancels valid measurements from other batches.
+An unresolved previous runtime spike becomes unknown only for its failed
+batch. Zone WAF queries are likewise independent: an old alert may clear
+only when that exact zone was successfully queried and no spike remains;
+a different zone's failure does not hide a confirmed active WAF spike.
+
+One **shared per-poll budget** is enforced across REST and GraphQL,
+at most 120 outbound API calls in one poll. Requests exceeding the budget
+are rejected locally with no HTTP retry storm. `429 Too Many Requests`
+blocks any further requests in that poll, observes REST `Retry-After`
+seconds (bounded to 60–1800 seconds), and extends the next poll delay.
+The fallback for a missing/invalid Retry-After header is 300 seconds.
+Normal successful API reads continue at the user-selected 1/3/5/10 minute
+interval, subject to the shared budget; a provider failure may back off
+further. Cloudflare's GraphQL-specific cost limits remain separate from
+its global REST/API-token limit and are not represented as guaranteed
+quota or rate-limit immunity.
+
+Catalog processing is bounded to at most 256 Workers and 256 Pages
+projects; exceeding the bound is reported as an incomplete provider,
+never silently truncated to a fake complete result. Analytics retains
+its 256 Worker scan cap, and WAF its 30-zone scan cap. A large account
+may need a future explicitly designed scalable strategy; never
+claim all resources have been verified if the bounded scan cannot finish.
+
+Cloudflare's documented limits and REST headers:
+https://developers.cloudflare.com/fundamentals/api/reference/limits/
+and https://developers.cloudflare.com/api/resources/workers_builds/methods/get_latest_builds/.
+
 ## Settings and tray menu
 
 Right-click menu: Show Card, Event History, Settings, About, Exit.

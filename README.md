@@ -51,7 +51,8 @@ For Ubuntu KDE development, install Tauri's WebKitGTK and GTK dependencies befor
 
 - Open source, free, Apache License 2.0 (identical to RepoTicker), with [NOTICE](NOTICE).
 - **Working branch: `dev`.** `main` is for owner-approved stable integrations/releases.
-- One serialized background poller wakes on settings changes, marks stale/locked-account data unknown, and backs off after core Cloudflare API failures. No overlapping per-save refreshes.
+- One serialized background poller wakes on settings changes, marks stale/locked-account data unknown, and backs off after core Cloudflare API failures.
+- Partial Workers/Pages/Analytics/WAF outages preserve verified results and show unavailable data as unknown; one shared 120-call budget per polling cycle respects REST 429 Retry-After. No overlapping per-save refreshes.
 - CI uses one **GitHub-hosted Ubuntu 24.04** job. Normal `dev` code/docs commits **do not launch GitHub Actions**. After a completed feature or fix, update [`ci/run-preflight.txt`](ci/run-preflight.txt) once to request JavaScript and Rust checks on the resulting head; temporary PRs are checked automatically for code changes. This avoids repeated queued jobs. CI is not a CFVigil product integration.
 - **20 UI languages are planned** as the last functionality milestone, after all other MVP features and before the final end-to-end QA campaign; the required locale set and per-language contextual audit are in the roadmap.
 - Upstream is designed for **structured bug reports only**; feature requests and third-party PRs are not accepted, while independent forks are permitted. The [Bug report form](.github/ISSUE_TEMPLATE/bug_report.yml) is prepared on `dev` but only becomes visible in GitHub's Issues chooser once it reaches the repository's default branch (`main` at present). See [CONTRIBUTING.md](CONTRIBUTING.md).

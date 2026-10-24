@@ -268,3 +268,42 @@ commits. Do not infer successful Rust tests for new source from the old CI run.
 Actual GitHub-hosted CI run [40037684110](https://github.com/morozhenko-apps/cfvigil/actions/runs/40037684110) for `8e0a3fb1d321`: JavaScript syntax/tests and Linux dependencies passed, but `cargo check -p cfvigil-desktop` failed with only `E0277`, `Snapshot: Clone` not satisfied in `main.rs:192`, because `tauri::Emitter::emit` requires `Serialize + Clone` for its event payload. Rust tests were skipped by the failed compiler gate.
 
 Code commit `b9025ae1e9c956c8982378204e2a13f4f67b9841` derives `Clone` on the native `Snapshot` event payload, keeping the readiness snapshot format unchanged. This is a compiler fix, not verification; a single explicit marker-driven CI rerun is required. No release or `main` fast-forward.
+
+## 2026-10-24 — Independent provider failures, per-poll budget and 429 handling
+
+Source changes on `dev`:
+- `api_budget.rs` adds one per-refresh allocation (120 outbound calls
+  maximum for Cloudflare REST and GraphQL combined) and a no-retry 429
+  stop condition. Parses Cloudflare REST `Retry-After` integer seconds and
+  clamps cooldown to 60–1800 seconds; falls back to 300 on invalid/missing
+  data. The poller preserves the longer of exponential failure backoff and
+  provider-advised cooldown. Budget resets only on the next poll, never
+  by making a second immediate request.
+- `cloudflare.rs` returns a partial `Discovery` instead of requiring
+  both independent Worker and Pages catalog reads to succeed. It preserves
+  per-build-batch and per-resource error provenance and uses grey status
+  on unreadable Worker/Pages results. Bounded resource scans fail closed
+  rather than omitting surplus resources silently.
+- `analytics.rs` returns independently verified Workers error-spike
+  batches; only failed batches remain unverified. `security.rs` returns
+  zone-specific WAF verification results; a failed zone no longer hides
+  confirmed spikes in other zones, and only a successfully checked zone
+  can prove recovery.
+- `main.rs` merges stale resources from unavailable catalogs without
+  treating missing responses as deletions; a globally incomplete core
+  discovery makes the aggregate counters unverified. Previously confirmed
+  incidents remain grey during failed metrics reads. Confirmed recoveries
+  still record event history and re-arm future distinct incidents.
+- Rust unit tests cover local budget exhaustion, Retry-After normalization,
+  greyed catalogs, duplicate elimination and WAF zone-specific recovery.
+  Existing Cloudflare REST/GraphQL fixture parsing, incident continuity and
+  JS snapshot regressions remain in the stable suite.
+- Provider and budget changes have not been verified with a real Cloudflare
+  token nor on physical KDE/Windows. **Single marker-triggered Preflight
+  is pending**, and results must be read from the actual GitHub Actions run.
+  No `main` fast-forward, release tag or publication is approved.
+
+Reference: Cloudflare API rate-limit and header documentation
+(https://developers.cloudflare.com/fundamentals/api/reference/limits/),
+Workers Builds latest endpoint supports at most 20 script tags per call
+(https://developers.cloudflare.com/api/resources/workers_builds/methods/get_latest_builds/).
