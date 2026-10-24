@@ -6,3 +6,8 @@ workflow. This must not create tags, releases, signed APT or R2 uploads.
 
 2026-10-24: First source-level DEB/AppImage candidate with version,
 metadata, dependency and checksum validation.
+
+2026-10-24: FINAL complete candidate source at dev HEAD. Verify
+version/metadata negative tests, Rust/JS suites, DEB/AppImage bundle
+validation, SHA256, and Cargo.lock review artifact. Supersedes the
+incomplete initial packaging workflow trigger.
