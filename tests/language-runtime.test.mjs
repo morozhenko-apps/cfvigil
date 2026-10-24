@@ -9,13 +9,19 @@ import {initializeLanguage} from "../apps/desktop/ui/runtime-language.mjs";
 import english from "../apps/desktop/ui/locales/en.mjs";
 import russian from "../apps/desktop/ui/locales/ru.mjs";
 import portuguese from "../apps/desktop/ui/locales/pt.mjs";
+import spanish from "../apps/desktop/ui/locales/es.mjs";
+import german from "../apps/desktop/ui/locales/de.mjs";
+import french from "../apps/desktop/ui/locales/fr.mjs";
 
 const read = path => readFileSync(new URL("../" + path, import.meta.url), "utf8");
 
-test("only complete English, Russian and European Portuguese can be enabled", () => {
-  assert.deepEqual(ACTIVE_LOCALES, ["en","ru","pt"]);
+test("only complete and explicitly reviewed-for-key-parity dictionaries can be enabled", () => {
+  assert.deepEqual(ACTIVE_LOCALES, ["en","ru","pt","es","de","fr"]);
   assert.deepEqual(validateCatalog(russian, english, "ru"), []);
   assert.deepEqual(validateCatalog(portuguese, english, "pt"), []);
+  assert.deepEqual(validateCatalog(spanish, english, "es"), []);
+  assert.deepEqual(validateCatalog(german, english, "de"), []);
+  assert.deepEqual(validateCatalog(french, english, "fr"), []);
   // European Portuguese uses CLDR "many" for multiples of one million.
   assert.ok(new Intl.PluralRules("pt-PT").resolvedOptions().pluralCategories.includes("many"));
   for (const key of ["age.minute", "age.hour", "age.day", "history.eventCount"]) {
@@ -79,7 +85,7 @@ test("independent native language storage cannot wake Cloudflare polling", () =>
   const end=main.indexOf("fn update_native_language(",start);
   const setter=main.slice(start,end);
   assert.doesNotMatch(setter,/poll_refresh|refresh_once|invalidate_resources|last_notified/);
-  assert.match(native,/pub const ACTIVE: &\[&str\] = &\["en", "ru", "pt"\]/);
+  assert.match(native,/pub const ACTIVE: &\[&str\] = &\["en", "ru", "pt", "es", "de", "fr"\]/);
   assert.match(native,/fn unknown_languages_fail_closed\(/);
   assert.match(read("apps/desktop/src-tauri/src/linux_tray.rs"),/language::menu\(&locale, "open"\)/);
   assert.match(main,/tray\.set_menu\(Some\(menu\)\)/);
@@ -141,4 +147,24 @@ test("accessibility status names follow locale while status IDs remain stable", 
   assert.match(card, /t\(statusLabelKey\[resource\.status\]/);
   assert.equal(t("card.statusUnknown", {}, "ru"), "Не проверено");
   assert.equal(t("card.statusUnknown", {}, "pt"), "Por verificar");
+});
+
+test("Spanish, German and French use correct CLDR categories and native menu labels", () => {
+  const native = read("apps/desktop/src-tauri/src/language.rs");
+  const languages = {es: spanish, de: german, fr: french};
+  for (const [locale, dictionary] of Object.entries(languages)) {
+    const expected = new Intl.PluralRules(locale).resolvedOptions().pluralCategories;
+    for (const key of ["age.minute", "age.hour", "age.day", "history.eventCount"]) {
+      assert.deepEqual(Object.keys(dictionary[key]).sort(), [...expected].sort(),
+        `${locale}:${key}`);
+    }
+  }
+  assert.equal(t("card.issues", {}, "es"), "Problemas");
+  assert.equal(t("card.resources", {}, "de"), "Ressourcen");
+  assert.equal(t("card.resources", {}, "fr"), "Ressources");
+  assert.match(native, /\("es", "settings"\) => "Configuración"/);
+  assert.match(native, /\("de", "settings"\) => "Einstellungen"/);
+  assert.match(native, /\("fr", "settings"\) => "Paramètres"/);
+  assert.equal(plural("history.eventCount", 1000000, {shown:2,total:1000000}, "fr"),
+    "2 sur 1000000 événements");
 });

@@ -2,7 +2,7 @@
 //! An unsupported locale never activates incomplete UI strings.
 use serde::{Deserialize, Serialize};
 
-pub const ACTIVE: &[&str] = &["en", "ru", "pt"];
+pub const ACTIVE: &[&str] = &["en", "ru", "pt", "es", "de", "fr"];
 
 fn default_locale() -> String { "en".to_owned() }
 
@@ -31,6 +31,21 @@ pub fn menu(locale: &str, action: &str) -> &'static str {
         ("pt", "settings") => "Definições",
         ("pt", "about") => "Sobre",
         ("pt", "quit") => "Sair",
+        ("es", "open") => "Mostrar panel",
+        ("es", "history") => "Historial de eventos",
+        ("es", "settings") => "Configuración",
+        ("es", "about") => "Acerca de",
+        ("es", "quit") => "Salir",
+        ("de", "open") => "Karte anzeigen",
+        ("de", "history") => "Ereignisverlauf",
+        ("de", "settings") => "Einstellungen",
+        ("de", "about") => "Über",
+        ("de", "quit") => "Beenden",
+        ("fr", "open") => "Afficher la carte",
+        ("fr", "history") => "Historique des événements",
+        ("fr", "settings") => "Paramètres",
+        ("fr", "about") => "À propos",
+        ("fr", "quit") => "Quitter",
         (_, "open") => "Show Card",
         (_, "history") => "Event History",
         (_, "settings") => "Settings",
@@ -42,7 +57,14 @@ pub fn menu(locale: &str, action: &str) -> &'static str {
 pub fn window_title(locale: &str, label: &str) -> &'static str {
     match label {
         "main" => "CFVigil",
-        "about" => match locale { "ru" => "О CFVigil", "pt" => "Sobre o CFVigil", _ => "About CFVigil" },
+        "about" => match locale {
+            "ru" => "О CFVigil",
+            "pt" => "Sobre o CFVigil",
+            "es" => "Acerca de CFVigil",
+            "de" => "Über CFVigil",
+            "fr" => "À propos de CFVigil",
+            _ => "About CFVigil"
+        },
         "settings" => menu(locale, "settings"),
         "history" => menu(locale, "history"),
         _ => "CFVigil",
