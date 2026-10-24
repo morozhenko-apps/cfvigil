@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 
 const workflow = readFileSync(
   new URL("../.github/workflows/checks.yml", import.meta.url), "utf8"
-);
+).replace(/\r\n/g, "\n");
 function section(start, end) {
   const first = workflow.indexOf(start);
   const last = workflow.indexOf(end, first + start.length);
@@ -34,7 +34,7 @@ test("one hosted job runs UI and native Rust checks in a single preflight", () =
   assert.doesNotMatch(workflow, /self-hosted|container:\s*\n/);
   assert.equal((workflow.match(/^    runs-on:/gm) || []).length, 1);
   assert.match(workflow, /node --test tests\/\*\.test\.mjs/);
-  assert.match(workflow, /cargo check -p cfvigil-desktop/);
-  assert.match(workflow, /cargo test -p cfvigil-desktop/);
+  assert.match(workflow, /cargo check --locked -p cfvigil-desktop/);
+  assert.match(workflow, /cargo test --locked -p cfvigil-desktop/);
   assert.match(workflow, /cancel-in-progress: true/);
 });
