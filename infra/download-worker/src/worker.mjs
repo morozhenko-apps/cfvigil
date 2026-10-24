@@ -1,7 +1,6 @@
 // Dedicated read-only Cloudflare Worker for CFVigil artifacts. Never mutates R2.
 const PREFIX = "/dist/CFVigil/";
 const VERSION = "(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)";
-const v = "v" + VERSION;
 const aptPatterns = [
   new RegExp("^apt/pool/main/c/cf-vigil/cfvigil_" + VERSION + "_amd64\\.deb$"),
   /^apt\/dists\/stable\/InRelease$/,
