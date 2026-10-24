@@ -168,3 +168,14 @@ language-specific CLDR categories. The Polish event count uses distinct
 English is not inherited in any dictionary. Ten of twenty language codes
 are now source-enabled, but no source-only result substitutes for an actual
 native contextual / font / width / accessibility audit.
+
+## 2026-10-24: all 20 source catalogs available
+
+The planned locale set now matches the activated WebView and Rust `ACTIVE`
+lists. All 20 dictionaries are standalone 91-key drafts with CLDR plural
+categories and placeholders; no implicit English fallback. Native shell
+menu and window titles are wired for each, while provider/backend diagnostic
+errors and installer surfaces may still contain English. Source structural
+checks passed; full CI/native machine acceptance must be assessed separately.
+Owner-requested checkpoint `docs/NATIVE_MACHINE_GATE.md` strictly precedes
+comprehensive stable/flaky/Mode B test expansion.

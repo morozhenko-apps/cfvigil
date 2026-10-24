@@ -668,3 +668,18 @@ New tests also assert that JS active languages match Rust supported codes.
 An independently detected test-regex syntax defect and Polish plural wording
 were corrected before the acceptance CI marker. Stable CI acceptance is
 still pending after this batch. No release, tags or `main` changes.
+
+## 2026-10-24: 0.8 source catalog completeness checkpoint
+
+The remaining ten full-key dictionaries have been committed, and all 20
+locales were activated in the UI and native tray/window mapping. A direct
+locale-by-locale structural audit over GitHub source found 91 keys per locale,
+matching interpolation placeholders and each locale's CLDR plural categories.
+This is **source-level evidence only**. Native-backend diagnostic and
+installation/help wording still need localization review; individual
+editorial/context and RTL/font acceptance is pending.
+
+The next actions are one stable source Preflight; then exact-SHA unapproved
+Linux and Windows candidate builds, then real Ubuntu KDE and Windows
+installation checks with recorded evidence **before** adding a broad test
+matrix or entering Mode B. See `docs/NATIVE_MACHINE_GATE.md`.

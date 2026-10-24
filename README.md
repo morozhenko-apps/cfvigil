@@ -30,7 +30,7 @@ Windows x64 NSIS **candidates only**; neither publishes a release.
 
 ## Localization readiness
 
-The desktop development branch supports **English, Russian, European Portuguese, Spanish, German, French, Italian, Polish, Dutch and Swedish** at the UI layer (the latter two are draft, pending contextual acceptance). Its user interface uses semantic
+The desktop development branch contains **all 20 target-language UI dictionaries** as drafts. No language is considered editorially or physically accepted yet. Its user interface uses semantic
 keys in `apps/desktop/ui/locales/en.mjs` with native Rust diagnostic strings
 centralized in `native_messages.rs`. Validation for keys, interpolation,
 plural rules, date formatting and RTL direction is available via:

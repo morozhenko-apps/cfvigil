@@ -1,6 +1,6 @@
 # CFVigil — 20-locale contextual audit ledger
 
-**Status: IN PROGRESS. Russian, European Portuguese, Spanish, German, French, Italian, Polish, Dutch and Swedish draft dictionaries are implemented, not context-approved. No native language-specific audits have been completed.** This ledger will be populated in the final product-feature
+**Status: SOURCE CATALOGS 20/20; EDITORIAL AND PHYSICAL ACCEPTANCE PENDING. Russian, European Portuguese, Spanish, German, French, Italian, Polish, Dutch and Swedish draft dictionaries are implemented, not context-approved. No native language-specific audits have been completed.** This ledger will be populated in the final product-feature
 milestone, after all other MVP functionality/distribution work and before
 the exhaustive v1.0.0 test campaign.
 
@@ -19,18 +19,18 @@ owner-approved product decision.
 | fr | Français | Draft dictionary; audit pending | Native technical terms, articles/elision |
 | it | Italiano | Draft dictionary; audit pending | Technical terms, gender agreement |
 | pl | Polski | Draft dictionary; audit pending | Cases, complex plurals |
-| hi | हिन्दी | Pending | Devanagari fonts, natural IT terms |
-| zh-Hant | 繁體中文 | Pending | Traditional characters, region-appropriate terminology |
-| ja | 日本語 | Pending | Japanese developer terms and CJK layout |
+| hi | हिन्दी | Draft dictionary; audit pending | Devanagari fonts, natural IT terms |
+| zh-Hant | 繁體中文 | Draft dictionary; audit pending | Traditional characters, region-appropriate terminology |
+| ja | 日本語 | Draft dictionary; audit pending | Japanese developer terms and CJK layout |
 | nl | Nederlands | Draft dictionary; audit pending | Idiomatic software terminology |
 | sv | Svenska | Draft dictionary; audit pending | Error vs issue terminology |
-| tr | Türkçe | Pending | Agglutination and locale casing |
-| ko | 한국어 | Pending | Natural technical phrasing, CJK layout |
-| bn | বাংলা | Pending | Bengali fonts, grammar and digit behavior |
-| th | ไทย | Pending | Thai line wrapping and fonts |
-| id | Bahasa Indonesia | Pending | Concise monitoring vocabulary |
-| fil | Filipino | Pending | Natural Filipino usage, avoid English-only fallback |
-| ar | العربية | Pending | **RTL**, LTR isolation for IDs/URLs, plurals |
+| tr | Türkçe | Draft dictionary; audit pending | Agglutination and locale casing |
+| ko | 한국어 | Draft dictionary; audit pending | Natural technical phrasing, CJK layout |
+| bn | বাংলা | Draft dictionary; audit pending | Bengali fonts, grammar and digit behavior |
+| th | ไทย | Draft dictionary; audit pending | Thai line wrapping and fonts |
+| id | Bahasa Indonesia | Draft dictionary; audit pending | Concise monitoring vocabulary |
+| fil | Filipino | Draft dictionary; audit pending | Natural Filipino usage, avoid English-only fallback |
+| ar | العربية | Draft dictionary; audit pending | **RTL**, LTR isolation for IDs/URLs, plurals |
 
 ## Required review record per locale
 
@@ -93,3 +93,19 @@ Editorial/terminology review, actual translated Windows dialogs, native
 Cloudflare diagnostic strings, font/width checks and screenshot evidence are
 not completed. A successful source CI result does not confer native/editorial
 acceptance.
+
+## 2026-10-24: 20 of 20 source dictionaries committed, no editorial acceptance
+
+The remaining Turkish, Indonesian, Filipino, Traditional Chinese, Japanese,
+Korean, Hindi, Bengali, Thai and Arabic dictionaries were added to `dev`.
+All 20 catalogs have exactly 91 keys, required interpolation tokens, correct
+plural category sets, and exact PersonalLanding locale codes. The Arabic
+dictionary implements `zero/one/two/few/many/other`; right-to-left direction
+is set by the runtime and resource names are isolated in `bdi` elements.
+
+All are **drafts**. Do not imply semantic validity, complete native diagnostic
+translations, translated installation dialogs, correct native font metrics,
+RTL interaction, screen reader acceptance, or successful installed execution.
+The user explicitly requires a real Ubuntu KDE/Windows checkpoint between
+initial source validation and broad QA/Mode B. Exact machine gate:
+`docs/NATIVE_MACHINE_GATE.md`. No reviewer or device evidence yet.
