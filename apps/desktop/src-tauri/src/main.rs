@@ -230,8 +230,8 @@ fn update_autostart(app: &AppHandle, requested: Option<bool>) -> Result<(), Stri
     let current = manager.is_enabled()
         .map_err(|_| "Could not read launch-at-login registration")?;
     if current == enabled { return Ok(()) }
-    if enabled { manager.enable() } else { manager.disable() }
-        .map_err(|_| "Could not update launch-at-login registration".into())
+    let result = if enabled { manager.enable() } else { manager.disable() };
+    result.map_err(|_| "Could not update launch-at-login registration".into())
 }
 
 #[tauri::command]
