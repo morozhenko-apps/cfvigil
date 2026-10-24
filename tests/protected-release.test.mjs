@@ -15,6 +15,12 @@ test("no dev push or workflow dispatch can publish CFVigil",()=>{
   assert.doesNotMatch(release,/workflow_dispatch:|branches: \[dev\]/);
   assert.match(release,/APPROVED_TAG.*CFVIGIL_RELEASE_APPROVED_TAG/);
   assert.match(release,/environment: cfvigil-release/);
+  // GitHub Actions uses double-brace expressions; malformed single braces
+  // must fail source checks before an approved production tag ever exists.
+  assert.match(release,/\$\{\{\s*github\.ref_name\s*\}\}/);
+  assert.match(release,/\$\{\{\s*vars\.CFVIGIL_RELEASE_APPROVED_TAG\s*\}\}/);
+  assert.match(release,/\$\{\{\s*needs\.publish\.outputs\.receipt\s*\}\}/);
+  assert.doesNotMatch(release,/\$\{\s+(?:github|vars|secrets|needs|runner|steps)\./);
 });
 
 test("publication orders R2 readback ahead of cleanup and text-only GitHub release",()=>{
