@@ -34,5 +34,5 @@ test("damaged-state warning is accessible without changing the compact card", ()
   assert.match(card,/announce\(warning\)/);
   assert.match(settings,/snapshot\?\.storage_warning/);
   assert.match(settings,/t\("settings\.storageWarning"\)/);
-  assert.match(read("apps/desktop/ui/locales/en.mjs"),/Damaged local state was preserved as a \.corrupt\.\* file/);
+  assert.match(source("apps/desktop/ui/locales/en.mjs"),/Damaged local state was preserved as a \.corrupt\.\* file/);
 });
