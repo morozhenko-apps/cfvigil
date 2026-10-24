@@ -1,4 +1,5 @@
 mod cloudflare;
+mod api_budget;
 mod analytics;
 mod incident_policy;
 mod incident_store;
@@ -10,6 +11,7 @@ mod linux_surface;
 mod linux_tray;
 
 use cloudflare::{Cloudflare, Resource};
+use api_budget::ApiBudget;
 use incident_store::{IncidentJournal, NotificationWindow};
 use polling_policy::poll_delay;
 use serde::{Deserialize, Serialize};
@@ -17,6 +19,7 @@ use std::{
     fs,
     collections::HashSet,
     path::PathBuf,
+    time::Duration,
     sync::{
         atomic::{AtomicBool, Ordering},
         Mutex,
@@ -378,7 +381,7 @@ fn open_history_event(state: State<'_, AppState>, id: String) -> Result<(), Stri
     open::that(url).map_err(|_| "Could not open browser".into())
 }
 
-async fn refresh_once(app: AppHandle) -> bool {
+async fn refresh_once(app: AppHandle, budget: &ApiBudget) -> bool {
     let state = app.state::<AppState>();
     let _refresh_guard = state.refresh_lock.lock().await;
     let config = state.config.lock().unwrap().clone();
@@ -393,29 +396,42 @@ async fn refresh_once(app: AppHandle) -> bool {
         }
     };
     let result = match Cloudflare::new() {
-        Ok(api) => api.discover(&config.account_id, &token).await,
+        Ok(api) => api.discover(&config.account_id, &token, budget).await,
         Err(message) => Err(message),
     };
-    let mut resources = match result {
-        Ok(resources) => resources,
+    let discovery = match result {
+        Ok(discovery) => discovery,
         Err(message) => {
             report_sync_failure(&app, &state, &message);
             return false;
         }
     };
-
+    let core_complete = discovery.complete;
     let previous = state.resources.lock().unwrap().clone();
-    let worker_names: HashSet<String> = resources.iter()
+    let worker_names: HashSet<String> = discovery.resources.iter()
         .filter(|resource| resource.kind == "worker")
         .map(|resource| resource.name.clone()).collect();
+    let mut resources = discovery.resources;
+    // Only replace the kinds whose catalog was actually retrieved. An
+    // unavailable list cannot prove a previously known resource vanished.
+    for old in &previous {
+        let missing_catalog = (old.kind == "worker" && !discovery.workers_complete)
+            || (old.kind == "pages" && !discovery.pages_complete);
+        if missing_catalog && !resources.iter().any(|item| item.key == old.key) {
+            let mut stale = old.clone();
+            stale.status = "unknown".into();
+            stale.detail = "Resource catalog unavailable; previous state unverified".into();
+            resources.push(stale);
+        }
+    }
     // Metrics never probe the deployed application. Unavailable analytics
     // leave deployment status unchanged rather than inventing an incident.
-    match analytics::query_spikes(&config.account_id, &token, &worker_names).await {
-        Ok(spikes) => {
+    match analytics::query_spikes(&config.account_id, &token, &worker_names, budget).await {
+        Ok(scan) => {
             for resource in resources.iter_mut().filter(|resource| resource.kind == "worker") {
-                if let Some(spike) = spikes.get(&resource.name) {
+                if let Some(spike) = scan.spikes.get(&resource.name) {
                     let old_alert = previous.iter().find(|old| old.key == resource.key)
-                         .filter(|old| old.attempt_id == "runtime-error-spike");
+                        .filter(|old| old.attempt_id == "runtime-error-spike");
                     resource.changed_at = old_alert
                         .map(|old| old.changed_at.clone())
                         .unwrap_or_else(|| chrono::Utc::now().to_rfc3339());
@@ -425,12 +441,20 @@ async fn refresh_once(app: AppHandle) -> bool {
                         spike.errors, spike.requests, spike.ratio * 100.0
                     );
                     resource.attempt_id = "runtime-error-spike".into();
+                } else if scan.unverified.contains(&resource.name) {
+                    if let Some(old) = previous.iter().find(|old| old.key == resource.key)
+                        .filter(|old| old.attempt_id == "runtime-error-spike")
+                    {
+                        resource.status = "unknown".into();
+                        resource.detail = "Workers analytics unavailable; previous spike unverified".into();
+                        resource.changed_at = old.changed_at.clone();
+                        resource.attempt_id = old.attempt_id.clone();
+                    }
                 }
             }
         }
         Err(_) => {
-            // A missing GraphQL response is NOT proof that an existing spike
-            // recovered. Keep the affected resource grey until checked.
+            // Total analytics failure also cannot confirm a recovery.
             for resource in resources.iter_mut().filter(|resource| resource.kind == "worker") {
                 if let Some(old) = previous.iter().find(|old| old.key == resource.key)
                     .filter(|old| old.attempt_id == "runtime-error-spike")
@@ -443,35 +467,45 @@ async fn refresh_once(app: AppHandle) -> bool {
             }
         }
     }
-    let security_complete = match security::detect(&config.account_id, &token).await {
-        Ok(mut waf_issues) => {
-            for current in &mut waf_issues {
-                // Show when the ongoing spike was first detected, not the
-                // latest polling time. Preserve this across API outages.
+    let verified_zones = match security::detect(&config.account_id, &token, budget).await {
+        Ok(mut report) => {
+            for current in &mut report.incidents {
                 if let Some(old) = previous.iter().find(|old| {
                     old.key == current.key && old.attempt_id == "waf-block-spike"
                 }) {
                     current.changed_at = old.changed_at.clone();
                 }
             }
-            resources.extend(waf_issues);
-            true
+            resources.extend(report.incidents);
+            // Do not grey out or resolve the zones that did answer; only
+            // unverified previous incidents remain grey.
+            for old in previous.iter().filter(|old| old.kind == "zone") {
+                if !report.verified_zones.contains(&old.key) {
+                    let mut stale = old.clone();
+                    stale.status = "unknown".into();
+                    stale.detail = "WAF analytics unavailable; previous alert unverified".into();
+                    resources.push(stale);
+                }
+            }
+            report.verified_zones
         }
         Err(_) => {
-            // WAF analytics outage cannot resolve a previously active alert.
-            for old in previous.iter().filter(|r| r.kind == "zone") {
+            for old in previous.iter().filter(|old| old.kind == "zone") {
                 let mut stale = old.clone();
                 stale.status = "unknown".into();
                 stale.detail = "WAF analytics unavailable; previous alert unverified".into();
                 resources.push(stale);
             }
-            false
+            HashSet::new()
         }
     };
     resources.sort_by(|a,b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
-    state.ready.store(true, Ordering::Release);
+    state.ready.store(core_complete, Ordering::Release);
     *state.resources.lock().unwrap() = resources.clone();
     publish_snapshot(&app, &state);
+    if !core_complete {
+        let _ = app.emit("cfvigil-sync-error", "Some Cloudflare resources are unverified");
+    }
     let mut events = Vec::new();
     for current in &resources {
         let old = previous.iter().find(|entry| entry.key == current.key);
@@ -506,12 +540,10 @@ async fn refresh_once(app: AppHandle) -> bool {
             let _ = app.emit("cfvigil-incident", &notice);
         }
     }
-    if security_complete {
-        for old in previous.iter().filter(|r| r.kind == "zone" && r.attempt_id == "waf-block-spike") {
-            if !resources.iter().any(|r| r.key == old.key) {
+    for old in previous.iter().filter(|r| r.kind == "zone" && r.attempt_id == "waf-block-spike") {
+        if verified_zones.contains(&old.key) && !resources.iter().any(|r| r.key == old.key) {
                 state.last_notified.lock().unwrap().remove(&format!("{}:waf-spike", old.key));
                 events.push(new_history_event(old, "WAF block spike cleared", events.len()));
-            }
         }
     }
     if !events.is_empty() {
@@ -536,7 +568,7 @@ async fn refresh_once(app: AppHandle) -> bool {
             eprintln!("CFVigil: could not persist the incident journal");
         }
     }
-    true
+    core_complete && !budget.exhausted()
 }
 
 fn run_polling(app: AppHandle) {
@@ -547,14 +579,17 @@ fn run_polling(app: AppHandle) {
             // An update while fetching remains unconsumed and triggers
             // an immediate next cycle after the previous request finishes.
             let _ = *changes.borrow_and_update();
-            if refresh_once(app.clone()).await {
+            let budget = ApiBudget::new();
+            if refresh_once(app.clone(), &budget).await {
                 failures = 0;
             } else {
                 failures = failures.saturating_add(1);
             }
             let interval = app.state::<AppState>().config.lock().unwrap().refresh_seconds;
+            let delay = poll_delay(interval, failures)
+                .max(Duration::from_secs(budget.retry_after_seconds()));
             tokio::select! {
-                _ = tokio::time::sleep(poll_delay(interval, failures)) => {},
+                _ = tokio::time::sleep(delay) => {},
                 update = changes.changed() => {
                     if update.is_err() { break; }
                 }
