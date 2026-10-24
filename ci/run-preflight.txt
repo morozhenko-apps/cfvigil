@@ -88,3 +88,7 @@ RepoTicker drag/Wayland layer anchors. Validate relative pointer bridge,
 card bottom/right persistence, compact geometry, 15 s compact-only
 auto-hide, native content-sized Settings and Apply-only language changes.
 One stable JS/Python/Rust source gate, then unreleased candidate retest.
+
+2026-10-24: Retry Alcotester native KDE fixes after test harness syntax
+repair; includes Settings reopening discard, drag and geometry C/Rust bridge,
+auto-hide, and staged Apply. Require full JS/Python/Rust successful run.
