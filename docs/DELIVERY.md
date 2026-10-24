@@ -262,3 +262,9 @@ The previous incident-journal Preflight #40037042894 completed green before
 these polling changes. A single separate marker-triggered Preflight will be
 needed for the new code. Code/config and documentation remain separate
 commits. Do not infer successful Rust tests for new source from the old CI run.
+
+## 2026-10-24 — Preflight diagnosis on single-poller milestone
+
+Actual GitHub-hosted CI run [40037684110](https://github.com/morozhenko-apps/cfvigil/actions/runs/40037684110) for `8e0a3fb1d321`: JavaScript syntax/tests and Linux dependencies passed, but `cargo check -p cfvigil-desktop` failed with only `E0277`, `Snapshot: Clone` not satisfied in `main.rs:192`, because `tauri::Emitter::emit` requires `Serialize + Clone` for its event payload. Rust tests were skipped by the failed compiler gate.
+
+Code commit `b9025ae1e9c956c8982378204e2a13f4f67b9841` derives `Clone` on the native `Snapshot` event payload, keeping the readiness snapshot format unchanged. This is a compiler fix, not verification; a single explicit marker-driven CI rerun is required. No release or `main` fast-forward.
