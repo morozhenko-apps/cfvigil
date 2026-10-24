@@ -394,3 +394,43 @@ Completed in source on `dev`:
   [#40086493690](https://github.com/morozhenko-apps/cfvigil/actions/runs/40086493690)
   finished green before this milestone. A new single marker-driven Preflight
   is still required for the storage work. No main merge or release.
+
+## 2026-10-24 — 0.6: deliberately gated Linux distribution candidate
+
+- Previous storage durability Preflight
+  [#40087462852](https://github.com/morozhenko-apps/cfvigil/actions/runs/40087462852)
+  finished successfully.
+- Added `.github/workflows/package-candidate.yml`, entirely separate from
+  `checks.yml`. Only an explicit changed `ci/run-package-candidate.txt`
+  on `dev` starts one Linux GitHub-hosted build. It uses a single
+  job and `permissions: contents: read`. There is **no** release/tag,
+  R2/APT uploader, signing key, or GitHub Release creation path in it.
+- `scripts/candidate-version.mjs` rejects mismatched desktop Rust/Tauri
+  versions, non-semver identifiers, bundle identity or license drift, and
+  missing source attribution/icons. In-tree deterministic Node tests exercise
+  positive and negative cases.
+- Linux bundling now explicitly requires `libgtk-layer-shell0`, adapted
+  from RepoTicker's checked desktop packaging convention. The candidate
+  installs the Rust Tauri 2 CLI on `ubuntu-24.04`, checks Rust/JS suites
+  and attempts both amd64 DEB and AppImage packages.
+- `scripts/candidate-assets.mjs` inspects the actual bundle output, fails
+  on missing/duplicate files, wrong Debian package/version/architecture,
+  missing GTK Layer Shell runtime dependency, invalid headers/oversize
+  artifacts, and computes streaming SHA-256 digests plus manifest. Output
+  is uploaded to a 7-day GitHub Actions artifact, not a public release.
+  `Cargo.lock` is preserved as a separate review artifact when generated.
+- **Not yet accepted:** the first source trigger occurred before its
+  artifact validator was committed; that run is not candidate evidence.
+  The final candidate marker must trigger verification at the complete
+  SHA and supersede/cancel earlier in-progress attempts. No source
+  success should be claimed until the resulting run passes.
+- **Production blocker:** CFVigil `Cargo.lock` is not tracked in Git
+  yet. A successfully generated runner artifact is a review input, not
+  an automatic change to the branch. Signed APT, Windows x64 NSIS,
+  isolated R2 upload, git tag/immutable main admission, physical
+  install/upgrade/removal and live Cloudflare acceptance remain distinct
+  delivery gates. Never reuse RepoTicker's signing credentials.
+
+The release distribution code deliberately follows RepoTicker's
+nonpublishing build-before-publish separation, without silently importing
+RepoTicker's publishing infrastructure. No main merge or tag is authorized.

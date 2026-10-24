@@ -237,6 +237,35 @@ that event history survived a prior disk failure. Recovery, file permissions
 and interruption behavior still require physical acceptance on KDE and
 Windows filesystems before distribution.
 
+## Nonpublishing Linux package candidates (source; packaging run pending)
+
+CFVigil's Linux distribution target is **amd64 DEB and AppImage**, with
+`libgtk-layer-shell0` explicitly declared as a Debian runtime dependency.
+The source package uses the Apache License 2.0 and NOTICE attribution.
+
+An explicit, independent `dev` marker (`ci/run-package-candidate.txt`)
+requests a GitHub-hosted, **unsigned/nonpublishing** candidate build; ordinary
+code and documentation pushes cannot trigger it. The pipeline checks all
+JavaScript/Rust unit tests, verifies that Cargo and Tauri agree on a strict
+semantic version, compiles Tauri and builds both Linux packages. A separate
+Node-only artifact validator checks exactly one DEB and one AppImage,
+archive headers, Debian identity/version/amd64 architecture, required
+`libgtk-layer-shell0` dependency, bounded size, and SHA-256 checksums.
+It stages only downloadable candidate artifacts and checksum sidecars.
+
+This pipeline does **not** create a GitHub Release, push a tag, merge into
+`main`, sign APT metadata, publish to Cloudflare R2, or assign an update URL.
+A compiled candidate is not a release acceptance. Verified live installer,
+uninstall, Wayland/X11, keychain, APT and Windows behaviors are still required.
+
+**Outstanding release admission requirements:** commit a reviewed,
+`cargo generate-lockfile`-generated `Cargo.lock`, provide and validate
+complete Windows x64 installer icons and packaging, implement separate
+owner-approved, main/tag-gated signed APT and R2/GitHub publication with
+dedicated CFVigil signing credentials and a unique
+`/dist/CFVigil/` namespace. Never copy RepoTicker signing secrets or publish
+unsigned APT metadata.
+
 ## Settings and tray menu
 
 Right-click menu: Show Card, Event History, Settings, About, Exit.
