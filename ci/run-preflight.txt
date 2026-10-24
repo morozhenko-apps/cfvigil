@@ -50,3 +50,7 @@ offline Python signed R2 staging tests, then full stable Rust suite.
 2026-10-24: Verify protected release Linux/Windows artifact handoff path
 expressions and new regression contract, plus existing JS/Python/Rust stable
 suite after correcting four stray-brace destination errors.
+
+2026-10-24: Verify 0.7 English-only source localization boundary, native
+Rust message centralization, persisted event compatibility, HTML/JS key and
+plural/RTL/date diagnostics, syntax, Python release invariants and stable Rust.
