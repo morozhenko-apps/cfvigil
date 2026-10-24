@@ -39,10 +39,6 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cargo metadata --locked --format-version 1 --no-deps | Out-Null
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          cargo check --locked -p cfvigil-desktop
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          cargo test --locked -p cfvigil-desktop
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Install Tauri CLI
         run: |
           cargo install tauri-cli --version '^2' --locked
@@ -50,9 +46,16 @@ jobs:
       - name: Generate icon set from committed source PNG
         working-directory: apps/desktop/src-tauri
         run: |
-          cargo tauri icon icons/icon.png --output icons/ci-windows
+          # tauri-build requires icons/icon.ico even for cargo check on Windows.
+          cargo tauri icon icons/icon.png --output icons
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if (!(Test-Path icons/ci-windows/icon.ico)) { throw "Missing generated ICO" }
+          if (!(Test-Path icons/icon.ico)) { throw "Missing generated ICO" }
+      - name: Check Windows Rust desktop after icon generation
+        run: |
+          cargo check --locked -p cfvigil-desktop
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo test --locked -p cfvigil-desktop
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build unsigned Windows NSIS package
         working-directory: apps/desktop/src-tauri
         run: |

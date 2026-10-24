@@ -1,7 +1,7 @@
 {
   "bundle": {
     "icon": [
-      "icons/ci-windows/icon.ico",
+      "icons/icon.ico",
       "icons/icon.png"
     ],
     "windows": {

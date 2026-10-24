@@ -13,7 +13,7 @@ test("Windows candidate is explicit, unsigned and uses a hosted runner",()=>{
   assert.match(workflow,/ci\/run-windows-candidate\.txt/);
   assert.match(workflow,/contents: read/);
   assert.doesNotMatch(workflow,/contents: write|gh release create|wrangler|R2_ACCESS_KEY|SIGNING_KEY/);
-  assert.match(workflow,/cargo tauri icon icons\/icon\.png --output icons\/ci-windows/);
+  assert.match(workflow,/cargo tauri icon icons\/icon\.png --output icons/);
   assert.match(workflow,/cargo tauri build --bundles nsis --config tauri\.windows\.conf\.json/);
   assert.match(workflow,/cargo check --locked/);
   assert.match(workflow,/cargo test --locked/);
@@ -24,7 +24,7 @@ test("Windows overlay uses current-user installer, without mutating Linux config
   const windows=JSON.parse(source("apps/desktop/src-tauri/tauri.windows.conf.json"));
   const base=JSON.parse(source("apps/desktop/src-tauri/tauri.conf.json"));
   assert.equal(windows.bundle.windows.nsis.installMode,"currentUser");
-  assert.ok(windows.bundle.icon.includes("icons/ci-windows/icon.ico"));
+  assert.ok(windows.bundle.icon.includes("icons/icon.ico"));
   assert.equal(base.productName,"CFVigil");
   assert.ok(base.bundle.linux.deb.depends.includes("libgtk-layer-shell0"));
 });

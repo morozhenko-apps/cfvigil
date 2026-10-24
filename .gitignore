@@ -10,4 +10,8 @@
 node_modules
 
 # Windows CI icons generated from the committed source PNG
-/apps/desktop/src-tauri/icons/ci-windows/
+/apps/desktop/src-tauri/icons/icon.ico
+/apps/desktop/src-tauri/icons/icon.icns
+/apps/desktop/src-tauri/icons/32x32.png
+/apps/desktop/src-tauri/icons/128x128.png
+/apps/desktop/src-tauri/icons/128x128@2x.png
