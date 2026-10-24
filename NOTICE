@@ -11,3 +11,7 @@ If you distribute a modified version containing this work, retain the
 applicable copyright, attribution and NOTICE information as required by
 Section 4 of the Apache License, Version 2.0. This notice does not require
 use of the original author's name or logo to endorse derivative products.
+
+Wayland relative-pointer-v1 drag bridge derived from the user's own
+RepoTicker project (morozhenko-apps/repoticker), adapted for CFVigil.
+RepoTicker source is licensed under Apache License 2.0.
