@@ -108,3 +108,43 @@ and Windows smoke evidence.
 - The 17 remaining target-language dictionaries, native error message
   presentation localization, all editorial audits, screenshot/accessibility
   checks, and full release QA are not yet complete.
+
+## 2026-10-24: 0.8 continuation, runtime consistency and locale batch
+
+The 0.8 RU/pt-PT Preflight #40120200642 completed successfully at source level.
+The next safe batch retains the existing language setting and history schema.
+No release, packaging or Cloudflare provider behavior changes are authorized.
+
+Implementation stages:
+
+1. Repair the multi-WebView boot race: a native language-change event received
+   during the asynchronous initial `get_language` must win over that older
+   read. A failed initial read falls back to English only if no valid newer
+   event was already observed. Keep the new behavior event-driven and add
+   deterministic race-order tests, not arbitrary retries or waits.
+2. Render translated event names in history search and translated resource
+   status names in screen-reader labels. Preserve original provider strings,
+   saved events, status IDs and historical URLs. Do not expose those strings
+   as translation keys.
+3. Add complete `es`, `de` and `fr` draft dictionaries to the 20-code
+   contract, with locale-specific CLDR plural categories and native menu/title
+   labels. Enable a language only when the baseline-key / interpolation /
+   plural validation succeeds.
+4. Keep source commits separate from docs, add automated source and localized
+   behavior tests, then trigger a single stable Preflight with the existing
+   explicit marker. Do not run experimental release or publish jobs.
+
+Tradeoffs and rollback:
+
+- A local language switch must never trigger Cloudflare polling, change
+  account/token settings or modify incident history. The language reader is
+  authoritative at bootstrap unless a newer native change event has arrived.
+- No implicit English dictionary inheritance. Translation drafts undergo
+  contextual/editorial review later; source completeness is not editorial
+  acceptance. Layout/window width and fonts require physical smoke.
+- If regressions occur, revert the independent locale/race batch and keep
+  the previously validated EN/RU/PT runtime. Do not advance `main`.
+
+Acceptance evidence: repository source parity; focused race/search/ARIA
+tests; a single successful JS/Python/Rust stable CI run. Physical Windows,
+KDE, RTL and native-review evidence are separate future requirements.
