@@ -522,3 +522,24 @@ are complete; physical installation still requires separate acceptance.
   confirm the ICO, Windows build, NSIS packaging, checksum and artifact
   upload steps. It is not automatically a signed or physically tested
   release. `main` and release tags remain untouched.
+
+## 2026-10-24 — Windows candidate #40098231423: CRLF-sensitive Cargo.lock guard
+
+[Windows candidate #40098231423](https://github.com/morozhenko-apps/cfvigil/actions/runs/40098231423)
+at `e59efc9db60c` failed in **Validate source and stable tests** with
+`Invalid Cargo.lock header`. The Windows runner successfully checked out
+the repository and installed Node.js/Rust; no Tauri CLI installation, icon
+generation, Windows Rust compilation, NSIS packaging, checksum verification
+or artifact upload ran.
+
+The committed `Cargo.lock` starts with the correct Cargo-generated
+header and `version = 4`, but Git checkout on Windows may use CRLF
+newlines. The source validator previously required an LF-only prefix.
+Corrected the guard to match both LF and CRLF while still requiring
+Cargo's exact two-line generated-file header and version 4. The guard does
+not modify the lockfile. Added explicit positive and negative Node tests
+for LF/CRLF and tampered headers.
+
+A fresh Windows candidate is required before claiming an NSIS build
+or Windows Rust test pass. This is strictly a nonpublishing candidate;
+there is no Windows installer acceptance, release tag or `main` change.
