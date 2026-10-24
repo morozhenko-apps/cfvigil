@@ -2,9 +2,7 @@
 const PREFIX = "/dist/CFVigil/";
 const VERSION = "(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)";
 const v = "v" + VERSION;
-const patterns = [
-  new RegExp("^releases/" + v + "/linux/(?:cfvigil_" + VERSION + "_amd64\\.deb|CFVigil-" + VERSION + "-linux-x64\\.AppImage)(?:\\.sha256)?$"),
-  new RegExp("^releases/" + v + "/windows/CFVigil-Setup-" + VERSION + "-win-x64\\.exe(?:\\.sha256)?$"),
+const aptPatterns = [
   new RegExp("^apt/pool/main/c/cf-vigil/cfvigil_" + VERSION + "_amd64\\.deb$"),
   /^apt\/dists\/stable\/InRelease$/,
   /^apt\/dists\/stable\/main\/binary-amd64\/Packages(?:\.gz)?$/,
@@ -18,7 +16,19 @@ export function keyFor(rawUrl) {
   if (!url.pathname.startsWith(PREFIX) || url.search || url.hash) return null;
   const relative = url.pathname.slice(PREFIX.length);
   if (!relative || /%|\\|\.\.|\/\//.test(relative)) return null;
-  return patterns.some(pattern => pattern.test(relative))
+  if (relative.startsWith("releases/")) {
+    const match = /^releases\/v((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))\/(linux|windows)\/([^/]+)$/.exec(relative);
+    if (!match) return null;
+    const [, version, platform, name] = match;
+    const expected = platform === "linux"
+      ? ["cfvigil_" + version + "_amd64.deb",
+         "CFVigil-" + version + "-linux-x64.AppImage"]
+      : ["CFVigil-Setup-" + version + "-win-x64.exe"];
+    if (!expected.some(filename => name === filename ||
+        name === filename + ".sha256")) return null;
+    return "dist/CFVigil/" + relative;
+  }
+  return aptPatterns.some(pattern => pattern.test(relative))
     ? "dist/CFVigil/" + relative : null;
 }
 
