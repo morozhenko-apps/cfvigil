@@ -30,15 +30,18 @@ export default Object.freeze({
   "age.now": "agora",
   "age.minute": {
     "one": "{count} min",
-    "other": "{count} min"
+    "other": "{count} min",
+    "many": "{count} min"
   },
   "age.hour": {
     "one": "{count} h",
-    "other": "{count} h"
+    "other": "{count} h",
+    "many": "{count} h"
   },
   "age.day": {
     "one": "{count} d",
-    "other": "{count} d"
+    "other": "{count} d",
+    "many": "{count} d"
   },
   "history.title": "Histórico de eventos",
   "history.searchLabel": "Pesquisar eventos",
@@ -52,7 +55,8 @@ export default Object.freeze({
   "history.listLabel": "Eventos Cloudflare por ordem cronológica",
   "history.eventCount": {
     "one": "{shown} de {total} evento",
-    "other": "{shown} de {total} eventos"
+    "other": "{shown} de {total} eventos",
+    "many": "{shown} de {total} eventos"
   },
   "history.noMatches": "Não há eventos correspondentes.",
   "history.empty": "Ainda não há eventos.",
@@ -64,7 +68,7 @@ export default Object.freeze({
   "history.unknownTime": "Hora desconhecida",
   "settings.language": "Idioma",
   "settings.languageError": "Não foi possível alterar o idioma",
-"settings.title": "Definições",
+  "settings.title": "Definições",
   "settings.connection": "Ligação",
   "settings.account": "ID da conta Cloudflare",
   "settings.accountPlaceholder": "ID da conta com 32 caracteres",
