@@ -1,0 +1,80 @@
+name: Linux package candidate
+
+# Separate deliberate dev-only gate: normal code/docs pushes and the stable
+# Preflight marker cannot start package builds. Never publishes a release.
+on:
+  push:
+    branches: [dev]
+    paths:
+      - 'ci/run-package-candidate.txt'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cfvigil-package-candidate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux-candidate:
+    name: Build and inspect unsigned Linux candidate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Tauri Linux and AppImage dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential curl file wget pkg-config libssl-dev dpkg-dev \
+            libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev \
+            libgtk-layer-shell-dev libxdo-dev librsvg2-dev libfuse2t64 \
+            libwayland-dev libwayland-bin wayland-protocols
+      - name: Check versions, source contracts and unit tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/candidate-version.mjs --check
+          for file in apps/desktop/ui/*.mjs scripts/*.mjs; do
+            node --check "$file"
+          done
+          node --test tests/*.test.mjs
+          cargo check -p cfvigil-desktop
+          cargo test -p cfvigil-desktop
+      - name: Install Tauri CLI with its locked dependencies
+        run: cargo install tauri-cli --version '^2' --locked
+      - name: Build unsigned Linux DEB and AppImage candidate
+        working-directory: apps/desktop/src-tauri
+        run: cargo tauri build --bundles deb,appimage
+      - name: Check Debian identity, dependencies and immutable checksums
+        shell: bash
+        env:
+          CANDIDATE_OUT: ${{ runner.temp }}/cfvigil-candidate
+        run: |
+          set -euo pipefail
+          node scripts/candidate-assets.mjs collect \
+            --source target/release/bundle --target "$CANDIDATE_OUT"
+          cd "$CANDIDATE_OUT"
+          sha256sum --check ./*.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cfvigil-linux-unreleased-candidate
+          path: ${{ runner.temp }}/cfvigil-candidate/*
+          if-no-files-found: error
+          retention-days: 7
+      - name: Preserve dependency lock snapshot for review
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cfvigil-cargo-lock-for-review
+          path: Cargo.lock
+          if-no-files-found: error
+          retention-days: 7

@@ -1,0 +1,8 @@
+CFVigil packaging candidate explicit gate
+=========================================
+Only edit this file after a complete packaging/distribution change batch.
+A push changing it on dev runs exactly one nonpublishing Linux candidate
+workflow. This must not create tags, releases, signed APT or R2 uploads.
+
+2026-10-24: First source-level DEB/AppImage candidate with version,
+metadata, dependency and checksum validation.

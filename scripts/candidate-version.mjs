@@ -1,0 +1,70 @@
+#!/usr/bin/env node
+// Source version and distribution guard. No network access or publication.
+// Safe to run on development branches before tagged release acceptance.
+import { readFileSync, statSync, existsSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+export const SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+
+export function readVersion(cargoToml, tauriConfig) {
+  const packageBlock = cargoToml.match(/^\[package\]\s*\n([\s\S]*?)(?=^\[|$(?![\s\S]))/m)?.[1];
+  if (!packageBlock) throw Error("Missing desktop Cargo package section");
+  const version = packageBlock.match(/^version\s*=\s*"([^"]+)"\s*$/m)?.[1];
+  if (!version || !SEMVER.test(version)) throw Error("Invalid Cargo package version");
+  const config = typeof tauriConfig === "string" ? JSON.parse(tauriConfig) : tauriConfig;
+  if (config.version !== version) throw Error("Cargo and Tauri versions differ");
+  if (config.productName !== "CFVigil" || config.identifier !== "com.morozhenko.cfvigil") {
+    throw Error("Unexpected CFVigil bundle identity");
+  }
+  if (config.bundle?.active !== true) throw Error("Tauri bundling must be enabled");
+  if (!config.bundle?.linux?.deb?.depends?.includes("libgtk-layer-shell0")) {
+    throw Error("DEB must depend on libgtk-layer-shell0");
+  }
+  if (config.bundle?.license !== "Apache-2.0" ||
+      config.bundle?.licenseFile !== "../../../LICENSE") {
+    throw Error("Missing Apache-2.0 bundle attribution");
+  }
+  return version;
+}
+
+export function sourceVersion(root = ROOT) {
+  const configDir = path.join(root, "apps/desktop/src-tauri");
+  const version = readVersion(
+    readFileSync(path.join(configDir, "Cargo.toml"), "utf8"),
+    readFileSync(path.join(configDir, "tauri.conf.json"), "utf8"));
+  for (const relative of ["LICENSE", "NOTICE", "apps/desktop/src-tauri/icons/icon.png"]) {
+    const file = path.join(root, relative);
+    if (!existsSync(file) || !statSync(file).isFile() || statSync(file).size === 0) {
+      throw Error("Required package source missing: " + relative);
+    }
+  }
+  return version;
+}
+
+export function tagMatches(tag, version) {
+  return typeof tag === "string" && tag === "v" + version && SEMVER.test(version);
+}
+
+function main(argv) {
+  const version = sourceVersion();
+  if (argv.length === 0 || argv[0] === "--check") {
+    console.log(version);
+    return;
+  }
+  if (argv.length === 2 && argv[0] === "--check-tag") {
+    if (!tagMatches(argv[1], version)) throw Error("Release tag/version mismatch");
+    console.log(version);
+    return;
+  }
+  throw Error("Usage: node scripts/candidate-version.mjs [--check|--check-tag vX.Y.Z]");
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try { main(process.argv.slice(2)); }
+  catch (error) {
+    console.error(error.message);
+    process.exitCode = 1;
+  }
+}
