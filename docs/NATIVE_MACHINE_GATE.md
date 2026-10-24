@@ -184,3 +184,39 @@ Diagnostic messages are opt-in, never include Cloudflare API tokens.
 
 Source CI is not the result of the above physical experiment. Mode B
 remains blocked until actual owner-observed results are captured.
+
+## 2026-10-24: third Alcotester physical smoke (candidate #40132472841) — FAIL
+
+The owner installed the SHA256-verified 0.1.0 DEB. Actual screenshot still
+shows an approximately 200px compact card with an empty upper area and an
+oversized Settings window; Settings native trace reports
+`current=460x774 target=460x655 scale=1` but native shrinking does not
+take effect. The window loses its previous placement on reopen and the
+Settings titlebar has unwanted KDE window-management controls.
+
+**Critical diagnosis from RepoTicker HEAD and its historic root-cause
+fix**: RepoTicker's `configure_gdk_for_native_wayland()` runs before
+`tauri::Builder`, enforcing `GDK_BACKEND=wayland` only in a verified Wayland
+session with a nonempty `WAYLAND_DISPLAY`. It specifically records that a
+GDK XWayland fallback yields a 390x200 window, position drift and ineffective
+stored layer-shell margins. CFVigil lacks this pre-GTK configuration.
+Additionally RepoTicker always logs the selected surface mode at startup;
+CFVigil only emitted diagnostics from an enabled Layer Shell surface, so
+absence of lines was not actionable.
+
+Fix architecture:
+- Port pre-Tauri native Wayland preference and unconditional backend report;
+  preserve X11 fallback where Wayland is genuinely not running.
+- Use the same native Layer Shell window for card positioning, not absolute
+  Wayland XDG window coordinates. Saved compositor margins are authoritative.
+- For Settings, eliminate conflicting GTK/WebKit minimum requisitions with a
+  bounded native scrolled viewport and exact intrinsic form geometry.
+  Remove platform decoration controls using a custom, accessible topbar
+  with one close action and compositor-managed drag; do not paint faux
+  controls over the existing KDE window frame.
+- Keep Settings positioning stable on subsequent show/hide (and during
+  content-size updates); no repeated centering or new window construction.
+- Verify logs explicitly say `surface mode=gtk-layer-shell` for KDE Wayland,
+  and compare card requested/actual height 122 before assessing gaps.
+
+All symptoms remain FAIL until checked on another installed candidate.
