@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { sourceVersion, readVersion, tagMatches, ROOT } from "../scripts/candidate-version.mjs";
+import { sourceVersion, readVersion, validateCargoLock, tagMatches, ROOT } from "../scripts/candidate-version.mjs";
 import {readFileSync} from "node:fs";
 import path from "node:path";
 
@@ -24,4 +24,14 @@ test("version or bundle metadata drift cannot pass the package gate", () => {
   assert.throws(() => readVersion(cargo, {...config, bundle:{...config.bundle, linux:{deb:{depends:[]}}}}), /libgtk/);
   assert.throws(() => readVersion(cargo, {...config, bundle:{...config.bundle, license:"MIT"}}), /Apache/);
   assert.throws(() => readVersion(cargo.replace('version = "0.1.0"', 'version = "1.0.0-beta"'), config), /Invalid/);
+});
+
+test("generated Cargo.lock is valid with Linux LF and Windows CRLF", () => {
+  const lock = source("Cargo.lock");
+  assert.doesNotThrow(() => validateCargoLock(lock));
+  const crlf = lock.replace(/\r?\n/g, "\r\n");
+  assert.doesNotThrow(() => validateCargoLock(crlf));
+  assert.throws(() => validateCargoLock(lock.replace("version = 4", "version = 3")), /Invalid Cargo.lock/);
+  assert.throws(() => validateCargoLock(lock.replace("# It is not intended for manual editing.", "# modified")), /Invalid Cargo.lock/);
+  assert.throws(() => validateCargoLock("version = 4\n"), /Invalid Cargo.lock/);
 });
