@@ -22,3 +22,6 @@ stable JS+Rust Preflight including watch-channel and stale-readiness tests.
 2026-10-24: Completed partial-provider and request-budget milestone.
 Verify REST/GraphQL bounded scans, Retry-After, independent Workers/Pages,
 analytics-batch and WAF-zone failures, and all existing Rust/JS regressions.
+
+2026-10-24: Completed opt-in Linux/Windows autostart milestone; verify
+native Tauri autostart plugin compilation, Rust refresh decision and JS UX.
