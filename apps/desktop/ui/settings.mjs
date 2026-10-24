@@ -36,11 +36,28 @@ function restoreDraft() {
   language.value = confirmedLanguage;
   message.textContent = "";
 }
+// The form is the last real content in Settings. Do not use body.scrollHeight:
+// it includes the current WebView viewport and can only grow after an oversized
+// window, causing a self-reinforcing bottom gap.
+let fitFrame = null;
+let lastRequestedHeight = null;
 function scheduleFit() {
-  requestAnimationFrame(() => {
-    // Measure intrinsic content, not the OS window's stale viewport size.
-    const height = Math.ceil(document.body.scrollHeight + 44);
-    void invoke("fit_settings", {height}).catch(() => {});
+  if (fitFrame !== null) return;
+  fitFrame = requestAnimationFrame(() => {
+    fitFrame = null;
+    const style = getComputedStyle(document.body);
+    const bottomMargin = Number.parseFloat(style.marginBottom) || 0;
+    // offsetTop + offsetHeight is independent of the native window height
+    // and remains stable even if the user scrolled a long locale's form.
+    const intrinsicBottom = form.offsetTop + form.offsetHeight;
+    if (!intrinsicBottom) return; // Hidden WebView has not laid out yet.
+    const height = Math.ceil(intrinsicBottom + bottomMargin + 2);
+    if (height === lastRequestedHeight) return;
+    lastRequestedHeight = height;
+    void invoke("fit_settings", {height}).catch(() => {
+      // A subsequent focus/open can retry an unavailable native window.
+      lastRequestedHeight = null;
+    });
   });
 }
 window.addEventListener("focus", scheduleFit);
