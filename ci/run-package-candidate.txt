@@ -39,3 +39,9 @@ Includes RepoTicker-derived early Wayland GDK preference, visible backend log,
 bounded GTK Settings viewport, undecorated draggable Settings with a single
 close control and native card anchor. Check Preflight #40135018274 PASS before
 installation; keep checksum sidecars, dev-only, no Mode B and no R2 upload.
+
+2026-10-24: Build unsigned, unreleased native KDE visual retest candidate
+for c4935f7 exact 92px compact card and high-contrast framed Settings.
+Keep same Wayland geometry/position logic. Do not install unless
+Preflight #40137409627 and this Linux build both complete SUCCESS;
+verify included SHA256 sidecars. No release, Mode B, or R2.
