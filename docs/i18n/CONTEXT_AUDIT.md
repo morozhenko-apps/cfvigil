@@ -1,6 +1,6 @@
 # CFVigil — 20-locale contextual audit ledger
 
-**Status: IN PROGRESS. Russian, European Portuguese, Spanish, German and French draft dictionaries are implemented, not context-approved. No native language-specific audits have been completed.** This ledger will be populated in the final product-feature
+**Status: IN PROGRESS. Russian, European Portuguese, Spanish, German, French, Italian, Polish, Dutch and Swedish draft dictionaries are implemented, not context-approved. No native language-specific audits have been completed.** This ledger will be populated in the final product-feature
 milestone, after all other MVP functionality/distribution work and before
 the exhaustive v1.0.0 test campaign.
 
@@ -17,13 +17,13 @@ owner-approved product decision.
 | pt | Português (Portugal) | Draft dictionary; audit pending | **pt-PT only**, not Brazilian Portuguese |
 | de | Deutsch | Draft dictionary; audit pending | Technical compounds, clipped labels |
 | fr | Français | Draft dictionary; audit pending | Native technical terms, articles/elision |
-| it | Italiano | Pending | Technical terms, gender agreement |
-| pl | Polski | Pending | Cases, complex plurals |
+| it | Italiano | Draft dictionary; audit pending | Technical terms, gender agreement |
+| pl | Polski | Draft dictionary; audit pending | Cases, complex plurals |
 | hi | हिन्दी | Pending | Devanagari fonts, natural IT terms |
 | zh-Hant | 繁體中文 | Pending | Traditional characters, region-appropriate terminology |
 | ja | 日本語 | Pending | Japanese developer terms and CJK layout |
-| nl | Nederlands | Pending | Idiomatic software terminology |
-| sv | Svenska | Pending | Error vs issue terminology |
+| nl | Nederlands | Draft dictionary; audit pending | Idiomatic software terminology |
+| sv | Svenska | Draft dictionary; audit pending | Error vs issue terminology |
 | tr | Türkçe | Pending | Agglutination and locale casing |
 | ko | 한국어 | Pending | Natural technical phrasing, CJK layout |
 | bn | বাংলা | Pending | Bengali fonts, grammar and digit behavior |
@@ -78,3 +78,18 @@ accepted target-language editorial review.
 - Static source key/plural checks are **not** native-speaker editorial approval.
   Physical screenshots, width/RTL/font checks, localized native diagnostics,
   and real Cloudflare smoke remain pending.
+
+## 2026-10-24: Italian, Polish, Dutch and Swedish drafts
+
+The third locale tranche added standalone full-key `it`, `pl`, `nl`, and
+`sv` dictionaries and matching native tray/window labels. PL category
+`few` was corrected for 22/23/24 events; its `many` case covers 5/10/11.
+`it` includes CLDR `many`; NL/SV use `one` and `other`. All six previously
+available locales remain enabled. Source tests cover key parity, native/JS
+locale parity and representative localized plural outputs. The planned set
+still contains 20 codes; **10 active including English, 10 unavailable**.
+
+Editorial/terminology review, actual translated Windows dialogs, native
+Cloudflare diagnostic strings, font/width checks and screenshot evidence are
+not completed. A successful source CI result does not confer native/editorial
+acceptance.

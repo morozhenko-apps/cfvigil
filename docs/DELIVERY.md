@@ -658,3 +658,13 @@ race and translated history search. The 20-locale milestone remains partial:
 New stable JavaScript source and negative race tests have been committed;
 Preflight verification status will be recorded after the explicit final gate.
 No change to `main`, R2 deployment, tagging or the read-only Cloudflare API.
+
+## 2026-10-24: 0.8 third draft locale batch
+
+Added Italian, Polish, Dutch, and Swedish locale catalogs and their native
+menu/title counterparts on `dev`. All 91 keys per locale were authored;
+source checks enforce placeholder and locale-specific plural parity.
+New tests also assert that JS active languages match Rust supported codes.
+An independently detected test-regex syntax defect and Polish plural wording
+were corrected before the acceptance CI marker. Stable CI acceptance is
+still pending after this batch. No release, tags or `main` changes.

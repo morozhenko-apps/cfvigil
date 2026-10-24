@@ -157,3 +157,14 @@ The initial-language read race now prefers a newer native event, and
 translated event terms are searchable without rewriting stored incident
 strings. The remaining 14 non-English language dictionaries are not yet
 implemented. Full editorial, physical, RTL and release acceptance is not claimed.
+
+## 0.8 third draft tranche (2026-10-24)
+
+Complete independently authored `it`, `pl`, `nl` and `sv` draft catalogs
+and matching native tray/window labels were added. Automated checks cover
+91 catalog keys per language, baseline interpolation compatibility and
+language-specific CLDR categories. The Polish event count uses distinct
+`one`, `few`, `many`, `other` grammar; Italian `many` is present.
+English is not inherited in any dictionary. Ten of twenty language codes
+are now source-enabled, but no source-only result substitutes for an actual
+native contextual / font / width / accessibility audit.

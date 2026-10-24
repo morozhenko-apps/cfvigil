@@ -92,8 +92,12 @@ have been added to `dev`. CI and native-platform acceptance are distinct;
 
 Source work begun (2026-10-24): English baseline and complete draft dictionaries
 for Russian and European Portuguese are integrated with a separate persistent
-language setting and native menu/window labels. The other 14 locales and
+language setting and native menu/window labels. The other 10 locales and
 all 20 contextual audits remain outstanding; do not mark 0.8 accepted yet.
+
+Third draft tranche (2026-10-24): Italian, Polish, Dutch and Swedish added.
+Ten of the twenty codes now have complete, but not editorially accepted,
+WebView dictionaries and native shell labels. Ten dictionaries remain missing.
 
 Use exactly the same **20 UI locale codes as PersonalLanding**, preserving
 their meanings and casing:
