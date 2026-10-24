@@ -63,3 +63,7 @@ Verify localization checker, all JS/Python tests, Rust check and Rust tests.
 draft ru/pt-PT catalogs, cross-window updates, isolated durable preferences,
 native tray labels and localization regression tests. One stable JS/Python/Rust
 Preflight; no release publication, tags or Cloudflare API changes.
+
+2026-10-24: Rerun 0.8 initial English/Russian/pt-PT source gate after
+completing CLDR pt-PT many plural forms. Validate all JS localization tests,
+Python distribution invariants, Rust native-language wiring and unit tests.
