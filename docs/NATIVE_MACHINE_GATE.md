@@ -296,3 +296,19 @@ physical Windows installation and runtime checks, icon provenance,
 and remaining release-readiness scenarios. Test these on installed builds,
 fix observed defects, then expand broad regression coverage and Mode B
 only after explicit owner acceptance of the machine gate.
+
+## 2026-10-24: next physical checkpoint — connected Cloudflare smoke
+
+Owner accepted the three v5 KDE geometry/Settings changes. The next
+**required real-device** stage is a read-only Cloudflare connection and
+navigation check on the installed candidate. The complete minimum-privilege
+token setup, expected initial Workers/Pages resource behavior, status
+comparison, browser navigation, history, persistence and redacted evidence
+template are in [NATIVE_CLOUDFLARE_SMOKE.md](NATIVE_CLOUDFLARE_SMOKE.md).
+
+The current status is **NOT TESTED**, not an inferred success from source or
+CI. No production deploy failure or high-volume attack traffic should be
+induced to exercise red incident states. Follow with native localization,
+offline/keyring negative cases and physical Windows testing. Do not enlarge
+test coverage or begin Mode B before the machine gate has an accepted
+result.
