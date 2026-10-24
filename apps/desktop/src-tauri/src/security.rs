@@ -4,7 +4,8 @@
 use chrono::{Duration as ChronoDuration, Utc};
 use reqwest::{redirect::Policy, Client};
 use serde_json::{json, Value};
-use std::time::Duration;
+use std::{collections::HashSet, time::Duration};
+use crate::api_budget::ApiBudget;
 
 use crate::cloudflare::Resource;
 
@@ -41,6 +42,13 @@ query CFVigilWaf(
 pub struct Zone {
     pub id: String,
     pub name: String,
+}
+
+pub struct WafScan {
+    pub incidents: Vec<Resource>,
+    // Successfully checked zone keys, including zones without an incident.
+    // Only verified zones can be used as evidence that an old spike cleared.
+    pub verified_zones: HashSet<String>,
 }
 
 fn valid_id(id: &str) -> bool {
@@ -127,12 +135,14 @@ fn http_client() -> Result<Client, String> {
         .build().map_err(|_| "Could not start Cloudflare WAF client".into())
 }
 
-async fn list_zones(http: &Client, account: &str, token: &str) -> Result<Vec<Zone>, String> {
+async fn list_zones(http: &Client, account: &str, token: &str, budget: &ApiBudget) -> Result<Vec<Zone>, String> {
     let mut zones = Vec::new();
     for page in 1..=MAX_ZONES.div_ceil(50).max(1) {
         let url = format!("{BASE}/zones?account.id={account}&page={page}&per_page=50");
+        budget.check()?;
         let response = http.get(url).bearer_auth(token).send().await
             .map_err(|_| "Cloudflare zone list unavailable")?;
+        budget.observe(&response);
         if !response.status().is_success() {
             return Err(format!("Cloudflare zones HTTP {}", response.status().as_u16()));
         }
@@ -163,6 +173,7 @@ async fn get_zone_counts(
     http: &Client,
     token: &str,
     zone: &Zone,
+    budget: &ApiBudget,
 ) -> Result<(f64, f64), String> {
     let now = Utc::now();
     let recent_end = now - ChronoDuration::minutes(5);
@@ -178,9 +189,11 @@ async fn get_zone_counts(
             "baselineEnd": recent_start.to_rfc3339()
         }
     });
+    budget.check()?;
     let response = http.post(format!("{BASE}/graphql"))
         .bearer_auth(token).json(&body).send().await
         .map_err(|_| "Cloudflare WAF GraphQL request failed")?;
+    budget.observe(&response);
     if !response.status().is_success() {
         return Err(format!("Cloudflare WAF HTTP {}", response.status().as_u16()));
     }
@@ -199,18 +212,20 @@ async fn get_zone_counts(
 pub async fn detect(
     account: &str,
     token: &str,
-) -> Result<Vec<Resource>, String> {
+    budget: &ApiBudget,
+) -> Result<WafScan, String> {
     if !valid_id(account) {
         return Err("Invalid Cloudflare account ID".into());
     }
     let http = http_client()?;
-    let zones = list_zones(&http, account, token).await?;
-    let mut warnings = Vec::new();
-    let mut problems = Vec::new();
+    let zones = list_zones(&http, account, token, budget).await?;
+    let mut scan = WafScan { incidents: Vec::new(), verified_zones: HashSet::new() };
     for zone in zones {
-        match get_zone_counts(&http, token, &zone).await {
-            Ok((recent, baseline)) if waf_spike(recent, baseline) => {
-                problems.push(Resource {
+        match get_zone_counts(&http, token, &zone, budget).await {
+            Ok((recent, baseline)) => {
+                scan.verified_zones.insert(format!("zone:{}", zone.id));
+                if !waf_spike(recent, baseline) { continue; }
+                scan.incidents.push(Resource {
                     key: format!("zone:{}", zone.id),
                     name: zone.name.clone(),
                     kind: "zone".into(),
@@ -221,14 +236,12 @@ pub async fn detect(
                     detail: format!("WAF blocks spiking: {:.0} in 10m; previous 30m {:.0}", recent, baseline),
                 });
             }
-            Ok(_) => {}
-            Err(reason) => warnings.push(reason),
+            // A failed zone must not conceal the successful results for
+            // unrelated zones. It remains unverified in the caller.
+            Err(_) => {}
         }
     }
-    if !warnings.is_empty() {
-        return Err(format!("WAF analytics unavailable for {} zone(s)", warnings.len()));
-    }
-    Ok(problems)
+    Ok(scan)
 }
 
 #[cfg(test)]
