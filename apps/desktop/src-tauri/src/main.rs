@@ -186,20 +186,24 @@ fn get_language(state: State<'_, AppState>) -> String {
 
 // Locale preferences must never reset provider readiness, notification IDs
 // or the one and only polling loop. They are stored separately from credentials.
-#[tauri::command]
-fn set_language(app: AppHandle, state: State<'_, AppState>, language: String) -> Result<(), String> {
+fn commit_language(app: &AppHandle, state: &AppState, language: String) -> Result<(), String> {
     if !language::supported(&language) {
         return Err("Unsupported interface language".into());
     }
     let mut current = state.language.lock().unwrap();
     if current.locale == language { return Ok(()) }
     let next = LanguagePreference { locale: language.clone() };
-    write_json(&app, "language.json", &next)?;
+    write_json(app, "language.json", &next)?;
     *current = next;
     drop(current);
-    update_native_language(&app, &language);
+    update_native_language(app, &language);
     let _ = app.emit("cfvigil-language-changed", language);
     Ok(())
+}
+
+#[tauri::command]
+fn set_language(app: AppHandle, state: State<'_, AppState>, language: String) -> Result<(), String> {
+    commit_language(&app, &state, language)
 }
 
 fn update_native_language(app: &AppHandle, locale: &str) {
@@ -307,8 +311,14 @@ async fn save_settings(
     token: Option<String>,
     refresh_seconds: u64,
     autostart: Option<bool>,
+    language: String,
 ) -> Result<(), String> {
-    if account_id.len() != 32 || !account_id.bytes().all(|ch| ch.is_ascii_hexdigit()) {
+    if !language::supported(&language) { return Err("Unsupported interface language".into()); }
+    // No Cloudflare account is necessary to save locale, interval or autostart.
+    // Credentials become mandatory only when an account is actually configured.
+    if (!account_id.is_empty() && (account_id.len() != 32 ||
+        !account_id.bytes().all(|ch| ch.is_ascii_hexdigit())))
+        || (account_id.is_empty() && token.is_some()) {
         return Err(msg::ERROR_ACCOUNT_ID.into());
     }
     if ![60, 180, 300, 600].contains(&refresh_seconds) {
@@ -327,7 +337,7 @@ async fn save_settings(
         tauri::async_runtime::spawn_blocking(move || {
             token_entry()?.set_password(&token).map_err(|_| msg::ERROR_TOKEN_WRITE.to_string())
         }).await.map_err(|_| msg::ERROR_CREDENTIAL_SERVICE)??;
-    } else {
+    } else if !account_id.is_empty() {
         tauri::async_runtime::spawn_blocking(load_token)
             .await.map_err(|_| msg::ERROR_CREDENTIAL_SERVICE)??;
     }
@@ -364,6 +374,9 @@ async fn save_settings(
     // Report the partial outcome instead of silently claiming success.
     update_autostart(&app, autostart)
         .map_err(|message| format!("Connection settings saved; {message}"))?;
+    // Language is committed only after the primary settings have passed
+    // validation and persistence. Never apply drafts on select.change.
+    commit_language(&app, &state, language)?;
     Ok(())
 }
 
@@ -377,12 +390,17 @@ fn show_window(app: &AppHandle, label: &str) {
 fn show_card(app: &AppHandle) {
     #[cfg(target_os = "linux")]
     if linux_surface::enabled() {
+        let _ = linux_surface::request_resize(app, 122);
+        let _ = app.emit("cfvigil-card-reset", ());
         let _ = linux_surface::show(app);
+        let _ = app.emit("cfvigil-card-shown", ());
         return;
     }
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.show();
         let _ = window.set_focus();
+        let _ = app.emit("cfvigil-card-reset", ());
+        let _ = app.emit("cfvigil-card-shown", ());
     }
 }
 
@@ -400,6 +418,31 @@ fn hide_card(app: AppHandle) {
         let _ = window.hide();
     }
     let _ = app.emit("cfvigil-card-hidden", ());
+}
+
+#[tauri::command]
+async fn start_card_drag(app: AppHandle) -> Result<(), String> {
+    #[cfg(target_os = "linux")]
+    if linux_surface::enabled() { return linux_surface::start_drag(&app).await; }
+    let window = app.get_webview_window("main").ok_or(msg::ERROR_CARD_MISSING)?;
+    window.start_dragging().map_err(|_| "Unable to drag card".into())
+}
+
+#[tauri::command]
+async fn stop_card_drag(app: AppHandle) -> Result<(), String> {
+    #[cfg(target_os = "linux")]
+    if linux_surface::enabled() { return linux_surface::stop_drag(&app).await; }
+    let _ = app;
+    Ok(())
+}
+
+/// Browser content sizes its localized form; only native owns OS window size.
+#[tauri::command]
+fn fit_settings(app: AppHandle, height: f64) -> Result<(), String> {
+    if !height.is_finite() { return Err("Invalid settings height".into()); }
+    let window = app.get_webview_window("settings").ok_or("Settings window unavailable")?;
+    window.set_size(tauri::LogicalSize::new(460.0, height.clamp(370.0, 740.0)))
+        .map_err(|_| "Unable to size settings window".into())
 }
 
 #[tauri::command]
@@ -779,6 +822,9 @@ fn main() {
             get_history,
             hide_card,
             set_card_expanded,
+            start_card_drag,
+            stop_card_drag,
+            fit_settings,
             open_resource,
             open_history_event,
         ])
