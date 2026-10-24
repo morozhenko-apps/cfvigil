@@ -1,27 +1,27 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="utf-8">
-  <title>Event History</title>
+  <title data-i18n="history.title"></title>
   <link rel="stylesheet" href="./window.css">
   <script type="module" src="./history.mjs"></script>
 </head>
 <body>
-  <h2>Event History</h2>
+  <h2 data-i18n="history.title"></h2>
   <div class="history-controls">
-    <label for="history-search">Search events
-      <input id="history-search" type="search" placeholder="Resource, event or message..." autocomplete="off">
+    <label for="history-search"><span data-i18n="history.searchLabel"></span>
+      <input id="history-search" type="search" data-i18n-placeholder="history.searchPlaceholder" autocomplete="off">
     </label>
-    <label for="history-category">Event type
+    <label for="history-category"><span data-i18n="history.categoryLabel"></span>
       <select id="history-category">
-        <option value="all">All events</option>
-        <option value="incident">Incidents</option>
-        <option value="recovery">Recoveries</option>
-        <option value="update">Status updates</option>
+        <option value="all" data-i18n="history.all"></option>
+        <option value="incident" data-i18n="history.incident"></option>
+        <option value="recovery" data-i18n="history.recovery"></option>
+        <option value="update" data-i18n="history.update"></option>
       </select>
     </label>
   </div>
-  <p id="history-summary" class="hint" role="status">Loading events...</p>
-  <div id="history" role="list" aria-label="Chronological Cloudflare events"></div>
+  <p id="history-summary" class="hint" role="status" data-i18n="history.loading"></p>
+  <div id="history" role="list" data-i18n-aria-label="history.listLabel"></div>
 </body>
 </html>

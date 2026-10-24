@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -9,19 +9,19 @@
 </head>
 <body>
   <main id="card" class="card" data-view="compact">
-    <section id="drawer" class="drawer" hidden aria-label="Monitored resources">
-      <div id="resource-list" class="rows" role="list" aria-label="Monitored Cloudflare resources"></div>
+    <section id="drawer" class="drawer" hidden data-i18n-aria-label="card.drawerLabel">
+      <div id="resource-list" class="rows" role="list" data-i18n-aria-label="card.listLabel"></div>
     </section>
     <div id="search-row" class="search-row" hidden>
-      <input id="search" autocomplete="off" placeholder="Search resources..." aria-label="Search by resource name">
+      <input id="search" autocomplete="off" data-i18n-placeholder="card.searchPlaceholder" data-i18n-aria-label="card.searchLabel">
     </div>
     <div id="announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
-    <div class="actions" aria-label="Resource health">
-      <div class="metric metric-healthy"><strong id="healthy">—</strong><span>Healthy</span></div>
-      <div class="metric metric-deploying"><strong id="deploying">—</strong><span>Deploying</span></div>
-      <div class="metric metric-issues"><strong id="issues">—</strong><span>Issues</span></div>
-      <button id="toggle-list" class="action" type="button" aria-pressed="false" aria-expanded="false" aria-controls="drawer" title="Toggle resource list"><span class="glyph" aria-hidden="true">▤</span><span>Resources</span></button>
-      <button id="hide" class="action" type="button" title="Hide in tray"><span class="glyph" aria-hidden="true">⌄</span><span>Hide</span></button>
+    <div class="actions" data-i18n-aria-label="card.actionsLabel">
+      <div class="metric metric-healthy"><strong id="healthy">—</strong><span data-i18n="card.healthy"></span></div>
+      <div class="metric metric-deploying"><strong id="deploying">—</strong><span data-i18n="card.deploying"></span></div>
+      <div class="metric metric-issues"><strong id="issues">—</strong><span data-i18n="card.issues"></span></div>
+      <button id="toggle-list" class="action" type="button" aria-pressed="false" aria-expanded="false" aria-controls="drawer" data-i18n-title="card.toggleTitle"><span class="glyph" aria-hidden="true">▤</span><span data-i18n="card.resources"></span></button>
+      <button id="hide" class="action" type="button" data-i18n-title="card.hideTitle"><span class="glyph" aria-hidden="true">⌄</span><span data-i18n="card.hide"></span></button>
     </div>
   </main>
 </body>
