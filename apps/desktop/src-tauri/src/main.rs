@@ -138,6 +138,8 @@ struct Snapshot {
     configured: bool,
     resources: Vec<Resource>,
     pending_incident: Option<IncidentNotice>,
+    /// Nonsecret Cloudflare endpoint diagnostics, refreshed each poll.
+    provider_warnings: Vec<String>,
     storage_warning: bool,
 }
 
@@ -149,6 +151,7 @@ struct AppState {
     last_notified: Mutex<NotificationWindow>,
     journal: Mutex<IncidentJournal>,
     pending_incident: Mutex<Option<IncidentNotice>>,
+    provider_warnings: Mutex<Vec<String>>,
     ready: AtomicBool,
     refresh_lock: tokio::sync::Mutex<()>,
     poll_refresh: tokio::sync::watch::Sender<u64>,
@@ -244,6 +247,7 @@ fn current_snapshot(state: &AppState) -> Snapshot {
         configured: !state.config.lock().unwrap().account_id.is_empty(),
         resources: state.resources.lock().unwrap().clone(),
         pending_incident: state.pending_incident.lock().unwrap().clone(),
+        provider_warnings: state.provider_warnings.lock().unwrap().clone(),
         storage_warning: state.storage_warning,
     }
 }
@@ -262,6 +266,7 @@ fn invalidate_resources(state: &AppState, reason: &str) {
 
 fn report_sync_failure(app: &AppHandle, state: &AppState, message: &str) {
     invalidate_resources(state, msg::DATA_STALE);
+    *state.provider_warnings.lock().unwrap() = vec![message.to_owned()];
     publish_snapshot(app, state);
     let _ = app.emit("cfvigil-sync-error", message);
 }
@@ -599,6 +604,7 @@ async fn refresh_once(app: AppHandle, budget: &ApiBudget) -> bool {
         }
     };
     let core_complete = discovery.complete;
+    *state.provider_warnings.lock().unwrap() = discovery.warnings;
     let previous = state.resources.lock().unwrap().clone();
     let worker_names: HashSet<String> = discovery.resources.iter()
         .filter(|resource| resource.kind == "worker")
@@ -803,6 +809,7 @@ fn main() {
             let journal = stored.value.restore(&settings.value.account_id);
             let (poll_refresh, _receiver) = tokio::sync::watch::channel(0u64);
             app.manage(AppState {
+                provider_warnings: Mutex::new(Vec::new()),
                 config: Mutex::new(settings.value),
                 language: Mutex::new(language.clone()),
                 resources: Mutex::new(journal.active.clone()),
@@ -951,6 +958,7 @@ mod security_tests {
             detail: "Latest Cloudflare Workers build".into(),
         };
         let state = AppState {
+            provider_warnings: Mutex::new(Vec::new()),
             config: Mutex::new(Config {account_id:"a".repeat(32),refresh_seconds:60}),
             language: Mutex::new(LanguagePreference::default()),
             resources: Mutex::new(vec![previously_healthy]),
