@@ -64,6 +64,7 @@ pub fn read_or_default<T: DeserializeOwned + Default>(
     if bytes.len() as u64 > max_size {
         drop(file);
         quarantine(path)?;
+        eprintln!("CFVigil: oversized JSON was preserved in a damaged-state backup");
         return Ok(T::default());
     }
     match serde_json::from_slice(&bytes) {
@@ -71,6 +72,7 @@ pub fn read_or_default<T: DeserializeOwned + Default>(
         Err(_) => {
             drop(file);
             quarantine(path)?;
+            eprintln!("CFVigil: malformed JSON was preserved in a damaged-state backup");
             Ok(T::default())
         }
     }
