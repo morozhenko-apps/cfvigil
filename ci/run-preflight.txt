@@ -46,3 +46,7 @@ and all JS/Python/Rust unit and security regression tests. No live publish.
 2026-10-24: Rerun after fixing strict release path version binding and
 valid double-braced GitHub workflow expressions. Verify all JS tests,
 offline Python signed R2 staging tests, then full stable Rust suite.
+
+2026-10-24: Verify protected release Linux/Windows artifact handoff path
+expressions and new regression contract, plus existing JS/Python/Rust stable
+suite after correcting four stray-brace destination errors.
