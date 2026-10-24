@@ -20,6 +20,8 @@ export default Object.freeze({
   "card.noResources": "No resources found",
   "card.noData": "Cloudflare data unavailable",
   "card.noMatches": "No matching resources",
+  "detail.workerSpike": "Workers errors spiking: {errors} errors / {requests} requests ({rate}%)",
+  "detail.wafSpike": "WAF blocks spiking: {recent} in 10m; previous 30m {baseline}",
   "card.openError": "Unable to open Cloudflare",
   "card.resizeError": "Unable to resize the card",
   "card.loadError": "Unable to load resources",

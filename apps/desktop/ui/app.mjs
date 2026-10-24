@@ -1,7 +1,7 @@
 import { counters, filterResources, relativeTime } from "./status.mjs";
 import { normalizeSnapshot } from "./snapshot.mjs";
 import { nextResourceIndex } from "./resource-navigation.mjs";
-import {localizeDocument, t, eventText, verboseRelativeTime} from "./localization.mjs";
+import {localizeDocument, t, resourceDetail, incidentText, verboseRelativeTime} from "./localization.mjs";
 const invoke = (command, args = {}) => window.__TAURI__.core.invoke(command, args);
 const listen = (event, callback) => window.__TAURI__.event.listen(event, callback);
 const byId = id => document.getElementById(id);
@@ -122,9 +122,9 @@ function render() {
     time.title = verboseRelativeTime(resource.changed_at);
     const lamp = document.createElement("span");
     lamp.className = `lamp ${resource.status}`;
-    lamp.title = eventText(resource.detail || resource.status);
+    lamp.title = resourceDetail(resource.detail || resource.status);
     lamp.setAttribute("role", "img");
-    lamp.setAttribute("aria-label", resource.status + ": " + eventText(resource.detail || resource.name));
+    lamp.setAttribute("aria-label", resource.status + ": " + resourceDetail(resource.detail || resource.name));
     const button = document.createElement("button");
     button.className = "more";
     button.type = "button";
@@ -259,7 +259,7 @@ function presentIncident(payload) {
   focusedKey = payload.key;
   // The active text search must not hide the incident target.
   byId("search").value = "";
-  alertOnResources(payload.message);
+  alertOnResources(incidentText(payload.message));
   if (expanded) {
     render();
     focusResource(focusedKey);

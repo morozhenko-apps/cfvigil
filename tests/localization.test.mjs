@@ -4,6 +4,7 @@ import english from "../apps/desktop/ui/locales/en.mjs";
 import {
   ACTIVE_LOCALES, PLANNED_LOCALES, directionFor, validateCatalog,
   t, plural, formatDate, relativeTime, verboseRelativeTime, eventText,
+  incidentText, resourceDetail, intlLocale,
   localizeDocument
 } from "../apps/desktop/ui/localization.mjs";
 import {referencedKeys, checkSourceKeys, checkRepository} from "../scripts/check-i18n.mjs";
@@ -15,6 +16,7 @@ test("feature freeze only activates reviewed English and retains exactly 20 targ
   assert.ok(PLANNED_LOCALES.includes("zh-Hant"));
   assert.ok(PLANNED_LOCALES.includes("pt"));
   assert.equal(directionFor("ar"), "rtl");
+  assert.equal(intlLocale("pt"), "pt-PT");
   assert.equal(directionFor("en"), "ltr");
   assert.throws(() => t("card.healthy", {}, "ar"), /Unsupported or unreviewed/);
 });
@@ -67,6 +69,13 @@ test("dates and relative timestamps remain deterministic and locale-aware", () =
   assert.equal(eventText("Workers runtime error spike detected"),
     "Workers runtime error spike detected");
   assert.equal(eventText("Provider-specific diagnostic"), "Provider-specific diagnostic");
+  assert.equal(incidentText("worker:name: WAF block spike detected"),
+    "worker:name: WAF block spike detected");
+  assert.equal(resourceDetail("Workers errors spiking: 30 errors / 200 requests (15.0%)"),
+    "Workers errors spiking: 30 errors / 200 requests (15.0%)");
+  assert.equal(resourceDetail("WAF blocks spiking: 150 in 10m; previous 30m 25"),
+    "WAF blocks spiking: 150 in 10m; previous 30m 25");
+
 });
 
 test("DOM localization uses textContent and explicit direction, never innerHTML", () => {

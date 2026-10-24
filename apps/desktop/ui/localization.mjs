@@ -9,6 +9,10 @@ export const ACTIVE_LOCALES = Object.freeze(["en"]);
 export const catalogs = Object.freeze({en: english});
 export const currentLocale = "en";
 
+export function intlLocale(locale) {
+  return locale === "pt" ? "pt-PT" : locale;
+}
+
 export function directionFor(locale) {
   return locale === "ar" ? "rtl" : "ltr";
 }
@@ -40,7 +44,7 @@ export function validateCatalog(candidate, baseline = english, locale = "en") {
           typeof val.other !== "string" || !val.other.trim()) {
         errors.push(`Invalid plural: ${key}`); continue;
       }
-      for (const category of new Intl.PluralRules(locale).resolvedOptions().pluralCategories) {
+      for (const category of new Intl.PluralRules(intlLocale(locale)).resolvedOptions().pluralCategories) {
         if (typeof val[category] !== "string" || !val[category].trim()) {
           errors.push(`Missing plural form ${category}: ${key}`);
         }
@@ -88,14 +92,14 @@ export function plural(key, count, params = {}, locale = currentLocale) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error(`Unknown plural key: ${key}`);
   }
-  const form = new Intl.PluralRules(locale).select(count);
+  const form = new Intl.PluralRules(intlLocale(locale)).select(count);
   return substitute(value[form] ?? value.other, {...params, count});
 }
 
 export function formatDate(when, locale = currentLocale) {
   const timestamp = Date.parse(when ?? "");
   if (!Number.isFinite(timestamp)) return t("history.unknownTime", {}, locale);
-  return new Intl.DateTimeFormat(locale, {dateStyle: "medium", timeStyle: "short"}).format(timestamp);
+  return new Intl.DateTimeFormat(intlLocale(locale), {dateStyle: "medium", timeStyle: "short"}).format(timestamp);
 }
 
 export function relativeTime(when, now = Date.now(), locale = currentLocale) {
@@ -113,7 +117,7 @@ export function verboseRelativeTime(when, now = Date.now(), locale = currentLoca
   const timestamp = Date.parse(when ?? "");
   if (!Number.isFinite(timestamp)) return t("history.unknownTime", {}, locale);
   const minutes = Math.max(0, Math.floor((now - timestamp) / 60000));
-  const formatter = new Intl.RelativeTimeFormat(locale, {numeric: "auto", style: "long"});
+  const formatter = new Intl.RelativeTimeFormat(intlLocale(locale), {numeric: "auto", style: "long"});
   if (minutes < 60) return formatter.format(-minutes, "minute");
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return formatter.format(-hours, "hour");
@@ -128,6 +132,32 @@ const legacyEvents = new Map(Object.entries(english)
 export function eventText(message, locale = currentLocale) {
   const key = legacyEvents.get(message);
   return key ? t(key, {}, locale) : String(message ?? "");
+}
+
+// The persisted notice combines an API resource name with the stable event
+// message. Only the known suffix is translated; the name is never interpreted
+// as a localization key, even if it contains punctuation.
+export function incidentText(message, locale = currentLocale) {
+  if (typeof message !== "string") return "";
+  for (const [literal, key] of legacyEvents) {
+    if (message === literal) return t(key, {}, locale);
+    const suffix = ": " + literal;
+    if (message.endsWith(suffix)) {
+      return message.slice(0, -suffix.length) + ": " + t(key, {}, locale);
+    }
+  }
+  return message;
+}
+
+export function resourceDetail(message, locale = currentLocale) {
+  if (typeof message !== "string") return "";
+  const workers = /^Workers errors spiking: (\\d+) errors \\/ (\\d+) requests \\(\\d+\\.\\d+%\\)$/.exec(message);
+  if (workers) {
+    return t("detail.workerSpike", {errors:workers[1],requests:workers[2],rate:workers[3].slice(0,-1)},locale);
+  }
+  const waf = /^WAF blocks spiking: (\\d+) in 10m; previous 30m (\\d+)$/.exec(message);
+  if (waf) return t("detail.wafSpike", {recent:waf[1],baseline:waf[2]},locale);
+  return eventText(message, locale);
 }
 
 export function localizeDocument(doc, locale = currentLocale) {
