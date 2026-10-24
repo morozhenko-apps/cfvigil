@@ -4,17 +4,23 @@ import portuguese from "./locales/pt.mjs";
 import spanish from "./locales/es.mjs";
 import german from "./locales/de.mjs";
 import french from "./locales/fr.mjs";
+import italian from "./locales/it.mjs";
+import polish from "./locales/pl.mjs";
+import dutch from "./locales/nl.mjs";
+import swedish from "./locales/sv.mjs";
 
 // The exact product locale set. Only reviewed dictionaries can be activated.
 export const PLANNED_LOCALES = Object.freeze([
   "en", "ru", "es", "pt", "de", "fr", "it", "pl", "hi", "zh-Hant",
   "ja", "nl", "sv", "tr", "ko", "bn", "th", "id", "fil", "ar"
 ]);
-export const ACTIVE_LOCALES = Object.freeze(["en", "ru", "pt", "es", "de", "fr"]);
+export const ACTIVE_LOCALES = Object.freeze(["en", "ru", "pt", "es", "de", "fr", "it", "pl", "nl", "sv"]);
 export const catalogs = Object.freeze({en: english, ru: russian, pt: portuguese,
-  es: spanish, de: german, fr: french});
+  es: spanish, de: german, fr: french,
+  it: italian, pl: polish, nl: dutch, sv: swedish});
 export const LANGUAGE_NAMES = Object.freeze({en:"English", ru:"Русский", pt:"Português (Portugal)",
-  es:"Español", de:"Deutsch", fr:"Français"});
+  es:"Español", de:"Deutsch", fr:"Français",
+  it:"Italiano", pl:"Polski", nl:"Nederlands", sv:"Svenska"});
 export let currentLocale = "en";
 
 export function setLocale(locale) {

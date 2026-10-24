@@ -12,16 +12,24 @@ import portuguese from "../apps/desktop/ui/locales/pt.mjs";
 import spanish from "../apps/desktop/ui/locales/es.mjs";
 import german from "../apps/desktop/ui/locales/de.mjs";
 import french from "../apps/desktop/ui/locales/fr.mjs";
+import italian from "../apps/desktop/ui/locales/it.mjs";
+import polish from "../apps/desktop/ui/locales/pl.mjs";
+import dutch from "../apps/desktop/ui/locales/nl.mjs";
+import swedish from "../apps/desktop/ui/locales/sv.mjs";
 
 const read = path => readFileSync(new URL("../" + path, import.meta.url), "utf8");
 
 test("only complete and explicitly reviewed-for-key-parity dictionaries can be enabled", () => {
-  assert.deepEqual(ACTIVE_LOCALES, ["en","ru","pt","es","de","fr"]);
+  assert.deepEqual(ACTIVE_LOCALES, ["en","ru","pt","es","de","fr","it","pl","nl","sv"]);
   assert.deepEqual(validateCatalog(russian, english, "ru"), []);
   assert.deepEqual(validateCatalog(portuguese, english, "pt"), []);
   assert.deepEqual(validateCatalog(spanish, english, "es"), []);
   assert.deepEqual(validateCatalog(german, english, "de"), []);
   assert.deepEqual(validateCatalog(french, english, "fr"), []);
+  assert.deepEqual(validateCatalog(italian, english, "it"), []);
+  assert.deepEqual(validateCatalog(polish, english, "pl"), []);
+  assert.deepEqual(validateCatalog(dutch, english, "nl"), []);
+  assert.deepEqual(validateCatalog(swedish, english, "sv"), []);
   // European Portuguese uses CLDR "many" for multiples of one million.
   assert.ok(new Intl.PluralRules("pt-PT").resolvedOptions().pluralCategories.includes("many"));
   for (const key of ["age.minute", "age.hour", "age.day", "history.eventCount"]) {
@@ -85,7 +93,7 @@ test("independent native language storage cannot wake Cloudflare polling", () =>
   const end=main.indexOf("fn update_native_language(",start);
   const setter=main.slice(start,end);
   assert.doesNotMatch(setter,/poll_refresh|refresh_once|invalidate_resources|last_notified/);
-  assert.match(native,/pub const ACTIVE: &\[&str\] = &\["en", "ru", "pt", "es", "de", "fr"\]/);
+  assert.match(native,/pub const ACTIVE: &\[&str\] = &\["en", "ru", "pt", "es", "de", "fr", "it", "pl", "nl", "sv"\]/);
   assert.match(native,/fn unknown_languages_fail_closed\(/);
   assert.match(read("apps/desktop/src-tauri/src/linux_tray.rs"),/language::menu\(&locale, "open"\)/);
   assert.match(main,/tray\.set_menu\(Some\(menu\)\)/);
@@ -167,4 +175,32 @@ test("Spanish, German and French use correct CLDR categories and native menu lab
   assert.match(native, /\("fr", "settings"\) => "Paramètres"/);
   assert.equal(plural("history.eventCount", 1000000, {shown:2,total:1000000}, "fr"),
     "2 sur 1000000 événements");
+});
+
+test("newly enabled EU locales preserve every key and CLDR category", () => {
+  const dictionaries = {it: italian, pl: polish, nl: dutch, sv: swedish};
+  const native = read("apps/desktop/src-tauri/src/language.rs");
+  for (const [locale, dictionary] of Object.entries(dictionaries)) {
+    assert.deepEqual(validateCatalog(dictionary, english, locale), [], locale);
+    const required = [...new Intl.PluralRules(locale).resolvedOptions().pluralCategories].sort();
+    for (const key of ["age.minute", "age.hour", "age.day", "history.eventCount"]) {
+      assert.deepEqual(Object.keys(dictionary[key]).sort(), required, locale + ":" + key);
+    }
+    assert.match(native, new RegExp('\\("' + locale + '", "settings"\\) => '));
+  }
+  assert.equal(t("card.issues", {}, "it"), "Problemi");
+  assert.equal(t("card.issues", {}, "pl"), "Problemy");
+  assert.equal(t("card.resources", {}, "nl"), "Bronnen");
+  assert.equal(t("card.resources", {}, "sv"), "Resurser");
+  assert.equal(plural("history.eventCount", 22, {shown:3,total:22}, "pl"), "Wyświetlono 3 z 22 zdarzenia");
+  assert.equal(plural("history.eventCount", 5, {shown:3,total:5}, "pl"), "Wyświetlono 3 z 5 zdarzeń");
+  assert.equal(plural("history.eventCount", 1000000, {shown:1,total:1000000}, "it"), "1 di 1000000 eventi");
+});
+
+test("enabled locales and native supported locales remain in exact sync", () => {
+  const native=read("apps/desktop/src-tauri/src/language.rs");
+  const match=native.match(/pub const ACTIVE: &\\[&str\\] = &\\[([^\\]]+)\\]/);
+  assert.ok(match);
+  const actual=[...match[1].matchAll(/"([^"]+)"/g)].map(x=>x[1]);
+  assert.deepEqual(actual, ACTIVE_LOCALES);
 });

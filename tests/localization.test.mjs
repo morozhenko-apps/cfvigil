@@ -11,7 +11,7 @@ import {
 import {referencedKeys, checkSourceKeys, checkRepository} from "../scripts/check-i18n.mjs";
 
 test("feature freeze only activates reviewed English and retains exactly 20 target locales", () => {
-  assert.deepEqual(ACTIVE_LOCALES, ["en", "ru", "pt", "es", "de", "fr"]);
+  assert.deepEqual(ACTIVE_LOCALES, ["en", "ru", "pt", "es", "de", "fr", "it", "pl", "nl", "sv"]);
   assert.equal(PLANNED_LOCALES.length, 20);
   assert.equal(new Set(PLANNED_LOCALES).size, 20);
   assert.ok(PLANNED_LOCALES.includes("zh-Hant"));
