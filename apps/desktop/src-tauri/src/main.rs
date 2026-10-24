@@ -5,6 +5,7 @@ mod incident_policy;
 mod incident_store;
 mod polling_policy;
 mod security;
+mod storage;
 #[cfg(target_os = "linux")]
 mod linux_surface;
 #[cfg(target_os = "linux")]
@@ -151,20 +152,12 @@ fn data_path(app: &AppHandle, filename: &str) -> Result<PathBuf, String> {
     Ok(dir.join(filename))
 }
 
-fn read_json<T: for<'de> Deserialize<'de> + Default>(app: &AppHandle, name: &str) -> T {
-    data_path(app, name)
-        .ok()
-        .and_then(|path| fs::read(path).ok())
-        .and_then(|bytes| serde_json::from_slice(&bytes).ok())
-        .unwrap_or_default()
+fn read_json<T: for<'de> Deserialize<'de> + Default>(app: &AppHandle, name: &str) -> Result<T, String> {
+    storage::read_or_default(&data_path(app, name)?, storage::MAX_JSON_BYTES)
 }
 
 fn write_json<T: Serialize>(app: &AppHandle, name: &str, data: &T) -> Result<(), String> {
-    let path = data_path(app, name)?;
-    let tmp = path.with_extension("tmp");
-    let bytes = serde_json::to_vec_pretty(data).map_err(|_| "Cannot serialize settings")?;
-    fs::write(&tmp, bytes).map_err(|_| "Cannot write settings")?;
-    fs::rename(&tmp, path).map_err(|_| "Cannot persist settings".to_owned())
+    storage::write_atomic(&data_path(app, name)?, data, storage::MAX_JSON_BYTES)
 }
 
 fn token_entry() -> Result<keyring::Entry, String> {
@@ -593,7 +586,9 @@ async fn refresh_once(app: AppHandle, budget: &ApiBudget) -> bool {
         let mut history = state.history.lock().unwrap();
         history.splice(0..0, events);
         history.truncate(500);
-        let _ = write_json(&app, "events.json", &*history);
+        if write_json(&app, "events.json", &*history).is_err() {
+            eprintln!("CFVigil: could not persist event history");
+        }
         let _ = app.emit("cfvigil-history-changed", ());
     }
     // Persist only active security/runtime incidents and a bounded set of
@@ -646,15 +641,19 @@ fn main() {
         .plugin(tauri_plugin_autostart::Builder::new().build())
         .setup(|app| {
             let handle = app.handle().clone();
-            let config: Config = read_json(&handle, "settings.json");
-            let stored: IncidentJournal = read_json(&handle, "incident-state.json");
+            let config: Config = read_json(&handle, "settings.json")
+                .map_err(std::io::Error::other)?;
+            let stored: IncidentJournal = read_json(&handle, "incident-state.json")
+                .map_err(std::io::Error::other)?;
             let journal = stored.restore(&config.account_id);
             let (poll_refresh, _receiver) = tokio::sync::watch::channel(0u64);
             app.manage(AppState {
                 config: Mutex::new(config),
                 resources: Mutex::new(journal.active.clone()),
                 history: Mutex::new({
-                    let mut events: Vec<HistoryEvent> = read_json(&handle, "events.json");
+                    let mut events: Vec<HistoryEvent> = read_json(&handle, "events.json")
+                        .map_err(std::io::Error::other)?;
+                    events.truncate(500);
                     normalize_history(&mut events);
                     events
                 }),
