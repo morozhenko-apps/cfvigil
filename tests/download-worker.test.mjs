@@ -19,6 +19,8 @@ test("CFVigil Worker maps only precisely named public R2 files",()=>{
     "../RepoTicker/releases/v1.2.3/linux/a.deb",
     "releases/v1.2.3/linux/other.deb",
     "releases/v1.2.3/linux/cfvigil_1.2.4_amd64.deb",
+    "releases/v1.2.3/linux/CFVigil-1.2.4-linux-x64.AppImage",
+    "releases/v1.2.3/windows/CFVigil-Setup-1.2.4-win-x64.exe.sha256",
     "releases/v1.2.3/windows/CFVigil-Setup-1.2.3-win-x86.exe",
     "apt/dists/stable/Release",
     "releases/v1.2.3/linux/%2e%2e/a",
