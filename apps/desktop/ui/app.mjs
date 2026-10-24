@@ -21,6 +21,7 @@ let openMenuTrigger = null;
 let syncAvailable = false;
 let accountConfigured = false;
 let storageWarning = false;
+let providerWarnings = [];
 let resizing = false;
 let cardVisible = false;
 let idleTimer = null;
@@ -106,9 +107,21 @@ function openResourceMenu(resource, trigger) {
 }
 
 function render() {
+  const warning = byId("provider-warning");
+  warning.replaceChildren();
+  warning.hidden = !providerWarnings.length;
+  for (const item of providerWarnings) {
+    const entry = document.createElement("div");
+    entry.textContent = item; // never interpolate provider data as HTML
+    warning.append(entry);
+  }
   const totals = counters(resources);
   for (const [id, value] of Object.entries({healthy: totals.healthy, deploying: totals.deploying, issues: totals.failed})) {
-    byId(id).textContent = syncAvailable ? String(value) : "—";
+    // A denied Pages scope must not hide verified Worker status totals.
+    // Fully unverified data still uses dashes, not fabricated zeros.
+    const hasVerified = syncAvailable || resources.some(item =>
+      ["healthy", "deploying", "failed"].includes(item.status));
+    byId(id).textContent = hasVerified ? String(value) : "—";
   }
   // Replacing rows on polling must not strand keyboard focus on a detached
   // button. Preserve the selected action by stable resource key.
@@ -286,6 +299,7 @@ function applySnapshot(payload) {
   syncAvailable = snapshot.ready;
   accountConfigured = snapshot.configured;
   storageWarning = payload?.storage_warning === true;
+  providerWarnings = snapshot.provider_warnings;
   if (!byId("toggle-list").classList.contains("blink")) {
     if (storageWarning) {
       const warning = t("card.storageWarning");

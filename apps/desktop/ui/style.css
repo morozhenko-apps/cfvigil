@@ -63,3 +63,10 @@ input:not([type="checkbox"]), textarea, [contenteditable="true"] {
   -webkit-user-select:text;
   user-select:text;
 }
+
+/* Provider diagnostics are displayed only within the expanded list.
+   Do not cover the five compact controls or pretend partial data is healthy. */
+.drawer{flex-direction:column}
+.provider-warning{flex:none;max-height:74px;overflow-y:auto;padding:6px 9px;
+  font-size:11px;line-height:1.4;background:#fff1d6;color:#533b15;
+  border-bottom:1px solid #e5c68e;overflow-wrap:anywhere}
