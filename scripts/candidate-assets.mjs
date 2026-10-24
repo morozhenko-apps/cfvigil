@@ -91,9 +91,12 @@ function field(filename, fieldName) {
 }
 
 export function validateDebMetadata(metadata, version) {
-  if (metadata.Package !== "cfvigil" || metadata.Version !== version ||
+  // Tauri 2 uses heck::AsKebabCase(productName) for Debian's Package
+  // field. "CFVigil" becomes "cf-vigil", regardless of Cargo's binary name.
+  if (metadata.Package !== "cf-vigil" || metadata.Version !== version ||
       metadata.Architecture !== "amd64") {
-    throw Error("Unexpected Debian package identity/version/architecture");
+    const {Package, Version, Architecture} = metadata;
+    throw Error(`Unexpected Debian identity: Package=${JSON.stringify(Package)}, Version=${JSON.stringify(Version)}, Architecture=${JSON.stringify(Architecture)}`);
   }
   if (!/(?:^|[, ])libgtk-layer-shell0(?:\s|\(|,|$)/.test(metadata.Depends ?? "")) {
     throw Error("Missing libgtk-layer-shell0 runtime dependency");
