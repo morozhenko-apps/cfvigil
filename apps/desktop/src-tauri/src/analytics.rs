@@ -6,6 +6,7 @@ use chrono::{Duration as ChronoDuration, Utc};
 use reqwest::{redirect::Policy, Client};
 use serde_json::Value;
 use std::{collections::{HashMap, HashSet}, time::Duration};
+use crate::api_budget::ApiBudget;
 
 const GRAPHQL: &str = "https://api.cloudflare.com/client/v4/graphql";
 const MAX_BATCH: usize = 8;
@@ -22,6 +23,11 @@ pub struct Spike {
     pub requests: u64,
     pub errors: u64,
     pub ratio: f64,
+}
+
+pub struct MetricsScan {
+    pub spikes: HashMap<String, Spike>,
+    pub unverified: HashSet<String>,
 }
 
 fn worker_name_safe(name: &str) -> bool {
@@ -112,41 +118,51 @@ fn parse_batch(
 }
 
 pub async fn query_spikes(
-    account: &str, token: &str, allowed_workers: &HashSet<String>,
-) -> Result<HashMap<String, Spike>, String> {
-    if allowed_workers.is_empty() { return Ok(HashMap::new()); }
+    account: &str, token: &str, allowed_workers: &HashSet<String>, budget: &ApiBudget,
+) -> Result<MetricsScan, String> {
+    if allowed_workers.is_empty() {
+        return Ok(MetricsScan { spikes: HashMap::new(), unverified: HashSet::new() });
+    }
     if allowed_workers.len() > MAX_WORKERS {
         return Err("Too many Workers for bounded analytics scan".into());
     }
     let mut names: Vec<String> = allowed_workers.iter().cloned().collect();
     names.sort();
     let now = Utc::now();
-    // Leave ingestion room for edge telemetry.
     let recent_end = now - ChronoDuration::minutes(5);
     let recent_start = recent_end - ChronoDuration::minutes(10);
     let baseline_start = recent_start - ChronoDuration::minutes(30);
     let http = Client::builder().redirect(Policy::none())
         .timeout(Duration::from_secs(20)).user_agent("CFVigil/0.1.0")
         .build().map_err(|_| "Cannot initialize Analytics HTTPS client")?;
-    let mut spikes = HashMap::new();
+    let mut scan = MetricsScan { spikes: HashMap::new(), unverified: HashSet::new() };
     for batch in names.chunks(MAX_BATCH) {
         let query = create_query(account, batch, &recent_start.to_rfc3339(),
             &recent_end.to_rfc3339(), &baseline_start.to_rfc3339())?;
-        let response = http.post(GRAPHQL).bearer_auth(token)
-            .json(&serde_json::json!({"query":query}))
-            .send().await.map_err(|_| "Workers Analytics request failed")?;
-        if !response.status().is_success() {
-            return Err(format!("Workers Analytics HTTP {}", response.status().as_u16()));
+        let attempt = async {
+            budget.check()?;
+            let response = http.post(GRAPHQL).bearer_auth(token)
+                .json(&serde_json::json!({"query":query}))
+                .send().await.map_err(|_| "Workers Analytics request failed".to_string())?;
+            budget.observe(&response);
+            if !response.status().is_success() {
+                return Err(format!("Workers Analytics HTTP {}", response.status().as_u16()));
+            }
+            let bytes = response.bytes().await
+                .map_err(|_| "Workers Analytics response failed".to_string())?;
+            if bytes.len() > 1024 * 1024 {
+                return Err("Workers Analytics response too large".into());
+            }
+            let body: Value = serde_json::from_slice(&bytes)
+                .map_err(|_| "Invalid Workers Analytics JSON".to_string())?;
+            parse_batch(&body, batch)
+        }.await;
+        match attempt {
+            Ok(spikes) => scan.spikes.extend(spikes),
+            Err(_) => scan.unverified.extend(batch.iter().cloned()),
         }
-        let bytes = response.bytes().await.map_err(|_| "Workers Analytics response failed")?;
-        if bytes.len() > 1024 * 1024 {
-            return Err("Workers Analytics response too large".into());
-        }
-        let body: Value = serde_json::from_slice(&bytes)
-            .map_err(|_| "Invalid Workers Analytics JSON")?;
-        spikes.extend(parse_batch(&body, batch)?);
     }
-    Ok(spikes)
+    Ok(scan)
 }
 
 #[cfg(test)]
