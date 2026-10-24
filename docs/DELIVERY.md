@@ -625,3 +625,13 @@ is approved. **Source commit exists; verification is pending an explicit
 single Preflight run.** Cloudflare live API and KDE/Windows physical smoke
 are not claimed. Next feature stage remains 20 locale translations and
 editorial/RTL/context QA.
+
+### 0.7 initial Preflight #40112322932: failed, one test harness defect
+
+The explicit marker run compiled JavaScript, passed `node
+scripts/check-i18n.mjs` and completed 55 of 56 JavaScript tests. The single
+failure was `tests/storage-contract.test.mjs`: a new catalog check called
+an undefined `read(...)` helper instead of the existing `source(...)`.
+Correction committed separately in the test file. Python and Rust steps
+were skipped by fail-fast, **not failed**. One follow-up Preflight is required;
+do not label Rust compilation or source acceptance successful yet.
