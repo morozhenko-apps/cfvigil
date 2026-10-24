@@ -24,7 +24,7 @@ test("resource action menu is accessible and keyboard focused", () => {
   assert.match(js, /role", "menuitem"/);
   assert.match(js, /aria-haspopup", "menu"/);
   assert.match(js, /aria-expanded", "false"/);
-  assert.match(js, /key === "Escape"/);
+  assert.match(js, /event\.key !== "Escape"/);
   assert.match(js, /nextResourceIndex\(/);
   assert.match(js, /menu\.append\(open\)/);
   assert.match(js, /open\.focus\(\)/);
