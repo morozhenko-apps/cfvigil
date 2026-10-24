@@ -11,3 +11,6 @@ metadata, dependency and checksum validation.
 version/metadata negative tests, Rust/JS suites, DEB/AppImage bundle
 validation, SHA256, and Cargo.lock review artifact. Supersedes the
 incomplete initial packaging workflow trigger.
+
+2026-10-24: One rerun after fixing Tauri AppImage staging-symlink
+validation. Check actual DEB/AppImage, exact names, metadata and SHA256.
