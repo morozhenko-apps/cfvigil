@@ -2,9 +2,11 @@ use reqwest::{redirect::Policy, Client};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{collections::{HashMap, HashSet}, time::Duration};
+use crate::api_budget::ApiBudget;
 
 const API: &str = "https://api.cloudflare.com/client/v4";
 const PAGE_LIMIT: usize = 50;
+const MAX_RESOURCES_PER_TYPE: usize = 256;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Resource {
@@ -145,6 +147,13 @@ pub struct Cloudflare {
     http: Client,
 }
 
+pub struct Discovery {
+    pub resources: Vec<Resource>,
+    pub complete: bool,
+    pub workers_complete: bool,
+    pub pages_complete: bool,
+}
+
 impl Cloudflare {
     pub fn new() -> Result<Self, String> {
         let http = Client::builder()
@@ -156,7 +165,8 @@ impl Cloudflare {
         Ok(Self { http })
     }
 
-    async fn get(&self, token: &str, path: &str) -> Result<(Value, usize), String> {
+    async fn get(&self, token: &str, path: &str, budget: &ApiBudget) -> Result<(Value, usize), String> {
+        budget.check()?;
         let response = self
             .http
             .get(format!("{API}{path}"))
@@ -164,6 +174,7 @@ impl Cloudflare {
             .send()
             .await
             .map_err(|_| "Cloudflare network request failed".to_string())?;
+        budget.observe(&response);
         let status = response.status();
         if !status.is_success() {
             return Err(format!("Cloudflare HTTP {}", status.as_u16()));
@@ -189,24 +200,32 @@ impl Cloudflare {
 
     // Worker Scripts List is NOT a paginated endpoint. Do not supply
     // page/per_page parameters that are not in its documented contract.
-    async fn list_workers(&self, token: &str, base: &str) -> Result<Vec<Value>, String> {
-        let (result, _) = self.get(token, &format!("{base}/workers/scripts")).await?;
-        parse_worker_scripts(&result)
+    async fn list_workers(&self, token: &str, base: &str, budget: &ApiBudget) -> Result<Vec<Value>, String> {
+        let (result, _) = self.get(token, &format!("{base}/workers/scripts"), budget).await?;
+        let scripts = parse_worker_scripts(&result)?;
+        if scripts.len() > MAX_RESOURCES_PER_TYPE {
+            return Err("Cloudflare Workers count exceeds safe per-poll limit".into());
+        }
+        Ok(scripts)
     }
 
     async fn list_paginated(
         &self,
         token: &str,
         path: &str,
+        budget: &ApiBudget,
     ) -> Result<Vec<Value>, String> {
         let mut output = Vec::new();
         for page in 1..=PAGE_LIMIT {
             let delimiter = if path.contains('?') { '&' } else { '?' };
             let url = format!("{path}{delimiter}page={page}&per_page=100");
-            let (result, total_pages) = self.get(token, &url).await?;
+            let (result, total_pages) = self.get(token, &url, budget).await?;
             let items = result
                 .as_array()
                 .ok_or_else(|| "Cloudflare returned an unexpected list format".to_string())?;
+            if output.len() + items.len() > MAX_RESOURCES_PER_TYPE {
+                return Err("Cloudflare Pages count exceeds safe per-poll limit".into());
+            }
             output.extend(items.iter().cloned());
             if page >= total_pages || items.is_empty() {
                 return Ok(output);
@@ -215,16 +234,18 @@ impl Cloudflare {
         Err("Too many pages in Cloudflare API response".into())
     }
 
-    pub async fn discover(&self, account: &str, token: &str) -> Result<Vec<Resource>, String> {
+    pub async fn discover(&self, account: &str, token: &str, budget: &ApiBudget) -> Result<Discovery, String> {
         let base = format!("/accounts/{account}");
-        // Independent failures are explicit. Never turn an unobservable build into green.
-        let workers = self.list_workers(token, &base).await;
-        let pages = self.list_paginated(token, &format!("{base}/pages/projects")).await;
-        if workers.is_err() || pages.is_err() {
-            // A temporarily unavailable provider must not silently remove its
-            // resources or make the aggregate counters look healthier.
-            return Err("Workers or Pages discovery unavailable. Check token scopes and retry.".into());
+        // The two catalog endpoints are independent: a failing Pages scope
+        // must not conceal verified Workers, and vice versa.
+        let workers = self.list_workers(token, &base, budget).await;
+        let pages = self.list_paginated(token, &format!("{base}/pages/projects"), budget).await;
+        let workers_complete = workers.is_ok();
+        let pages_complete = pages.is_ok();
+        if !workers_complete && !pages_complete {
+            return Err("Workers and Pages discovery unavailable. Check token scopes or API limits.".into());
         }
+        let mut complete = workers_complete && pages_complete;
         let mut resources = Vec::new();
 
         if let Ok(workers) = workers {
@@ -244,40 +265,44 @@ impl Cloudflare {
             let mut tags = tags.into_iter().collect::<Vec<_>>();
             tags.sort();
             let mut latest = HashMap::<String, Value>::new();
-            let mut builds_available = true;
+            let mut checked_tags = HashSet::<String>::new();
             for chunk in tags.chunks(20) {
                 let path = format!(
                     "{base}/builds/builds/latest?external_script_ids={}",
                     chunk.join(",")
                 );
-                match self.get(token, &path).await {
+                match self.get(token, &path, budget).await {
                     Ok((result, _)) => {
                         if let Some(map) = result.get("builds").and_then(Value::as_object) {
                             for (key, value) in map {
                                 latest.insert(key.to_owned(), value.clone());
                             }
+                            checked_tags.extend(chunk.iter().cloned());
                         } else {
-                            // A malformed or incomplete query result does not
-                            // prove every Worker has a successful deployment.
-                            builds_available = false;
-                            break;
+                            complete = false;
                         }
                     }
-                    Err(_) => {
-                        builds_available = false;
-                        break;
-                    }
+                    Err(_) => { complete = false; }
                 }
             }
             for (name, tag, _) in script_list {
                 let build = latest.get(&tag).or_else(|| latest.get(&name));
-                let active = self.get(
+                let active_result = self.get(
                     token,
                     &format!("{base}/workers/scripts/{name}/deployments?page=1&per_page=1"),
-                ).await.ok().and_then(|(result, _)| {
-                    result.get("deployments")?.as_array()?.first().cloned()
-                });
-                let choice = select_worker_attempt(build, active.as_ref(), builds_available);
+                    budget,
+                ).await;
+                let active = active_result.as_ref().ok()
+                    .and_then(|(result, _)| result.get("deployments"))
+                    .and_then(Value::as_array);
+                let deployment_known = active_result.is_ok() && active.is_some();
+                let builds_known = checked_tags.contains(&tag);
+                if !deployment_known || !builds_known { complete = false; }
+                let choice = if !deployment_known {
+                    select_worker_attempt(None, None, false)
+                } else {
+                    select_worker_attempt(build, active.and_then(|rows| rows.first()), builds_known)
+                };
                 let mut url = format!("https://dash.cloudflare.com/{account}/workers/services/view/{name}/production");
                 if choice.detail == "Latest Cloudflare Workers build" && valid_uuid(&choice.attempt_id) {
                     url.push_str(&format!("/builds/{}", choice.attempt_id));
@@ -301,7 +326,7 @@ impl Cloudflare {
                 if !valid_name(name) { continue; }
                 let name = name.to_owned();
                 let result = self
-                    .get(token, &format!("{base}/pages/projects/{name}/deployments?per_page=1&page=1"))
+                    .get(token, &format!("{base}/pages/projects/{name}/deployments?per_page=1&page=1"), budget)
                     .await;
                 // Own the strings before the REST result is dropped. Holding
                 // &str into a JSON Value from this match caused Rust E0597.
@@ -318,7 +343,10 @@ impl Cloudflare {
                             ("unknown".into(), String::new(), String::new(), "No Pages deployments".into())
                         }
                     }
-                    Err(_) => ("unknown".into(), String::new(), String::new(), "Pages deployment status unavailable".into()),
+                    Err(_) => {
+                        complete = false;
+                        ("unknown".into(), String::new(), String::new(), "Pages deployment status unavailable".into())
+                    },
                 };
                 let mut url = format!("https://dash.cloudflare.com/{account}/pages/view/{name}");
                 if valid_uuid(&attempt) { url.push_str(&format!("/{attempt}")); }
@@ -336,7 +364,7 @@ impl Cloudflare {
         }
         resources.sort_by(|a, b| a.name.to_ascii_lowercase().cmp(&b.name.to_ascii_lowercase())
             .then_with(|| a.kind.cmp(&b.kind)));
-        Ok(resources)
+        Ok(Discovery { resources, complete, workers_complete, pages_complete })
     }
 }
 
