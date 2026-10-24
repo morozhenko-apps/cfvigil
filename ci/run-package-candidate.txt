@@ -17,3 +17,8 @@ validation. Check actual DEB/AppImage, exact names, metadata and SHA256.
 
 2026-10-24: Verify corrected Tauri Debian Package identity cf-vigil,
 exact metadata and complete checksums/artifact uploads after #40092833835.
+
+2026-10-24: Exact-source-SHA unreleased native-machine checkpoint candidate after
+20-locale Preflight #40125464476 PASS. Generate installable Linux DEB/AppImage
+and unsigned Windows NSIS for observed KDE/Windows inspection before Mode B.
+Do not release, publish R2 or use any self-hosted Actions runners.

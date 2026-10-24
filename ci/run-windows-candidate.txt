@@ -10,3 +10,8 @@ unsigned installer identity and SHA256 validation. One verification run.
 
 2026-10-24: Rerun Windows candidate after CRLF-safe Cargo.lock header
 validation fix and LF/CRLF tampering regression tests. Full NSIS gate.
+
+2026-10-24: Exact-source-SHA unreleased native-machine checkpoint candidate after
+20-locale Preflight #40125464476 PASS. Generate installable Linux DEB/AppImage
+and unsigned Windows NSIS for observed KDE/Windows inspection before Mode B.
+Do not release, publish R2 or use any self-hosted Actions runners.
