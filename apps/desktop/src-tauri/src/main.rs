@@ -604,6 +604,10 @@ async fn refresh_once(app: AppHandle, budget: &ApiBudget) -> bool {
         }
     };
     let core_complete = discovery.complete;
+    // A permanently denied Pages scope must not back off verified Workers
+    // polling to 30 minutes. Backoff is reserved for total discovery outage
+    // and API-budget exhaustion; partial provider failures remain visible.
+    let catalog_available = discovery.workers_complete || discovery.pages_complete;
     *state.provider_warnings.lock().unwrap() = discovery.warnings;
     let previous = state.resources.lock().unwrap().clone();
     let worker_names: HashSet<String> = discovery.resources.iter()
@@ -743,7 +747,7 @@ async fn refresh_once(app: AppHandle, budget: &ApiBudget) -> bool {
             eprintln!("CFVigil: could not persist the incident journal");
         }
     }
-    core_complete && !budget.exhausted()
+    catalog_available && !budget.exhausted()
 }
 
 fn run_polling(app: AppHandle) {
