@@ -354,7 +354,7 @@ function stopDragging(event = null) {
 }
 dragSurface.addEventListener("pointerdown", event => {
   if (event.button !== 0 || !event.isPrimary || !cardVisible ||
-      event.target.closest("button,input,select,a,.resource-row,[role=button]")) return;
+      event.target.closest("button,input,select,textarea,a,[role=button]")) return;
   if (!dragGesture.begin(event.pointerId)) return;
   pointerId = event.pointerId;
   dragSurface.setPointerCapture(pointerId);
