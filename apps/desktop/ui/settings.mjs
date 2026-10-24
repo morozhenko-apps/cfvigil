@@ -44,3 +44,13 @@ try {
   autostart.disabled = true;
   autostartHint.textContent = "System startup state unavailable; other settings remain editable.";
 }
+
+try {
+  const snapshot = await invoke("get_snapshot");
+  if (snapshot?.storage_warning) {
+    message.textContent =
+      "Damaged local state was preserved as a .corrupt.* file in the CFVigil settings folder. Please verify your connection and history.";
+  }
+} catch {
+  // Connection settings remain available when the card snapshot cannot load.
+}
