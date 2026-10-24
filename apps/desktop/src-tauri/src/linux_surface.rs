@@ -29,8 +29,7 @@ impl Default for CardPosition {
 
 
 const WIDTH: i32 = 390;
-const BOTTOM_MARGIN: i32 = 46;
-const RIGHT_MARGIN: i32 = 10;
+const COMPACT_HEIGHT: i32 = 122;
 static ENABLED: AtomicBool = AtomicBool::new(false);
 static VISIBLE: AtomicBool = AtomicBool::new(false);
 static HEIGHT: AtomicI32 = AtomicI32::new(122);
@@ -154,6 +153,19 @@ pub fn install(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
     layer.set_exclusive_zone(-1);
     layer.set_keyboard_mode(KeyboardMode::OnDemand);
 
+    // Diagnostic hooks are opt-in. Comparing GTK allocation to requested
+    // height distinguishes compositor sizing from WebView/CSS layout faults.
+    if std::env::var_os("CFVIGIL_UI_DEBUG").is_some() {
+        layer.connect_size_allocate(|_, allocation| {
+            eprintln!(
+                "CFVigil GTK geometry: requested={} actual={}x{} margins={:?} visible={}",
+                HEIGHT.load(Ordering::Acquire),
+                allocation.width(), allocation.height(),
+                MARGINS.with(|state| *state.borrow()),
+                VISIBLE.load(Ordering::Acquire)
+            );
+        });
+    }
     CARD.with(|slot| *slot.borrow_mut() = Some(layer));
     CONTENT.with(|slot| *slot.borrow_mut() = Some(content));
     if unsafe { cfvigil_relative_init(on_relative_motion) } == 0 {
@@ -173,13 +185,9 @@ fn on_main(app: &AppHandle, callback: impl FnOnce(&gtk::ApplicationWindow) + Sen
     }).map_err(|_| "GTK event loop unavailable".into())
 }
 
-fn apply_height(window: &gtk::ApplicationWindow, height: i32) -> Result<(), String> {
-    let old = HEIGHT.load(Ordering::Acquire);
-    // Reapply exact geometry even when the requested mode did not change:
-    // WebKitGTK may raise the native layer's allocation above its CSS height.
-    let widget = window.child().ok_or("Popup viewport missing")?;
-    let viewport = widget.downcast::<gtk::ScrolledWindow>()
-        .map_err(|_| "Unexpected popup viewport")?;
+/// GTK validates min <= max after EACH setter call. Match RepoTicker's
+/// grow/shrink order, not just the desired final pair.
+fn set_exact_viewport_height(viewport: &gtk::ScrolledWindow, old: i32, height: i32) {
     if height > old {
         viewport.set_max_content_height(height);
         viewport.set_min_content_height(height);
@@ -187,6 +195,18 @@ fn apply_height(window: &gtk::ApplicationWindow, height: i32) -> Result<(), Stri
         viewport.set_min_content_height(height);
         viewport.set_max_content_height(height);
     }
+}
+
+/// All geometry changes are serialized on the GTK main thread. If the view
+/// is already compact, do NOTHING: reapplying geometry causes KDE Layer Shell
+/// position drift and can reactivate WebKit's oversized natural minimum.
+fn apply_height(window: &gtk::ApplicationWindow, height: i32) -> Result<(), String> {
+    let old = HEIGHT.load(Ordering::Acquire);
+    if height == old { return Ok(()); }
+    let child = window.child().ok_or("Popup viewport missing")?;
+    let viewport = child.downcast::<gtk::ScrolledWindow>()
+        .map_err(|_| "Unexpected popup viewport")?;
+    set_exact_viewport_height(&viewport, old, height);
     viewport.set_size_request(WIDTH, height);
     CONTENT.with(|slot| {
         if let Some(content) = slot.borrow().as_ref() {
@@ -194,15 +214,20 @@ fn apply_height(window: &gtk::ApplicationWindow, height: i32) -> Result<(), Stri
         }
     });
     apply_geometry(window, height);
-    viewport.queue_resize();
-    window.queue_resize();
-    // Keep bottom and right margins invariant while growing upwards.
-    window.set_anchor(Edge::Bottom, true);
-    window.set_anchor(Edge::Right, true);
+    // The compositor owns the bottom edge. Persisted margins remain invariant
+    // when growing the drawer upward or returning to compact.
     MARGINS.with(|state| {
         let (bottom, right) = *state.borrow();
+        window.set_anchor(Edge::Bottom, true);
+        window.set_anchor(Edge::Right, true);
         window.set_layer_shell_margin(Edge::Bottom, bottom);
         window.set_layer_shell_margin(Edge::Right, right);
+        if std::env::var_os("CFVIGIL_UI_DEBUG").is_some() {
+            eprintln!(
+                "CFVigil resize: old={old} new={height} margins=({bottom},{right}) allocated={}x{}",
+                window.allocated_width(), window.allocated_height()
+            );
+        }
     });
     HEIGHT.store(height, Ordering::Release);
     Ok(())
@@ -236,12 +261,23 @@ pub async fn resize(app: AppHandle, height: i32) -> Result<(), String> {
 pub fn show(app: &AppHandle) -> Result<(), String> {
     VISIBLE.store(true, Ordering::Release);
     on_main(app, |window| {
-        // A compact tray activation must not inherit the last expanded
-        // native WebKit minimum. Expansion is an explicit user action.
-        if let Err(error) = apply_height(window, 122) {
-            eprintln!("CFVigil compact layer geometry: {error}");
-        }
+        // Show NEVER changes the requested size. The caller queues the
+        // compact height BEFORE this action; do not enqueue it a second time.
+        MARGINS.with(|state| {
+            let (bottom, right) = *state.borrow();
+            window.set_anchor(Edge::Bottom, true);
+            window.set_anchor(Edge::Right, true);
+            window.set_layer_shell_margin(Edge::Bottom, bottom);
+            window.set_layer_shell_margin(Edge::Right, right);
+        });
         window.show_all();
+        if std::env::var_os("CFVIGIL_UI_DEBUG").is_some() {
+            eprintln!(
+                "CFVigil show: requested={} actual={}x{} margins={:?}",
+                HEIGHT.load(Ordering::Acquire), window.allocated_width(),
+                window.allocated_height(), MARGINS.with(|state| *state.borrow())
+            );
+        }
     })
 }
 
