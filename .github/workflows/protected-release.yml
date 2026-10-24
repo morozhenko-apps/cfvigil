@@ -13,7 +13,7 @@ jobs:
   validate:
     runs-on: ubuntu-24.04
     outputs:
-      version: ${ steps.admit.outputs.version }
+      version: ${{ steps.admit.outputs.version }}
     steps:
       - uses: actions/checkout@v5
         with: {fetch-depth: 0, persist-credentials: false}
@@ -23,7 +23,7 @@ jobs:
       - name: Admit exact main HEAD and source version
         id: admit
         env:
-          RELEASE_TAG: ${ github.ref_name }
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
           [[ "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
@@ -65,7 +65,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: cfvigil-release-linux
-          path: ${ runner.temp }}/release/linux/*
+          path: ${{ runner.temp }}}/release/linux/*
           if-no-files-found: error
           retention-days: 1
 
@@ -107,7 +107,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: cfvigil-release-windows
-          path: ${ runner.temp }}/release/windows/*
+          path: ${{ runner.temp }}}/release/windows/*
           if-no-files-found: error
           retention-days: 1
 
@@ -119,23 +119,23 @@ jobs:
     permissions:
       contents: read
     outputs:
-      receipt: ${ steps.publish.outputs.receipt }
+      receipt: ${{ steps.publish.outputs.receipt }}
     env:
-      VERSION: ${ needs.validate.outputs.version }
-      APPROVED_TAG: ${ vars.CFVIGIL_RELEASE_APPROVED_TAG }
-      CFVIGIL_APT_FINGERPRINT: ${ vars.CFVIGIL_APT_FINGERPRINT }
-      CFVIGIL_R2_ACCOUNT_ID: ${ vars.CFVIGIL_R2_ACCOUNT_ID }
+      VERSION: ${{ needs.validate.outputs.version }}
+      APPROVED_TAG: ${{ vars.CFVIGIL_RELEASE_APPROVED_TAG }}
+      CFVIGIL_APT_FINGERPRINT: ${{ vars.CFVIGIL_APT_FINGERPRINT }}
+      CFVIGIL_R2_ACCOUNT_ID: ${{ vars.CFVIGIL_R2_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v5
         with: {persist-credentials: false}
       - uses: actions/download-artifact@v4
         with:
           name: cfvigil-release-linux
-          path: ${ runner.temp }}/release/linux
+          path: ${{ runner.temp }}}/release/linux
       - uses: actions/download-artifact@v4
         with:
           name: cfvigil-release-windows
-          path: ${ runner.temp }}/release/windows
+          path: ${{ runner.temp }}}/release/windows
       - name: Require explicit owner release approval and dedicated environment
         run: |
           set -euo pipefail
@@ -152,8 +152,8 @@ jobs:
           chmod 700 "$RUNNER_TEMP/private/gnupg"
       - name: Verify dedicated CFVigil signing SUBKEY (primary is never imported)
         env:
-          SUBKEY_B64: ${ secrets.CFVIGIL_APT_SIGNING_SUBKEY_BASE64 }
-          SUBKEY_PASSPHRASE: ${ secrets.CFVIGIL_APT_SIGNING_PASSPHRASE }
+          SUBKEY_B64: ${{ secrets.CFVIGIL_APT_SIGNING_SUBKEY_BASE64 }}
+          SUBKEY_PASSPHRASE: ${{ secrets.CFVIGIL_APT_SIGNING_PASSPHRASE }}
         run: |
           set -euo pipefail
           [[ -n "$SUBKEY_B64" && -n "$SUBKEY_PASSPHRASE" ]]
@@ -180,8 +180,8 @@ jobs:
       - name: Publish isolated R2 objects; publicly verify SHA256 and sizes
         id: publish
         env:
-          CFVIGIL_R2_ACCESS_KEY_ID: ${ secrets.CFVIGIL_R2_ACCESS_KEY_ID }
-          CFVIGIL_R2_SECRET_ACCESS_KEY: ${ secrets.CFVIGIL_R2_SECRET_ACCESS_KEY }
+          CFVIGIL_R2_ACCESS_KEY_ID: ${{ secrets.CFVIGIL_R2_ACCESS_KEY_ID }}
+          CFVIGIL_R2_SECRET_ACCESS_KEY: ${{ secrets.CFVIGIL_R2_SECRET_ACCESS_KEY }}
         run: |
           set -euo pipefail
           "$RUNNER_TEMP/release-python/bin/python" scripts/r2_release.py \
@@ -213,8 +213,8 @@ jobs:
         with: {node-version: 24}
       - name: Delete exact GitHub release archives only after verified R2 receipt
         env:
-          RECEIPT_BASE64: ${ needs.publish.outputs.receipt }
-          GH_TOKEN: ${ github.token }
+          RECEIPT_BASE64: ${{ needs.publish.outputs.receipt }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           [[ -n "$RECEIPT_BASE64" ]]
@@ -230,8 +230,8 @@ jobs:
     steps:
       - name: Text-only GitHub Release with CFVigil R2 download links
         env:
-          GH_TOKEN: ${ github.token }
-          VERSION: ${ needs.validate.outputs.version }
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.validate.outputs.version }}
         run: |
           set -euo pipefail
           gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
