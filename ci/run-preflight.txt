@@ -42,3 +42,7 @@ unrelated artifacts unaffected, idempotent cleanup, one-day candidate TTL.
 read-only Worker, signed APT builder, protected exact-main/tag release,
 private/public checksum readback, post-upload GitHub artifact deletion,
 and all JS/Python/Rust unit and security regression tests. No live publish.
+
+2026-10-24: Rerun after fixing strict release path version binding and
+valid double-braced GitHub workflow expressions. Verify all JS tests,
+offline Python signed R2 staging tests, then full stable Rust suite.
