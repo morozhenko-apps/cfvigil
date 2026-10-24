@@ -220,3 +220,30 @@ Fix architecture:
   and compare card requested/actual height 122 before assessing gaps.
 
 All symptoms remain FAIL until checked on another installed candidate.
+
+### Next source candidate: native Wayland activation and Settings geometry
+
+Owner's verified v3 screenshot and `CFVigil Settings fit: current=460x774
+target=460x655 scale=1` demonstrate that ordinary Tauri geometry changes
+do not force a smaller window. Only Settings fit logged; the previous
+CFVigil Layer Shell allocation diagnostics were absent.
+
+RepoTicker main.rs has a pre-initialization `configure_gdk_for_native_wayland`
+function and unconditional surface-mode log. Its comment explicitly ties
+the XWayland fallback to 390x200 card geometry, drifting and unsaved
+Layer Shell anchor. CFVigil now ports these two features verbatim in
+principle, only overriding `GDK_BACKEND` for an actual Wayland session
+with a populated display socket.
+
+Settings now uses a bounded native GTK ScrolledWindow around Tauri's
+existing WebView VBox, with exact viewport/window constraints and
+content-height requests; no new Tauri windows are created. Native OS
+decorations are removed; a custom localized titlebar provides one
+close-as-Cancel button and OS-managed window dragging.
+
+Source and hosted CI do not prove either fix. The next Alcotester session
+must confirm `CFVigil surface mode=gtk-layer-shell` and 390x122
+compact allocation, preserved bottom/right position through repeat
+toggle/restart, no Settings bottom gap, a single close control, and
+window dragging. If native surface is still a fallback, inspect the
+session/GDK report rather than iterating CSS.
