@@ -95,3 +95,43 @@ test("all compiled language options are valid and HTML remains free of injected 
   assert.doesNotMatch(read("apps/desktop/ui/app.mjs"),/innerHTML/);
   assert.doesNotMatch(read("apps/desktop/ui/history.mjs"),/innerHTML/);
 });
+
+test("newer native change wins if initial language IPC responds out of order", async () => {
+  const documentStub = {documentElement:{lang:"",dir:""},querySelectorAll:()=>[]};
+  let receive, resolveInitial, applyCount = 0;
+  const deferred = new Promise(resolve => {resolveInitial = resolve;});
+  const pending = initializeLanguage({
+    invoke: async () => deferred,
+    listen: async (_, callback) => {receive=callback;},
+    doc:documentStub,
+    onChange:()=>{applyCount++;}
+  });
+  try {
+    await Promise.resolve();
+    receive({payload:"pt"});
+    resolveInitial("ru"); // stale snapshot must NOT override pt
+    await pending;
+    assert.equal(currentLocale, "pt");
+    assert.equal(documentStub.documentElement.lang, "pt-PT");
+    assert.equal(applyCount, 1);
+  } finally {setLocale("en");}
+});
+
+test("failed language bootstrap preserves a newer native event", async () => {
+  const documentStub = {documentElement:{lang:"",dir:""},querySelectorAll:()=>[]};
+  let receive, rejectInitial;
+  const deferred = new Promise((_, reject) => {rejectInitial=reject;});
+  const pending = initializeLanguage({
+    invoke: async () => deferred,
+    listen: async (_, callback)=>{receive=callback;},
+    doc:documentStub
+  });
+  try {
+    await Promise.resolve();
+    receive({payload:"ru"});
+    rejectInitial(new Error("IPC unavailable"));
+    await pending;
+    assert.equal(currentLocale, "ru");
+    assert.equal(documentStub.documentElement.lang, "ru");
+  } finally {setLocale("en");}
+});
