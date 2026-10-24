@@ -44,6 +44,12 @@ function scheduleFit() {
   });
 }
 window.addEventListener("focus", scheduleFit);
+await window.__TAURI__.event.listen("cfvigil-settings-opened", () => {
+  // The OS close button also means Cancel, not a stored draft that
+  // reappears when the same hidden WebView is later shown.
+  restoreDraft();
+  scheduleFit();
+});
 document.getElementById("cancel").onclick = () => {
   restoreDraft();
   void window.__TAURI__.window.getCurrentWindow().hide();

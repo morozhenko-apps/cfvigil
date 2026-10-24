@@ -384,6 +384,9 @@ fn show_window(app: &AppHandle, label: &str) {
     if let Some(window) = app.get_webview_window(label) {
         let _ = window.show();
         let _ = window.set_focus();
+        if label == "settings" {
+            let _ = app.emit_to("settings", "cfvigil-settings-opened", ());
+        }
     }
 }
 
