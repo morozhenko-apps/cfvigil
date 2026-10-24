@@ -230,7 +230,7 @@ test("all twenty dictionaries match baseline keys, placeholders and CLDR forms",
   assert.equal(t("card.resources", {}, "fil"), "Mga resource");
 });
 
-test("Arabic layout applies RTL while resource identifiers are not translated", () => {
+test("Arabic layout applies RTL while resource identifiers are not translated", async () => {
   const doc = {documentElement:{lang:"en",dir:"ltr"},querySelectorAll:()=>[]};
   const original=currentLocale;
   try {
