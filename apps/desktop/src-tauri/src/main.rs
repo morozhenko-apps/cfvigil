@@ -441,6 +441,14 @@ async fn stop_card_drag(app: AppHandle) -> Result<(), String> {
 
 /// Browser content sizes its localized form; only native owns OS window size.
 #[tauri::command]
+fn start_settings_drag(app: AppHandle) -> Result<(), String> {
+    app.get_webview_window("settings")
+        .ok_or("Settings window unavailable")?
+        .start_dragging()
+        .map_err(|err| format!("Unable to move Settings window: {err}"))
+}
+
+#[tauri::command]
 fn fit_settings(app: AppHandle, height: f64) -> Result<(), String> {
     if !height.is_finite() { return Err("Invalid settings height".into()); }
     let window = app.get_webview_window("settings").ok_or("Settings window unavailable")?;
@@ -871,6 +879,7 @@ fn main() {
             start_card_drag,
             stop_card_drag,
             fit_settings,
+            start_settings_drag,
             open_resource,
             open_history_event,
         ])

@@ -27,10 +27,12 @@
         "url": "settings.html",
         "title": "Settings",
         "width": 460,
-        "height": 460,
+        "height": 660,
         "resizable": false,
         "visible": false,
-        "maximizable": false
+        "maximizable": false,
+        "decorations": false,
+        "minimizable": false
       },
       {
         "label": "history",

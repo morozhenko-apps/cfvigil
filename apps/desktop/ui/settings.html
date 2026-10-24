@@ -6,7 +6,13 @@
   <link rel="stylesheet" href="./window.css">
   <script type="module" src="./settings.mjs"></script>
 </head>
-<body>
+<body class="settings-page">
+  <header class="window-header" id="settings-drag-area">
+    <span data-i18n="settings.title"></span>
+    <button type="button" id="close-settings" class="window-close" data-i18n-title="settings.cancel"
+      data-i18n-aria-label="settings.cancel" aria-label="Close Settings">×</button>
+  </header>
+  <main class="settings-content">
   <h2 data-i18n="settings.connection"></h2>
   <form id="form">
     <label><span data-i18n="settings.account"></span><input id="account" data-i18n-placeholder="settings.accountPlaceholder" autocomplete="off"></label>
@@ -24,5 +30,6 @@
     <div id="message" role="status"></div>
     <div class="footer"><button type="button" id="cancel" data-i18n="settings.cancel"></button><button type="submit" data-i18n="settings.apply"></button></div>
   </form>
+  </main>
 </body>
 </html>

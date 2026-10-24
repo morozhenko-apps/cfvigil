@@ -45,13 +45,11 @@ function scheduleFit() {
   if (fitFrame !== null) return;
   fitFrame = requestAnimationFrame(() => {
     fitFrame = null;
-    const style = getComputedStyle(document.body);
-    const bottomMargin = Number.parseFloat(style.marginBottom) || 0;
-    // offsetTop + offsetHeight is independent of the native window height
-    // and remains stable even if the user scrolled a long locale's form.
-    const intrinsicBottom = form.offsetTop + form.offsetHeight;
-    if (!intrinsicBottom) return; // Hidden WebView has not laid out yet.
-    const height = Math.ceil(intrinsicBottom + bottomMargin + 2);
+    // Last content element's intrinsic box includes footer and padding.
+    // Unlike body.scrollHeight, its offset is independent of viewport size.
+    const content = document.querySelector(".settings-content");
+    if (!content || !content.offsetHeight) return;
+    const height = Math.ceil(content.offsetTop + content.offsetHeight + 2);
     if (height === lastRequestedHeight) return;
     lastRequestedHeight = height;
     void invoke("fit_settings", {height}).catch(() => {
@@ -67,6 +65,16 @@ await window.__TAURI__.event.listen("cfvigil-settings-opened", () => {
   restoreDraft();
   scheduleFit();
 });
+// Only the empty topbar starts a compositor-managed window drag.
+document.getElementById("settings-drag-area").addEventListener("pointerdown", event => {
+  if (event.button !== 0 || event.target.closest("button")) return;
+  void invoke("start_settings_drag").catch(error => { console.warn(String(error)); });
+});
+const closeSettings = () => {
+  restoreDraft();
+  void window.__TAURI__.window.getCurrentWindow().hide();
+};
+document.getElementById("close-settings").onclick = closeSettings;
 document.getElementById("cancel").onclick = () => {
   restoreDraft();
   void window.__TAURI__.window.getCurrentWindow().hide();

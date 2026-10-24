@@ -24,3 +24,20 @@ body{min-width:0}
 /* Localized Settings is content-sized; never inherit a large viewport minimum. */
 html{height:auto;min-height:0}
 body{height:auto;min-height:0;overflow-y:auto}
+
+/* The Settings window is intentionally undecorated: KDE's own shade,
+   minimize and maximize controls do not match a compact utility dialog. */
+.settings-page{margin:0;min-width:0;overflow:auto;height:100%;font-size:14px}
+.settings-page .window-header{height:34px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 7px 0 14px;background:color-mix(in srgb,CanvasText 8%,Canvas);
+  border-bottom:1px solid color-mix(in srgb,CanvasText 15%,Canvas);user-select:none;cursor:grab}
+.settings-page .window-header:active{cursor:grabbing}
+.settings-page .window-close{width:28px;height:26px;border:0;border-radius:5px;background:transparent;
+  color:CanvasText;cursor:pointer;font-size:20px;line-height:24px;padding:0}
+.settings-page .window-close:hover{background:color-mix(in srgb,CanvasText 13%,Canvas)}
+.settings-page .settings-content{padding:16px 18px 14px;min-width:0}
+.settings-page h2{font-size:18px;margin:0 0 18px}
+.settings-page label{min-width:0}
+.settings-page input,.settings-page select{max-width:100%;box-sizing:border-box}
+.settings-page form{gap:12px}
+.settings-page .footer{margin-top:5px}
