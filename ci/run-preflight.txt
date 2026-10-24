@@ -15,3 +15,5 @@ restart/account-scoping/dedup tests, UI tests and native compilation.
 
 2026-10-24: Completed single-poller and bounded retry milestone; run one
 stable JS+Rust Preflight including watch-channel and stale-readiness tests.
+
+2026-10-24: One rerun after compiler E0277 Snapshot Clone trait fix.
