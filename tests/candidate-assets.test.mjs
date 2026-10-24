@@ -26,10 +26,11 @@ test("reject empty, duplicate, stale or incomplete platform bundles", () => {
 });
 
 test("DEB package identity and mandatory native KDE dependency are checked", () => {
-  const okay={Package:"cfvigil",Version:"0.1.0",Architecture:"amd64",
+  const okay={Package:"cf-vigil",Version:"0.1.0",Architecture:"amd64",
     Depends:"libgtk-layer-shell0, libwebkit2gtk-4.1-0"};
   assert.doesNotThrow(()=>validateDebMetadata(okay,"0.1.0"));
   for(const diff of [
+    {...okay,Package:"cfvigil"},
     {...okay,Package:"repoticker"},
     {...okay,Version:"0.2.0"},
     {...okay,Architecture:"arm64"},
