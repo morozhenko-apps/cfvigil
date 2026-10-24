@@ -9,6 +9,6 @@
     "pattern": "https://download.morozhenko.com/dist/CFVigil/*",
     "zone_name": "morozhenko.com"
   }],
-  "r2_buckets": [{"binding": "ARCHIVE", "bucket_name": "app-dist"}],
+  "r2_buckets": [{"binding": "ARCHIVE", "bucket_name": "cfvigil-dist"}],
   "observability": {"enabled": true, "head_sampling_rate": 0.1}
 }
