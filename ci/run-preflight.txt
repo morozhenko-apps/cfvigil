@@ -54,3 +54,7 @@ suite after correcting four stray-brace destination errors.
 2026-10-24: Verify 0.7 English-only source localization boundary, native
 Rust message centralization, persisted event compatibility, HTML/JS key and
 plural/RTL/date diagnostics, syntax, Python release invariants and stable Rust.
+
+2026-10-24: Rerun 0.7 final stable suite after correcting the sole
+JavaScript harness failure (undefined read helper in storage-contract test).
+Verify localization checker, all JS/Python tests, Rust check and Rust tests.
