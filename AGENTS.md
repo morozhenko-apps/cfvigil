@@ -35,6 +35,17 @@ This file applies to all coding agents working in this repository.
 - `workflow_dispatch` works only after the workflow exists on the repository
   default branch; on `dev`, the marker is the reliable explicit trigger.
 
+## Native machine gate before broad test coverage / Mode B
+
+After finishing 0.8, build dev-only GitHub-hosted Linux/Windows candidate
+artifacts for the exact same SHA and have them inspected on the owner's
+real KDE/Windows machines. Fix observed app problems before expanding broad
+regression coverage or Mode B. Stable foundational unit/contract tests
+continue to gate source changes. A successful CI or hosted package build
+does not count as actual installation/tray/UI evidence. Do not modify or
+use the owner's self-hosted CI runners for this. See
+`docs/NATIVE_MACHINE_GATE.md`.
+
 ## Engineering and validation
 
 - Follow `docs/PRODUCT.md` and `docs/ROADMAP_TO_1_0.md` as feature scope.

@@ -141,6 +141,16 @@ translations and before exhaustive release testing:
 
 No locale can be silently omitted from the release build.
 
+### Native-machine acceptance gate — before 0.9 Mode B
+
+**Mandatory owner-requested order:** complete 0.8 localization and source
+validation; build exact-`dev`-SHA Linux/Windows unreleased candidates; inspect
+the installed application on real Ubuntu KDE and Windows machines; repair and
+recheck observed defects; only then expand regression test coverage and begin
+Mode B. CI green or candidate-build success is **not** native acceptance.
+Do not execute Mode B until the owner accepts the documented machine results.
+Details and evidence template: [NATIVE_MACHINE_GATE.md](NATIVE_MACHINE_GATE.md).
+
 ### 0.9 — Final Mode B QA and release candidate (after i18n)
 - Full feature/branch/negative test matrix and known stable/flaky separation.
 - Source/CI checks plus real-app tests for all 20 locales and language-context
