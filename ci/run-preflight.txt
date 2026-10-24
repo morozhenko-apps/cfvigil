@@ -108,3 +108,9 @@ GDK_BACKEND=wayland selection before GTK initialization, unconditional
 surface-mode logging, bounded non-scrolling WebKitGTK Settings viewport,
 frameless Settings single-close titlebar and native dragging, preserving
 all 20 draft locales. One stable JS/Python/Rust preflight; no Mode B.
+
+2026-10-24: Revalidate final KDE visual polish: native and Tauri compact
+height 92px (70px action row + vertical padding + borders), preserve
+stable Wayland anchor/drag and 510px expansion; Settings gets a visible
+framed contrasting light surface. Stable JS/Python/Rust tests only,
+no Mode B, no R2, no release tags.
