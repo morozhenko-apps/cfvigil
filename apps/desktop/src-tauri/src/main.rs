@@ -1,4 +1,6 @@
 mod cloudflare;
+mod native_messages;
+use native_messages as msg;
 mod api_budget;
 mod analytics;
 mod incident_policy;
@@ -77,11 +79,11 @@ struct HistoryEvent {
 // IDs remain stable when new items are prepended or the list is filtered.
 fn classify_history(message: &str) -> &'static str {
     match message {
-        "Latest Cloudflare build/deployment failed"
-        | "Workers runtime error spike detected"
-        | "WAF block spike detected" => "incident",
-        "Workers runtime error spike cleared"
-        | "WAF block spike cleared" => "recovery",
+        msg::EVENT_BUILD_FAILURE
+        | msg::EVENT_RUNTIME_SPIKE
+        | msg::EVENT_WAF_SPIKE => "incident",
+        msg::EVENT_RUNTIME_RECOVERY
+        | msg::EVENT_WAF_RECOVERY => "recovery",
         _ => "update",
     }
 }
@@ -113,9 +115,9 @@ fn new_history_event(current: &Resource, message: &str, index: usize) -> History
 fn history_url<'a>(events: &'a [HistoryEvent], id: &str) -> Result<&'a str, String> {
     let event = events.iter()
         .find(|event| !id.is_empty() && event.id == id)
-        .ok_or("History event not found")?;
+        .ok_or(msg::ERROR_HISTORY_NOT_FOUND)?;
     if !trusted_dashboard_url(&event.url) {
-        return Err("Invalid Cloudflare history destination".into());
+        return Err(msg::ERROR_HISTORY_DESTINATION.into());
     }
     Ok(&event.url)
 }
@@ -149,8 +151,8 @@ struct AppState {
 }
 
 fn data_path(app: &AppHandle, filename: &str) -> Result<PathBuf, String> {
-    let dir = app.path().app_config_dir().map_err(|_| "Config path unavailable")?;
-    fs::create_dir_all(&dir).map_err(|_| "Cannot create config directory")?;
+    let dir = app.path().app_config_dir().map_err(|_| msg::ERROR_CONFIG_PATH)?;
+    fs::create_dir_all(&dir).map_err(|_| msg::ERROR_CONFIG_DIRECTORY)?;
     Ok(dir.join(filename))
 }
 
@@ -164,13 +166,13 @@ fn write_json<T: Serialize>(app: &AppHandle, name: &str, data: &T) -> Result<(),
 
 fn token_entry() -> Result<keyring::Entry, String> {
     keyring::Entry::new(KEYRING_SERVICE, KEYRING_USER)
-        .map_err(|_| "Operating system credential store unavailable".into())
+        .map_err(|_| msg::ERROR_CREDENTIAL_STORE.into())
 }
 
 fn load_token() -> Result<String, String> {
     token_entry()?
         .get_password()
-        .map_err(|_| "Cloudflare API token not set or keychain locked".into())
+        .map_err(|_| msg::ERROR_TOKEN_LOCKED.into())
 }
 
 #[tauri::command]
@@ -201,7 +203,7 @@ fn invalidate_resources(state: &AppState, reason: &str) {
 }
 
 fn report_sync_failure(app: &AppHandle, state: &AppState, message: &str) {
-    invalidate_resources(state, "Cloudflare data is stale or unavailable");
+    invalidate_resources(state, msg::DATA_STALE);
     publish_snapshot(app, state);
     let _ = app.emit("cfvigil-sync-error", message);
 }
@@ -217,17 +219,17 @@ fn needs_refresh(old: &Config, next: &Config, token_replaced: bool) -> bool {
 #[tauri::command]
 fn get_autostart(app: AppHandle) -> Result<bool, String> {
     app.autolaunch().is_enabled()
-        .map_err(|_| "Could not check launch-at-login registration".into())
+        .map_err(|_| msg::ERROR_AUTOSTART_CHECK.into())
 }
 
 fn update_autostart(app: &AppHandle, requested: Option<bool>) -> Result<(), String> {
     let Some(enabled) = requested else { return Ok(()) };
     let manager = app.autolaunch();
     let current = manager.is_enabled()
-        .map_err(|_| "Could not read launch-at-login registration")?;
+        .map_err(|_| msg::ERROR_AUTOSTART_READ)?;
     if current == enabled { return Ok(()) }
     let result = if enabled { manager.enable() } else { manager.disable() };
-    result.map_err(|_| "Could not update launch-at-login registration".into())
+    result.map_err(|_| msg::ERROR_AUTOSTART_UPDATE.into())
 }
 
 #[tauri::command]
@@ -255,15 +257,15 @@ async fn save_settings(
     autostart: Option<bool>,
 ) -> Result<(), String> {
     if account_id.len() != 32 || !account_id.bytes().all(|ch| ch.is_ascii_hexdigit()) {
-        return Err("Account ID must be 32 hexadecimal characters".into());
+        return Err(msg::ERROR_ACCOUNT_ID.into());
     }
     if ![60, 180, 300, 600].contains(&refresh_seconds) {
-        return Err("Unsupported refresh interval".into());
+        return Err(msg::ERROR_INTERVAL.into());
     }
     if token.as_ref().is_some_and(|value| {
         value.len() < 20 || value.len() > 4096 || value.chars().any(char::is_whitespace)
     }) {
-        return Err("Invalid API token format".into());
+        return Err(msg::ERROR_TOKEN_FORMAT.into());
     }
     // Serialize credentials, settings and network reads: no request may use
     // an old account ID with a newly replaced OS-keyring token.
@@ -271,11 +273,11 @@ async fn save_settings(
     let token_replaced = token.is_some();
     if let Some(token) = token {
         tauri::async_runtime::spawn_blocking(move || {
-            token_entry()?.set_password(&token).map_err(|_| "Could not store token in OS keychain".to_string())
-        }).await.map_err(|_| "Credential service unavailable")??;
+            token_entry()?.set_password(&token).map_err(|_| msg::ERROR_TOKEN_WRITE.to_string())
+        }).await.map_err(|_| msg::ERROR_CREDENTIAL_SERVICE)??;
     } else {
         tauri::async_runtime::spawn_blocking(load_token)
-            .await.map_err(|_| "Credential service unavailable")??;
+            .await.map_err(|_| msg::ERROR_CREDENTIAL_SERVICE)??;
     }
     let next = Config { account_id, refresh_seconds };
     let previous = state.config.lock().unwrap().clone();
@@ -297,7 +299,7 @@ async fn save_settings(
                 eprintln!("CFVigil: could not reset the incident journal");
             }
         } else {
-            invalidate_resources(&state, "Cloudflare data pending refresh");
+            invalidate_resources(&state, msg::DATA_PENDING);
         }
         *state.pending_incident.lock().unwrap() = None;
         publish_snapshot(&app, &state);
@@ -350,7 +352,7 @@ fn hide_card(app: AppHandle) {
 
 #[tauri::command]
 async fn set_card_expanded(app: AppHandle, expanded: bool) -> Result<(), String> {
-    let window = app.get_webview_window("main").ok_or("Card unavailable")?;
+    let window = app.get_webview_window("main").ok_or(msg::ERROR_CARD_MISSING)?;
     let height = if expanded { EXPANDED_HEIGHT } else { COMPACT_HEIGHT };
     #[cfg(target_os = "linux")]
     if linux_surface::enabled() {
@@ -360,7 +362,7 @@ async fn set_card_expanded(app: AppHandle, expanded: bool) -> Result<(), String>
     let old_size = window.outer_size().ok();
     window
         .set_size(tauri::LogicalSize::new(CARD_WIDTH, height))
-        .map_err(|_| "Cannot resize card")?;
+        .map_err(|_| msg::ERROR_RESIZE)?;
     // Preserve the bottom edge when the window manager permits repositioning.
     if let (Some(position), Some(size)) = (old_position, old_size) {
         let scale = window.scale_factor().unwrap_or(1.0);
@@ -389,11 +391,11 @@ fn open_key(state: &AppState, key: &str) -> Result<(), String> {
     let url = state.resources.lock().unwrap().iter()
         .find(|resource| resource.key == key)
         .map(|resource| resource.url.clone())
-        .ok_or("Resource not found")?;
+        .ok_or(msg::ERROR_RESOURCE_MISSING)?;
     if !trusted_dashboard_url(&url) {
-        return Err("Unexpected external destination".into());
+        return Err(msg::ERROR_EXTERNAL_DESTINATION.into());
     }
-    open::that(&url).map_err(|_| "Could not open browser".into())
+    open::that(&url).map_err(|_| msg::ERROR_BROWSER.into())
 }
 
 #[tauri::command]
@@ -409,7 +411,7 @@ fn open_history_event(state: State<'_, AppState>, id: String) -> Result<(), Stri
         let history = state.history.lock().unwrap();
         history_url(&history, &id)?.to_owned()
     };
-    open::that(url).map_err(|_| "Could not open browser".into())
+    open::that(url).map_err(|_| msg::ERROR_BROWSER.into())
 }
 
 // A temporarily unavailable catalog cannot prove resource removal.
@@ -425,7 +427,7 @@ fn preserve_unverified_catalogs(
         if missing_catalog && !current.iter().any(|item| item.key == old.key) {
             let mut stale = old.clone();
             stale.status = "unknown".into();
-            stale.detail = "Resource catalog unavailable; previous state unverified".into();
+            stale.detail = msg::DATA_CATALOG_UNAVAILABLE.into();
             current.push(stale);
         }
     }
@@ -437,7 +439,7 @@ fn preserved_waf(previous: &[Resource], verified: &HashSet<String>) -> Vec<Resou
         .map(|old| {
             let mut stale = old.clone();
             stale.status = "unknown".into();
-            stale.detail = "WAF analytics unavailable; previous alert unverified".into();
+            stale.detail = msg::DATA_WAF_UNAVAILABLE.into();
             stale
         }).collect()
 }
@@ -452,7 +454,7 @@ async fn refresh_once(app: AppHandle, budget: &ApiBudget) -> bool {
     let token = match tauri::async_runtime::spawn_blocking(load_token).await {
         Ok(Ok(token)) => token,
         _ => {
-            report_sync_failure(&app, &state, "Cloudflare credentials unavailable");
+            report_sync_failure(&app, &state, msg::DATA_CREDENTIALS_UNAVAILABLE);
             return false;
         }
     };
@@ -497,7 +499,7 @@ async fn refresh_once(app: AppHandle, budget: &ApiBudget) -> bool {
                         .filter(|old| old.attempt_id == "runtime-error-spike")
                     {
                         resource.status = "unknown".into();
-                        resource.detail = "Workers analytics unavailable; previous spike unverified".into();
+                        resource.detail = msg::DATA_WORKERS_ANALYTICS_UNAVAILABLE.into();
                         resource.changed_at = old.changed_at.clone();
                         resource.attempt_id = old.attempt_id.clone();
                     }
@@ -511,7 +513,7 @@ async fn refresh_once(app: AppHandle, budget: &ApiBudget) -> bool {
                     .filter(|old| old.attempt_id == "runtime-error-spike")
                 {
                     resource.status = "unknown".into();
-                    resource.detail = "Workers analytics unavailable; previous spike unverified".into();
+                    resource.detail = msg::DATA_WORKERS_ANALYTICS_UNAVAILABLE.into();
                     resource.changed_at = old.changed_at.clone();
                     resource.attempt_id = old.attempt_id.clone();
                 }
@@ -543,7 +545,7 @@ async fn refresh_once(app: AppHandle, budget: &ApiBudget) -> bool {
     *state.resources.lock().unwrap() = resources.clone();
     publish_snapshot(&app, &state);
     if !core_complete {
-        let _ = app.emit("cfvigil-sync-error", "Some Cloudflare resources are unverified");
+        let _ = app.emit("cfvigil-sync-error", msg::DATA_PARTIAL);
     }
     let mut events = Vec::new();
     for current in &resources {
@@ -555,7 +557,7 @@ async fn refresh_once(app: AppHandle, budget: &ApiBudget) -> bool {
             None => incident_policy::initial_security_event(current),
         };
         let Some(message) = message else { continue; };
-        if message == "Workers runtime error spike cleared" {
+        if message == msg::EVENT_RUNTIME_RECOVERY {
             state.last_notified.lock().unwrap().remove(
                 &format!("{}:runtime-spike", current.key)
             );
@@ -582,7 +584,7 @@ async fn refresh_once(app: AppHandle, budget: &ApiBudget) -> bool {
     for old in previous.iter().filter(|r| r.kind == "zone" && r.attempt_id == "waf-block-spike") {
         if verified_zones.contains(&old.key) && !resources.iter().any(|r| r.key == old.key) {
                 state.last_notified.lock().unwrap().remove(&format!("{}:waf-spike", old.key));
-                events.push(new_history_event(old, "WAF block spike cleared", events.len()));
+                events.push(new_history_event(old, msg::EVENT_WAF_RECOVERY, events.len()));
         }
     }
     if !events.is_empty() {
@@ -677,11 +679,11 @@ fn main() {
             }
             #[cfg(not(target_os = "linux"))]
             {
-            let open = MenuItem::with_id(app, "open", "Show Card", true, None::<&str>)?;
-            let history = MenuItem::with_id(app, "history", "Event History", true, None::<&str>)?;
-            let settings = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
-            let about = MenuItem::with_id(app, "about", "About", true, None::<&str>)?;
-            let quit = MenuItem::with_id(app, "quit", "Exit", true, None::<&str>)?;
+            let open = MenuItem::with_id(app, "open", msg::TRAY_SHOW_CARD, true, None::<&str>)?;
+            let history = MenuItem::with_id(app, "history", msg::TRAY_EVENT_HISTORY, true, None::<&str>)?;
+            let settings = MenuItem::with_id(app, "settings", msg::TRAY_SETTINGS, true, None::<&str>)?;
+            let about = MenuItem::with_id(app, "about", msg::TRAY_ABOUT, true, None::<&str>)?;
+            let quit = MenuItem::with_id(app, "quit", msg::TRAY_EXIT, true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&open, &history, &settings, &about, &quit])?;
             let icon = app.default_window_icon().cloned()
                 .unwrap_or_else(|| Image::new_owned(vec![50,50,50,255],1,1));

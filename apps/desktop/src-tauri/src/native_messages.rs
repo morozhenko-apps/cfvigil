@@ -1,0 +1,50 @@
+// Stable native English presentation and legacy incident messages.
+// Do not mutate incident wording before a versioned event-code migration.
+// Native menu/notification copy is centralized here; user-visible WebView
+// copy lives in apps/desktop/ui/locales/en.mjs.
+pub const TRAY_SHOW_CARD: &str = "Show Card";
+pub const TRAY_EVENT_HISTORY: &str = "Event History";
+pub const TRAY_SETTINGS: &str = "Settings";
+pub const TRAY_ABOUT: &str = "About";
+pub const TRAY_EXIT: &str = "Exit";
+pub const EVENT_BUILD_FAILURE: &str = "Latest Cloudflare build/deployment failed";
+pub const EVENT_RUNTIME_SPIKE: &str = "Workers runtime error spike detected";
+pub const EVENT_WAF_SPIKE: &str = "WAF block spike detected";
+pub const EVENT_RUNTIME_RECOVERY: &str = "Workers runtime error spike cleared";
+pub const EVENT_WAF_RECOVERY: &str = "WAF block spike cleared";
+pub const EVENT_BUILD_STARTED: &str = "New Cloudflare build/deployment started";
+pub const EVENT_BUILD_SUCCESS: &str = "Latest Cloudflare deployment succeeded";
+pub const DETAIL_WORKERS_BUILD: &str = "Latest Cloudflare Workers build";
+pub const DETAIL_WORKER_DEPLOYMENT: &str = "Latest Worker deployment";
+pub const DETAIL_BUILDS_UNAVAILABLE: &str = "Workers Builds unavailable";
+pub const DETAIL_NO_WORKER_DEPLOYMENT: &str = "No verified Worker deployment";
+pub const DETAIL_PAGES_DEPLOYMENT: &str = "Latest Cloudflare Pages deployment";
+pub const DETAIL_NO_PAGES_DEPLOYMENTS: &str = "No Pages deployments";
+pub const DETAIL_PAGES_MALFORMED: &str = "Malformed Pages deployment response";
+pub const DETAIL_PAGES_UNAVAILABLE: &str = "Pages deployment status unavailable";
+pub const DATA_STALE: &str = "Cloudflare data is stale or unavailable";
+pub const DATA_PENDING: &str = "Cloudflare data pending refresh";
+pub const DATA_CATALOG_UNAVAILABLE: &str = "Resource catalog unavailable; previous state unverified";
+pub const DATA_WAF_UNAVAILABLE: &str = "WAF analytics unavailable; previous alert unverified";
+pub const DATA_WORKERS_ANALYTICS_UNAVAILABLE: &str = "Workers analytics unavailable; previous spike unverified";
+pub const DATA_CREDENTIALS_UNAVAILABLE: &str = "Cloudflare credentials unavailable";
+pub const DATA_PARTIAL: &str = "Some Cloudflare resources are unverified";
+pub const ERROR_HISTORY_NOT_FOUND: &str = "History event not found";
+pub const ERROR_HISTORY_DESTINATION: &str = "Invalid Cloudflare history destination";
+pub const ERROR_CONFIG_PATH: &str = "Config path unavailable";
+pub const ERROR_CONFIG_DIRECTORY: &str = "Cannot create config directory";
+pub const ERROR_CREDENTIAL_STORE: &str = "Operating system credential store unavailable";
+pub const ERROR_TOKEN_LOCKED: &str = "Cloudflare API token not set or keychain locked";
+pub const ERROR_AUTOSTART_CHECK: &str = "Could not check launch-at-login registration";
+pub const ERROR_AUTOSTART_READ: &str = "Could not read launch-at-login registration";
+pub const ERROR_AUTOSTART_UPDATE: &str = "Could not update launch-at-login registration";
+pub const ERROR_ACCOUNT_ID: &str = "Account ID must be 32 hexadecimal characters";
+pub const ERROR_INTERVAL: &str = "Unsupported refresh interval";
+pub const ERROR_TOKEN_FORMAT: &str = "Invalid API token format";
+pub const ERROR_TOKEN_WRITE: &str = "Could not store token in OS keychain";
+pub const ERROR_CREDENTIAL_SERVICE: &str = "Credential service unavailable";
+pub const ERROR_CARD_MISSING: &str = "Card unavailable";
+pub const ERROR_RESIZE: &str = "Cannot resize card";
+pub const ERROR_RESOURCE_MISSING: &str = "Resource not found";
+pub const ERROR_EXTERNAL_DESTINATION: &str = "Unexpected external destination";
+pub const ERROR_BROWSER: &str = "Could not open browser";

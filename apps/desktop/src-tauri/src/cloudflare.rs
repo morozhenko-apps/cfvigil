@@ -1,3 +1,4 @@
+use crate::native_messages as msg;
 use reqwest::{redirect::Policy, Client};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -121,19 +122,19 @@ fn select_worker_attempt(
     builds_available: bool,
 ) -> WorkerAttempt {
     let (status, id, time, detail) = if !builds_available {
-        ("unknown", "", "", "Workers Builds unavailable")
+        ("unknown", "", "", msg::DETAIL_BUILDS_UNAVAILABLE)
     } else if let (Some(deployed), Some(build)) = (active, build) {
         if deployed_after_build(deployed, build) {
-            ("healthy", str_field(deployed, "id"), str_field(deployed, "created_on"), "Latest Worker deployment")
+            ("healthy", str_field(deployed, "id"), str_field(deployed, "created_on"), msg::DETAIL_WORKER_DEPLOYMENT)
         } else {
-            (worker_state(build), str_field(build, "build_uuid"), worker_event_time(build), "Latest Cloudflare Workers build")
+            (worker_state(build), str_field(build, "build_uuid"), worker_event_time(build), msg::DETAIL_WORKERS_BUILD)
         }
     } else if let Some(build) = build {
-        (worker_state(build), str_field(build, "build_uuid"), worker_event_time(build), "Latest Cloudflare Workers build")
+        (worker_state(build), str_field(build, "build_uuid"), worker_event_time(build), msg::DETAIL_WORKERS_BUILD)
     } else if let Some(deployed) = active {
-        ("healthy", str_field(deployed, "id"), str_field(deployed, "created_on"), "Latest Worker deployment")
+        ("healthy", str_field(deployed, "id"), str_field(deployed, "created_on"), msg::DETAIL_WORKER_DEPLOYMENT)
     } else {
-        ("unknown", "", "", "No verified Worker deployment")
+        ("unknown", "", "", msg::DETAIL_NO_WORKER_DEPLOYMENT)
     };
     WorkerAttempt {
         status,
@@ -304,7 +305,7 @@ impl Cloudflare {
                     select_worker_attempt(build, active.and_then(|rows| rows.first()), builds_known)
                 };
                 let mut url = format!("https://dash.cloudflare.com/{account}/workers/services/view/{name}/production");
-                if choice.detail == "Latest Cloudflare Workers build" && valid_uuid(&choice.attempt_id) {
+                if choice.detail == msg::DETAIL_WORKERS_BUILD && valid_uuid(&choice.attempt_id) {
                     url.push_str(&format!("/builds/{}", choice.attempt_id));
                 }
                 resources.push(Resource {
@@ -337,18 +338,18 @@ impl Cloudflare {
                                 pages_state(deployment).to_owned(),
                                 str_field(deployment, "id").to_owned(),
                                 pages_event_time(deployment).to_owned(),
-                                "Latest Cloudflare Pages deployment".to_owned(),
+                                msg::DETAIL_PAGES_DEPLOYMENT.to_owned(),
                             )
                         } else if result.as_array().is_some() {
-                            ("unknown".into(), String::new(), String::new(), "No Pages deployments".into())
+                            ("unknown".into(), String::new(), String::new(), msg::DETAIL_NO_PAGES_DEPLOYMENTS.into())
                         } else {
                             complete = false;
-                            ("unknown".into(), String::new(), String::new(), "Malformed Pages deployment response".into())
+                            ("unknown".into(), String::new(), String::new(), msg::DETAIL_PAGES_MALFORMED.into())
                         }
                     }
                     Err(_) => {
                         complete = false;
-                        ("unknown".into(), String::new(), String::new(), "Pages deployment status unavailable".into())
+                        ("unknown".into(), String::new(), String::new(), msg::DETAIL_PAGES_UNAVAILABLE.into())
                     },
                 };
                 let mut url = format!("https://dash.cloudflare.com/{account}/pages/view/{name}");

@@ -1,4 +1,5 @@
 //! Pure incident transition policy; independent from OS windows and APIs.
+use crate::native_messages as msg;
 use crate::cloudflare::Resource;
 
 fn waf_spike(resource: &Resource) -> bool {
@@ -22,7 +23,7 @@ pub fn describe_transition(old: &Resource, current: &Resource) -> Option<&'stati
         return None;
     }
     if current.kind == "zone" {
-        return waf_spike(current).then_some("WAF block spike detected");
+        return waf_spike(current).then_some(msg::EVENT_WAF_SPIKE);
     }
     let had_spike = runtime_spike(old);
     let has_spike = runtime_spike(current);
@@ -37,28 +38,28 @@ pub fn describe_transition(old: &Resource, current: &Resource) -> Option<&'stati
         return None;
     }
     if has_spike {
-        return Some("Workers runtime error spike detected");
+        return Some(msg::EVENT_RUNTIME_SPIKE);
     }
     if had_spike {
-        return Some("Workers runtime error spike cleared");
+        return Some(msg::EVENT_RUNTIME_RECOVERY);
     }
     match current.status.as_str() {
-        "failed" => Some("Latest Cloudflare build/deployment failed"),
-        "deploying" => Some("New Cloudflare build/deployment started"),
-        "healthy" => Some("Latest Cloudflare deployment succeeded"),
+        "failed" => Some(msg::EVENT_BUILD_FAILURE),
+        "deploying" => Some(msg::EVENT_BUILD_STARTED),
+        "healthy" => Some(msg::EVENT_BUILD_SUCCESS),
         _ => None,
     }
 }
 
 pub fn should_notify(current: &Resource, message: &str) -> bool {
     current.status == "failed"
-        && (message == "Latest Cloudflare build/deployment failed"
-            || message == "Workers runtime error spike detected"
-            || message == "WAF block spike detected")
+        && (message == msg::EVENT_BUILD_FAILURE
+            || message == msg::EVENT_RUNTIME_SPIKE
+            || message == msg::EVENT_WAF_SPIKE)
 }
 
 pub fn initial_security_event(current: &Resource) -> Option<&'static str> {
-    waf_spike(current).then_some("WAF block spike detected")
+    waf_spike(current).then_some(msg::EVENT_WAF_SPIKE)
 }
 
 pub fn notification_identity(current: &Resource, message: &str) -> Option<String> {
