@@ -96,3 +96,9 @@ auto-hide, and staged Apply. Require full JS/Python/Rust successful run.
 2026-10-24: Revalidate KDE runtime remediations after correcting
 two test-only malformed regex assertions. No additional runtime changes.
 Full stable Node localization/Python/Rust gates required.
+
+2026-10-24: Verify follow-up native-machine geometry root-cause fix after
+RepoTicker historical audit (801c74f, e65e1df, 79bae25, 49287b9):
+idempotent GTK compact/expanded resize, preserved anchored margins,
+no duplicate show-time reallocations, and intrinsic Settings form height
+with deduplicated native fit. Foundation CI only, NOT Mode B coverage.
