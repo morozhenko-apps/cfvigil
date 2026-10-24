@@ -753,7 +753,25 @@ fn run_polling(app: AppHandle) {
     });
 }
 
+#[cfg(target_os = "linux")]
+fn configure_gdk_for_native_wayland() {
+    // RepoTicker root-cause fix: an inherited GDK_BACKEND=x11 inside KDE
+    // Wayland creates an XWayland card (minimum ~200px, recentering and no
+    // layer-shell position persistence). Choose before Tauri initializes GTK.
+    // An actual X11 session must keep its original backend.
+    let session_is_wayland = std::env::var("XDG_SESSION_TYPE")
+        .is_ok_and(|value| value.eq_ignore_ascii_case("wayland"));
+    let has_wayland_display = std::env::var("WAYLAND_DISPLAY")
+        .is_ok_and(|value| !value.trim().is_empty());
+    if session_is_wayland && has_wayland_display {
+        std::env::set_var("GDK_BACKEND", "wayland");
+    }
+}
+
 fn main() {
+    #[cfg(target_os = "linux")]
+    configure_gdk_for_native_wayland();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_autostart::Builder::new().build())
         .setup(|app| {
@@ -791,6 +809,14 @@ fn main() {
             #[cfg(target_os = "linux")]
             {
                 linux_surface::install(app)?;
+                // Always log the backend, including fallback. No secrets.
+                eprintln!(
+                    "CFVigil surface mode={} session={} wayland_display={} gdk_backend={}",
+                    if linux_surface::enabled() { "gtk-layer-shell" } else { "tauri-fallback" },
+                    std::env::var("XDG_SESSION_TYPE").unwrap_or_else(|_| "unknown".into()),
+                    std::env::var_os("WAYLAND_DISPLAY").is_some(),
+                    std::env::var("GDK_BACKEND").unwrap_or_else(|_| "default".into())
+                );
                 linux_tray::install(app)?;
             }
             #[cfg(not(target_os = "linux"))]
