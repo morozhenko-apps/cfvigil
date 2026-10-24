@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import english from "../apps/desktop/ui/locales/en.mjs";
 import {
   ACTIVE_LOCALES, PLANNED_LOCALES, directionFor, validateCatalog,
+  setLocale, currentLocale,
   t, plural, formatDate, relativeTime, verboseRelativeTime, eventText,
   incidentText, resourceDetail, intlLocale,
   localizeDocument
@@ -10,7 +11,7 @@ import {
 import {referencedKeys, checkSourceKeys, checkRepository} from "../scripts/check-i18n.mjs";
 
 test("feature freeze only activates reviewed English and retains exactly 20 target locales", () => {
-  assert.deepEqual(ACTIVE_LOCALES, ["en"]);
+  assert.deepEqual(ACTIVE_LOCALES, ["en", "ru", "pt"]);
   assert.equal(PLANNED_LOCALES.length, 20);
   assert.equal(new Set(PLANNED_LOCALES).size, 20);
   assert.ok(PLANNED_LOCALES.includes("zh-Hant"));
@@ -19,6 +20,8 @@ test("feature freeze only activates reviewed English and retains exactly 20 targ
   assert.equal(intlLocale("pt"), "pt-PT");
   assert.equal(directionFor("en"), "ltr");
   assert.throws(() => t("card.healthy", {}, "ar"), /Unsupported or unreviewed/);
+  assert.equal(t("card.issues", {}, "ru"), "Проблемы");
+  assert.equal(t("settings.title", {}, "pt"), "Definições");
 });
 
 test("English messages and their interpolation, plurals, and invalid keys", () => {
@@ -106,4 +109,17 @@ test("DOM localization uses textContent and explicit direction, never innerHTML"
 
 test("all checked desktop source references resolve to declared catalog keys", async () => {
   assert.deepEqual(await checkRepository(), []);
+});
+
+test("activated language changes all presentation helpers, not saved event text", () => {
+  setLocale("ru");
+  try {
+    assert.equal(currentLocale, "ru");
+    assert.equal(t("card.resources"), "Ресурсы");
+    assert.equal(eventText("WAF block spike detected"), "Обнаружен рост блокировок WAF");
+    assert.match(formatDate("2026-10-23T10:00:00Z"), /2026/);
+    assert.equal(plural("history.eventCount", 5, {shown:1,total:5}), "Показано 1 из 5 событий");
+    assert.throws(() => setLocale("ar"), /Unsupported or unreviewed/);
+  } finally { setLocale("en"); }
+  assert.equal(currentLocale, "en");
 });

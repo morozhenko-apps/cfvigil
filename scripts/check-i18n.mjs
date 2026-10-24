@@ -8,7 +8,7 @@ import {validateCatalog, PLANNED_LOCALES, ACTIVE_LOCALES, catalogs, tokens} from
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const fromRoot = name => readFileSync(path.join(root, name), "utf8");
 const pages = ["index", "settings", "history", "about"];
-const uiScripts = ["app", "settings", "history", "about", "history-model", "status"];
+const uiScripts = ["app", "settings", "history", "about", "history-model", "status", "runtime-language"];
 const htmlKinds = Object.freeze({
   "data-i18n": "text", "data-i18n-title": "title",
   "data-i18n-placeholder": "placeholder", "data-i18n-aria-label": "aria-label"
@@ -119,6 +119,6 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   checkRepository().then(errors => {
     for (const error of errors) console.error(`i18n: ${error}`);
     if (errors.length) process.exitCode = 1;
-    else console.log("CFVigil localization source checks passed (English baseline only)");
+    else console.log("CFVigil localization source checks passed (enabled dictionaries checked)");
   }).catch(error => {console.error(error); process.exitCode = 1;});
 }

@@ -1,11 +1,35 @@
-import {localizeDocument, t} from "./localization.mjs";
-localizeDocument(document);
+import {t, currentLocale, ACTIVE_LOCALES, LANGUAGE_NAMES} from "./localization.mjs";
+import {initializeLanguage} from "./runtime-language.mjs";
 const invoke = (name, args={}) => window.__TAURI__.core.invoke(name, args);
 const message = document.getElementById("message");
 const form = document.getElementById("form");
 const autostart = document.getElementById("autostart");
 const autostartHint = document.getElementById("autostart-hint");
+const language = document.getElementById("language");
 let autostartLoaded = false;
+let confirmedLanguage = "en";
+for (const code of ACTIVE_LOCALES) {
+  const option = document.createElement("option");
+  option.value = code;
+  option.textContent = LANGUAGE_NAMES[code];
+  language.append(option);
+}
+
+await initializeLanguage({invoke,listen: (event, callback) => window.__TAURI__.event.listen(event, callback),
+  doc:document,onChange: () => {
+    confirmedLanguage = currentLocale;
+    language.value = currentLocale;
+  }});
+language.disabled = false;
+language.addEventListener("change", async () => {
+  const selected = language.value;
+  try {
+    await invoke("set_language", {language:selected});
+  } catch {
+    language.value = confirmedLanguage;
+    message.textContent = t("settings.languageError");
+  }
+});
 document.getElementById("cancel").onclick = () => window.__TAURI__.window.getCurrentWindow().hide();
 form.addEventListener("submit", async event => {
   event.preventDefault();

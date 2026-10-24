@@ -50,6 +50,8 @@ export default Object.freeze({
   "history.unavailable": "Event history unavailable",
   "history.loadError": "Unable to load event history.",
   "history.unknownTime": "Unknown time",
+  "settings.language": "Language",
+  "settings.languageError": "Unable to change language",
   "settings.title": "Settings",
   "settings.connection": "Connection",
   "settings.account": "Cloudflare Account ID",

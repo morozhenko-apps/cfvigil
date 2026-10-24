@@ -1,6 +1,6 @@
 import { filterHistory, historyTimestamp } from "./history-model.mjs";
-import {localizeDocument, t, plural, eventText} from "./localization.mjs";
-localizeDocument(document);
+import {t, plural, eventText} from "./localization.mjs";
+import {initializeLanguage} from "./runtime-language.mjs";
 
 const invoke = (name, args={}) => window.__TAURI__.core.invoke(name, args);
 const listen = (name, callback) => window.__TAURI__.event.listen(name, callback);
@@ -68,5 +68,6 @@ async function refreshHistory() {
 search.addEventListener("input", render);
 category.addEventListener("change", render);
 window.addEventListener("focus", () => { void refreshHistory(); });
+await initializeLanguage({invoke,listen,doc:document,onChange:render});
 await listen("cfvigil-history-changed", () => { void refreshHistory(); });
 await refreshHistory();

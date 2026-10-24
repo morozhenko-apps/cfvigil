@@ -1,11 +1,11 @@
 import { counters, filterResources, relativeTime } from "./status.mjs";
 import { normalizeSnapshot } from "./snapshot.mjs";
 import { nextResourceIndex } from "./resource-navigation.mjs";
-import {localizeDocument, t, resourceDetail, incidentText, verboseRelativeTime} from "./localization.mjs";
+import {t, resourceDetail, incidentText, verboseRelativeTime, currentLocale, intlLocale} from "./localization.mjs";
+import {initializeLanguage} from "./runtime-language.mjs";
 const invoke = (command, args = {}) => window.__TAURI__.core.invoke(command, args);
 const listen = (event, callback) => window.__TAURI__.event.listen(event, callback);
 const byId = id => document.getElementById(id);
-localizeDocument(document);
 let resources = [];
 let expanded = false;
 let focusedKey = null;
@@ -98,7 +98,8 @@ function render() {
     list.append(message);
     return;
   }
-  const filtered = filterResources(resources, byId("search").value);
+  const filtered = filterResources(resources, byId("search").value)
+    .sort((a,b) => new Intl.Collator(intlLocale(currentLocale)).compare(a.name,b.name));
   if (!filtered.length) {
     const empty = document.createElement("div");
     empty.className = "empty";
@@ -222,6 +223,7 @@ document.addEventListener("keydown", event => {
     void invoke("hide_card");
   }
 });
+await initializeLanguage({invoke,listen,doc:document,onChange:render});
 await listen("cfvigil-card-hidden", () => {
   expanded = false;
   focusedKey = null;

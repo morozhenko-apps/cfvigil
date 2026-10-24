@@ -1,13 +1,22 @@
 import english from "./locales/en.mjs";
+import russian from "./locales/ru.mjs";
+import portuguese from "./locales/pt.mjs";
 
 // The exact product locale set. Only reviewed dictionaries can be activated.
 export const PLANNED_LOCALES = Object.freeze([
   "en", "ru", "es", "pt", "de", "fr", "it", "pl", "hi", "zh-Hant",
   "ja", "nl", "sv", "tr", "ko", "bn", "th", "id", "fil", "ar"
 ]);
-export const ACTIVE_LOCALES = Object.freeze(["en"]);
-export const catalogs = Object.freeze({en: english});
-export const currentLocale = "en";
+export const ACTIVE_LOCALES = Object.freeze(["en", "ru", "pt"]);
+export const catalogs = Object.freeze({en: english, ru: russian, pt: portuguese});
+export const LANGUAGE_NAMES = Object.freeze({en:"English", ru:"Русский", pt:"Português (Portugal)"});
+export let currentLocale = "en";
+
+export function setLocale(locale) {
+  catalog(locale);
+  currentLocale = locale;
+  return locale;
+}
 
 export function intlLocale(locale) {
   return locale === "pt" ? "pt-PT" : locale;
@@ -162,7 +171,7 @@ export function resourceDetail(message, locale = currentLocale) {
 
 export function localizeDocument(doc, locale = currentLocale) {
   catalog(locale); // An incomplete/unreviewed translation must never render.
-  doc.documentElement.lang = locale === "pt" ? "pt-PT" : locale;
+  doc.documentElement.lang = intlLocale(locale);
   doc.documentElement.dir = directionFor(locale);
   const attributes = [
     ["data-i18n", "textContent"], ["data-i18n-title", "title"],
