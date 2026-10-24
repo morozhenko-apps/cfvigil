@@ -266,6 +266,34 @@ dedicated CFVigil signing credentials and a unique
 `/dist/CFVigil/` namespace. Never copy RepoTicker signing secrets or publish
 unsigned APT metadata.
 
+## Windows x64 unsigned NSIS candidate and reproducible dependencies
+
+The Rust workspace has a **committed Cargo.lock**, taken directly from
+the successful Linux candidate's generated artifact. All development
+Preflight and Linux/Windows candidates run `cargo check/test --locked`,
+so dependency drift fails validation instead of changing versions silently.
+
+Windows builds use a separate, explicit `dev` marker
+(`ci/run-windows-candidate.txt`) on a standard GitHub-hosted
+`windows-2025` runner. The job verifies locked Rust dependencies,
+runs JS and Rust tests, and builds a native **x64 NSIS installer**.
+For each candidate, Tauri CLI generates native `icon.ico` from the
+committed CFVigil `icons/icon.png` **before** Windows Rust compilation;
+the generated icon is not separately maintained by hand. The Windows
+config overlay sets the NSIS `currentUser` install mode.
+
+The final installer is validated for an exact versioned filename, bounded
+file size, Windows PE header and SHA-256 sidecar, then staged as a short-lived
+Actions artifact. The candidate is deliberately **unsigned**; signature
+inspection must confirm `NotSigned` rather than inventing a publisher
+signature. No code signing, deployment, R2/Cloudflare write, APT key,
+main fast-forward, release tag or GitHub Release is authorized.
+
+Windows runtime, sign-in autostart, Credential Manager, installer
+upgrade/removal, WebView2 bootstrap and tray behavior still need physical
+acceptance. Windows installer signing and its trust distribution must be
+resolved separately before any public Windows release.
+
 ## Settings and tray menu
 
 Right-click menu: Show Card, Event History, Settings, About, Exit.

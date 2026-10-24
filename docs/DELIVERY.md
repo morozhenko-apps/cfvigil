@@ -485,3 +485,40 @@ confirm them before claiming the mismatch fixed.
 There were no published packages, release tags, or changes to
 `main`. The workflow must run once more only after code and docs
 are complete; physical installation still requires separate acceptance.
+
+## 2026-10-24 — Locked Rust deps and unsigned Windows candidate gate
+
+- Linux [candidate #40095935553](https://github.com/morozhenko-apps/cfvigil/actions/runs/40095935553)
+  **passed** JavaScript/Rust tests, built both DEB and AppImage, validated
+  Debian identity and SHA-256 checksums, and uploaded unsigned artifacts.
+  This proves Linux CI packaging, not physical installed runtime.
+- Imported Cargo-generated `Cargo.lock` from the **same successful**
+  Linux job's review artifact (138,030 bytes; Git blob
+  `6c3b4457b4f6ee7c5fe01ef9733f579f7243d3be`), with exact
+  byte-level blob-SHA comparison against the uploaded original. It is now
+  tracked in `dev`, not automatically regenerated during release.
+  Linux Preflight, Linux packaging and Windows packaging use `--locked`
+  Rust checks. Generation and git integration are distinct from docs.
+- Added `windows-candidate.yml`, an isolated `windows-2025` workflow
+  activated only by changing `ci/run-windows-candidate.txt` on dev.
+  It runs JavaScript/Rust tests, creates native ICO from committed PNG,
+  builds unsigned x64 NSIS (`installMode=currentUser`), validates the
+  installer PE structure, filename and SHA-256, and uploads a short-lived
+  review artifact. GitHub Actions has only contents:read permissions and
+  no publication credentials or release step.
+- Tauri-build requires a Windows ICO already present during cargo check;
+  thus native ICO generation intentionally precedes Windows Rust tests.
+  Platform-generated icons stay untracked, and there is a Windows-only
+  Tauri configuration overlay. This does not modify the existing Linux
+  package definition.
+- First Windows candidate
+  [#40097647029](https://github.com/morozhenko-apps/cfvigil/actions/runs/40097647029)
+  **failed before compilation** because existing `tests/ci-trigger.test.mjs`
+  assumed LF YAML newlines, while Windows Git checkout provided CRLF.
+  Root cause addressed by newline normalization and updating test
+  expectations for Cargo `--locked`. The first run is NOT evidence of
+  Windows app compilation or installer success.
+- The next explicit final-source Windows candidate run is required to
+  confirm the ICO, Windows build, NSIS packaging, checksum and artifact
+  upload steps. It is not automatically a signed or physically tested
+  release. `main` and release tags remain untouched.

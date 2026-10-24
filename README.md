@@ -4,6 +4,10 @@ Free, local-first desktop monitoring for Cloudflare Workers and Pages.
 
 **Development status:** initial v0.1.0 source implementation on `dev`, not a published or physically accepted installer. The `main` branch is the initial repository baseline.
 
+Workspace `Cargo.lock` is committed for reproducible Rust dependency
+resolution. Separate opt-in workflows build unsigned Linux DEB/AppImage and
+Windows x64 NSIS **candidates only**; neither publishes a release.
+
 ## What the current source implements
 
 - Minimal system tray card inspired by RepoTicker: no product title, three counters (Healthy, Deploying, Issues), then **Resources** and **Hide** buttons.
