@@ -22,6 +22,9 @@ test("one scheduler handles both timer and settings wake-ups", () => {
   assert.doesNotMatch(main,/spawn\(async move \{ refresh_once\(/);
   assert.match(main,/report_sync_failure\(&app, &state, msg::DATA_CREDENTIALS_UNAVAILABLE\)/);
   assert.match(main,/publish_snapshot\(&app, &state\)/);
+  assert.ok(main.includes("let catalog_available = discovery.workers_complete || discovery.pages_complete"));
+  assert.ok(main.includes("catalog_available && !budget.exhausted()"));
+  assert.ok(!main.includes("core_complete && !budget.exhausted()"));
 });
 
 test("partial Cloudflare API errors survive snapshot normalization without HTML or secrets", () => {
