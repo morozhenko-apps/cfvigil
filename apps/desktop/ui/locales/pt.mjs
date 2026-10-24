@@ -9,6 +9,7 @@ export default Object.freeze({
   "card.healthy": "Concluídos",
   "card.deploying": "Em curso",
   "card.issues": "Problemas",
+  "card.statusUnknown": "Por verificar",
   "card.resources": "Recursos",
   "card.hide": "Ocultar",
   "card.toggleTitle": "Mostrar ou ocultar a lista de recursos",

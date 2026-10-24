@@ -1,5 +1,5 @@
 // Pure search/filter logic for the local history window.
-import {formatDate, currentLocale, intlLocale} from "./localization.mjs";
+import {formatDate, currentLocale, intlLocale, eventText} from "./localization.mjs";
 export const HISTORY_FILTERS = Object.freeze(["all", "incident", "recovery", "update"]);
 
 export function filterHistory(events, query = "", category = "all", locale = currentLocale) {
@@ -9,7 +9,7 @@ export function filterHistory(events, query = "", category = "all", locale = cur
   return events.filter(event => {
     if (category !== "all" && event.category !== category) return false;
     if (!needle) return true;
-    return [event.name, event.key, event.message]
+    return [event.name, event.key, event.message, eventText(event.message, locale)]
       .some(value => String(value ?? "").toLocaleLowerCase(language).includes(needle));
   });
 }

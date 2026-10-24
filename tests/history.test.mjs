@@ -35,3 +35,8 @@ test("historical link command uses event ID and never current resource key", () 
   assert.match(native,/history_url\(&history, &id\)/);
   assert.doesNotMatch(native,/fn open_history_resource\(/);
 });
+
+test("history matches translated incident text without changing stored English events", () => {
+  assert.deepEqual(filterHistory(events, "ошибкой", "incident", "ru").map(x => x.id), ["old"]);
+  assert.deepEqual(filterHistory(events, "falhou", "incident", "pt").map(x => x.id), ["old"]);
+});

@@ -6,6 +6,12 @@ import {initializeLanguage} from "./runtime-language.mjs";
 const invoke = (command, args = {}) => window.__TAURI__.core.invoke(command, args);
 const listen = (event, callback) => window.__TAURI__.event.listen(event, callback);
 const byId = id => document.getElementById(id);
+const statusLabelKey = Object.freeze({
+  "healthy": "card.healthy",
+  "deploying": "card.deploying",
+  "failed": "card.issues",
+  "unknown": "card.statusUnknown"
+});
 let resources = [];
 let expanded = false;
 let focusedKey = null;
@@ -125,7 +131,8 @@ function render() {
     lamp.className = `lamp ${resource.status}`;
     lamp.title = resourceDetail(resource.detail || resource.status);
     lamp.setAttribute("role", "img");
-    lamp.setAttribute("aria-label", resource.status + ": " + resourceDetail(resource.detail || resource.name));
+    const localizedStatus = t(statusLabelKey[resource.status] ?? "card.statusUnknown");
+    lamp.setAttribute("aria-label", localizedStatus + ": " + resourceDetail(resource.detail || resource.name));
     const button = document.createElement("button");
     button.className = "more";
     button.type = "button";

@@ -135,3 +135,10 @@ test("failed language bootstrap preserves a newer native event", async () => {
     assert.equal(documentStub.documentElement.lang, "ru");
   } finally {setLocale("en");}
 });
+
+test("accessibility status names follow locale while status IDs remain stable", () => {
+  const card = read("apps/desktop/ui/app.mjs");
+  assert.match(card, /t\(statusLabelKey\[resource\.status\]/);
+  assert.equal(t("card.statusUnknown", {}, "ru"), "Не проверено");
+  assert.equal(t("card.statusUnknown", {}, "pt"), "Por verificar");
+});

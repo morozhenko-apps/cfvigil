@@ -9,6 +9,7 @@ export default Object.freeze({
   "card.healthy": "Успешно",
   "card.deploying": "Сборка",
   "card.issues": "Проблемы",
+  "card.statusUnknown": "Не проверено",
   "card.resources": "Ресурсы",
   "card.hide": "Скрыть",
   "card.toggleTitle": "Показать или скрыть список ресурсов",
