@@ -151,11 +151,11 @@ export function incidentText(message, locale = currentLocale) {
 
 export function resourceDetail(message, locale = currentLocale) {
   if (typeof message !== "string") return "";
-  const workers = /^Workers errors spiking: (\\d+) errors \\/ (\\d+) requests \\(\\d+\\.\\d+%\\)$/.exec(message);
+  const workers = /^Workers errors spiking: (\d+) errors \/ (\d+) requests \((\d+\.\d+%)\)$/.exec(message);
   if (workers) {
     return t("detail.workerSpike", {errors:workers[1],requests:workers[2],rate:workers[3].slice(0,-1)},locale);
   }
-  const waf = /^WAF blocks spiking: (\\d+) in 10m; previous 30m (\\d+)$/.exec(message);
+  const waf = /^WAF blocks spiking: (\d+) in 10m; previous 30m (\d+)$/.exec(message);
   if (waf) return t("detail.wafSpike", {recent:waf[1],baseline:waf[2]},locale);
   return eventText(message, locale);
 }
