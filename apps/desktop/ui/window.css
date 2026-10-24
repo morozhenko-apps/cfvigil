@@ -76,3 +76,11 @@ body.settings-page{
 }
 .settings-page .window-close{color:#263747}
 .settings-page .window-close:hover{background:#c8d5e0}
+
+/* Text selection competes with native card/window dragging in WebKitGTK.
+   Keep the document inert, but allow editing and selection in real inputs. */
+html, body, body * { -webkit-user-select:none; user-select:none; }
+input:not([type="checkbox"]), textarea, [contenteditable="true"] {
+  -webkit-user-select:text;
+  user-select:text;
+}
