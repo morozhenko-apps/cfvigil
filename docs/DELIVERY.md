@@ -434,3 +434,30 @@ Completed in source on `dev`:
 The release distribution code deliberately follows RepoTicker's
 nonpublishing build-before-publish separation, without silently importing
 RepoTicker's publishing infrastructure. No main merge or tag is authorized.
+
+## 2026-10-24 — Linux candidate validation: Tauri staging symlinks
+
+The complete-source candidate [#40091322624](https://github.com/morozhenko-apps/cfvigil/actions/runs/40091322624)
+finished with a failure only in `Check Debian identity, dependencies and
+immutable checksums`. Source tests, Rust build and Tauri CLI installation
+passed, and the bundler produced:
+- `CFVigil_0.1.0_amd64.deb` (6.63 MiB).
+- `CFVigil_0.1.0_amd64.AppImage` (81.43 MiB).
+
+The actual error was `Unsafe symlink in bundle output`: the candidate
+validator descended into AppImage's *intermediate* staging tree, which
+contains legitimate symlinks, despite only needing to inspect final bundles.
+This was a validation scope bug, not evidence of an unsafe final AppImage.
+
+Fixed the root cause: inspect **only immediate final files** inside the
+Tauri `bundle/deb` and `bundle/appimage` directories. Require the
+exact versioned Tauri filenames and reject duplicate/wrong-version bundles,
+symlinked output directories and symlinked/nonregular **final packages**.
+Never recursively inspect unrelated AppDir staging files. Added deterministic
+tests for a legitimate staging symlink and a malicious final-package symlink.
+The successful SHA-256/DEB metadata/artifact upload is still unverified
+until the next **single marker-driven** candidate build completes.
+
+The prior incomplete candidate [#40090926586](https://github.com/morozhenko-apps/cfvigil/actions/runs/40090926586)
+was cancelled by workflow concurrency. No package was published, no
+`main` fast-forward or tag was created.
