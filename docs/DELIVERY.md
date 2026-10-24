@@ -683,3 +683,12 @@ The next actions are one stable source Preflight; then exact-SHA unapproved
 Linux and Windows candidate builds, then real Ubuntu KDE and Windows
 installation checks with recorded evidence **before** adding a broad test
 matrix or entering Mode B. See `docs/NATIVE_MACHINE_GATE.md`.
+
+## 2026-10-24: KDE compact geometry and Settings visual smoke accepted
+
+The owner confirmed PASS for the compact card gap fix, contrasting Settings
+panel and retained window position after installing candidate
+#40137438889 on Alcotester. Native KDE geometry is considered stable for
+these three scenarios; prior failing observations remain in the machine
+gate's history. Do not mark the entire native-machine gate or Mode B
+accepted: Windows and Cloudflare/locale/security scenarios are outstanding.

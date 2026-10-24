@@ -266,3 +266,33 @@ Acceptance **not yet granted**: inspect the new Linux candidate, verify
 there is no compact top gap and no clipping on EN/RU, that Settings has a
 visible perimeter against a light browser/desktop, and that expand/collapse,
 position retention and close/reopen remain correct. No Mode B before this.
+
+## 2026-10-24: Alcotester v5 KDE geometry acceptance — PASS
+
+Owner installed the unreleased Linux candidate from run
+[#40137438889](https://github.com/morozhenko-apps/cfvigil/actions/runs/40137438889).
+The download's `cfvigil_0.1.0_amd64.deb` and AppImage SHA-256 checks were
+reported OK. The first install attempt was interrupted by sudo timeout;
+the retry used the already downloaded files and the owner subsequently
+confirmed the installed v5 UI behavior.
+
+**Observed on the real Alcotester KDE machine, not inferred from CI:**
+- **PASS** — remaining top blank space in compact 92px card eliminated.
+- **PASS** — Settings background/border provide clear contrast against
+  desktop and neighboring windows.
+- **PASS** — card position remains preserved on hiding/reopening.
+
+Earlier Alcotester confirmations that remain in force: native card dragging
+PASS, Apply-only language change PASS and compact-only 15-second auto-hide
+PASS. The previous FAIL reports remain above as historical failure/evidence,
+not current geometry status. The RepoTicker-derived native backend and
+geometry code should be frozen unless a new reproducible failure appears.
+
+**Scope of acceptance is KDE geometry/interaction only. Overall native
+machine gate remains IN PROGRESS**, not a Mode B approval. Still not
+accepted: full connected Cloudflare/incident workflow, multi-locale visual
+and RTL/font checks, accessibility/offline/persistence negative cases,
+physical Windows installation and runtime checks, icon provenance,
+and remaining release-readiness scenarios. Test these on installed builds,
+fix observed defects, then expand broad regression coverage and Mode B
+only after explicit owner acceptance of the machine gate.
