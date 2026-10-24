@@ -75,6 +75,12 @@ not claims that a feature has passed acceptance.
   but full release acceptance is after localization.
 
 ### 0.7 — Feature freeze and pre-localization readiness
+
+Source checkpoint (2026-10-24): English WebView catalog, native diagnostic
+constants, localized formatting/layout boundary and static regression checker
+have been added to `dev`. CI and native-platform acceptance are distinct;
+20 real translations are explicitly deferred to 0.8.
+
 - Resolve feature gaps, provider contracts and key architecture defects.
 - All user-facing source strings are centralized and stable for translation.
 - Implement diagnostics for missing localized keys, plural forms, date/time

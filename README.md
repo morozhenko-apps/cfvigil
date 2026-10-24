@@ -28,6 +28,21 @@ Windows x64 NSIS **candidates only**; neither publishes a release.
 - An account ID and a **user-scoped** API Token with Workers Scripts Read, Workers CI Read, Pages Read, Account Analytics Read, Zone Read and Zone Analytics Read are required. Availability of APIs can vary by token and account.
 - The source currently supports one configured Cloudflare account at a time.
 
+## Localization readiness
+
+The desktop currently ships **English-only**. Its user interface uses semantic
+keys in `apps/desktop/ui/locales/en.mjs` with native Rust diagnostic strings
+centralized in `native_messages.rs`. Validation for keys, interpolation,
+plural rules, date formatting and RTL direction is available via:
+
+```sh
+node scripts/check-i18n.mjs
+```
+
+The 20-language product milestone and full per-language context audit are
+planned **after feature freeze**; the presence of locale codes is not a
+claim that the additional dictionaries are implemented.
+
 ## Development
 
 Prerequisites: Rust toolchain, Tauri 2 OS dependencies and Node.js 22+.

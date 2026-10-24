@@ -1,6 +1,7 @@
 # CFVigil: feature-freeze localization architecture (0.7)
 
-Status: implementation in progress on `dev`; English baseline only.
+Status: source implementation complete on `dev`; one final Preflight is pending.
+Only English is enabled; translation/editorial acceptance remains milestone 0.8.
 Scope: centralize all desktop presentation strings without changing provider
 status decisions, incident persistence semantics, Cloudflare query logic, or
 existing saved event messages. The 20 locale translations belong exclusively
@@ -69,3 +70,24 @@ automated, date/age/plural and RTL formatting contracts are tested, and the
 stable Preflight passes. This does not imply 20 completed translations,
 native-speaker approval, a live Cloudflare API acceptance, or physical KDE
 and Windows smoke evidence.
+
+## Source evidence and implemented boundaries (2026-10-24)
+
+- `locales/en.mjs` is the active English WebView catalog. The four HTML
+  documents and dynamic app/history/settings/about text now resolve semantic
+  keys through `localization.mjs`; names are inserted as text, never HTML.
+- `native_messages.rs` centralizes the Rust menu labels, provider diagnostic
+  literals and incident strings, including formatting helpers for runtime and
+  WAF spikes. Legacy `events.json` messages and incident classification are
+  unchanged, with a JS regression parity contract.
+- `check-i18n.mjs` validates source keys, interpolation, HTML attributes,
+  20 planned codes and every activated locale's dictionary/plural parity.
+  The currently activated set is exactly `en`.
+- Locale-aware `Intl` formatting uses explicit `pt-PT` semantics for
+  future `pt`, and explicit `ar` RTL direction with `bdi` isolation.
+  Native window titles and native menus remain English until multi-locale
+  runtime wiring in 0.8; do not claim localized native menus in 0.7.
+- No locale was translated or reviewed; no installed binary was physically
+  checked; no history event codes or persistent schema were changed.
+- Preflight (JS syntax, source checker, JS/Python/Rust suites) is the pending
+  acceptance gate. No tags, R2 uploads, Worker deploys or `main` changes.

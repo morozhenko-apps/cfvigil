@@ -612,3 +612,16 @@ the required `${{ context.value }}` syntax and added a Node guard rejecting
 single-brace variants. These fixes were committed as source/test changes
 before requesting the next single comprehensive Preflight. No release
 jobs, Cloudflare network calls, secrets or user environment were changed.
+
+## 2026-10-24: 0.7 English catalog and feature-freeze i18n guard
+
+Source changes on `dev`: localized desktop HTML and dynamic UI messages,
+English baseline dictionary, native Rust error/event constants, context-safe
+relative-time/date/plural helpers, RTL-name isolation, key parity and
+interpolation diagnostics, and regression tests. Existing event strings,
+classification, resource severity and deduplication remain unchanged.
+Native OS menu/window title localization is not enabled while only English
+is approved. **Source commit exists; verification is pending an explicit
+single Preflight run.** Cloudflare live API and KDE/Windows physical smoke
+are not claimed. Next feature stage remains 20 locale translations and
+editorial/RTL/context QA.
