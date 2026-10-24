@@ -7,3 +7,6 @@ commits. No signing, R2, public URLs or GitHub Releases.
 2026-10-24: FINAL Windows x64 NSIS candidate after exact Cargo.lock commit,
 CRLF-safe tests, native ICO-before-build dependency, locked Rust suite,
 unsigned installer identity and SHA256 validation. One verification run.
+
+2026-10-24: Rerun Windows candidate after CRLF-safe Cargo.lock header
+validation fix and LF/CRLF tampering regression tests. Full NSIS gate.
