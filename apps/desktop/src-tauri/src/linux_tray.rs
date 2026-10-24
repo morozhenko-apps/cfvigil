@@ -1,5 +1,5 @@
 //! Native StatusNotifierItem for KDE's left-click Activate semantics.
-use crate::{hide_card, show_card, show_window, native_messages as msg};
+use crate::{hide_card, show_card, show_window, language, AppState};
 use ksni::{blocking::TrayMethods as _, menu::StandardItem, Icon, MenuItem, Tray};
 use tauri::{App, AppHandle, Manager};
 
@@ -60,29 +60,30 @@ impl Tray for CFVigilTray {
     }
 
     fn menu(&self) -> Vec<MenuItem<Self>> {
+        let locale = self.app.state::<AppState>().language.lock().unwrap().locale.clone();
         vec![
             StandardItem {
-                label: msg::TRAY_SHOW_CARD.into(),
+                label: language::menu(&locale, "open").into(),
                 activate: Box::new(|tray: &mut Self| tray.dispatch("open")),
                 ..Default::default()
             }.into(),
             StandardItem {
-                label: msg::TRAY_EVENT_HISTORY.into(),
+                label: language::menu(&locale, "history").into(),
                 activate: Box::new(|tray: &mut Self| tray.dispatch("history")),
                 ..Default::default()
             }.into(),
             StandardItem {
-                label: msg::TRAY_SETTINGS.into(),
+                label: language::menu(&locale, "settings").into(),
                 activate: Box::new(|tray: &mut Self| tray.dispatch("settings")),
                 ..Default::default()
             }.into(),
             StandardItem {
-                label: msg::TRAY_ABOUT.into(),
+                label: language::menu(&locale, "about").into(),
                 activate: Box::new(|tray: &mut Self| tray.dispatch("about")),
                 ..Default::default()
             }.into(),
             StandardItem {
-                label: msg::TRAY_EXIT.into(),
+                label: language::menu(&locale, "quit").into(),
                 activate: Box::new(|tray: &mut Self| tray.dispatch("quit")),
                 ..Default::default()
             }.into(),

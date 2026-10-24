@@ -1,4 +1,5 @@
 mod cloudflare;
+mod language;
 mod native_messages;
 use native_messages as msg;
 mod api_budget;
@@ -14,6 +15,7 @@ mod linux_surface;
 mod linux_tray;
 
 use cloudflare::{Cloudflare, Resource};
+use language::LanguagePreference;
 use api_budget::ApiBudget;
 use incident_store::{IncidentJournal, NotificationWindow};
 use polling_policy::poll_delay;
@@ -139,6 +141,7 @@ struct Snapshot {
 
 struct AppState {
     config: Mutex<Config>,
+    language: Mutex<LanguagePreference>,
     resources: Mutex<Vec<Resource>>,
     history: Mutex<Vec<HistoryEvent>>,
     last_notified: Mutex<NotificationWindow>,
@@ -173,6 +176,55 @@ fn load_token() -> Result<String, String> {
     token_entry()?
         .get_password()
         .map_err(|_| msg::ERROR_TOKEN_LOCKED.into())
+}
+
+
+#[tauri::command]
+fn get_language(state: State<'_, AppState>) -> String {
+    state.language.lock().unwrap().locale.clone()
+}
+
+// Locale preferences must never reset provider readiness, notification IDs
+// or the one and only polling loop. They are stored separately from credentials.
+#[tauri::command]
+fn set_language(app: AppHandle, state: State<'_, AppState>, language: String) -> Result<(), String> {
+    if !language::supported(&language) {
+        return Err("Unsupported interface language".into());
+    }
+    let mut current = state.language.lock().unwrap();
+    if current.locale == language { return Ok(()) }
+    let next = LanguagePreference { locale: language.clone() };
+    write_json(&app, "language.json", &next)?;
+    *current = next;
+    drop(current);
+    update_native_language(&app, &language);
+    let _ = app.emit("cfvigil-language-changed", language);
+    Ok(())
+}
+
+fn update_native_language(app: &AppHandle, locale: &str) {
+    for label in ["settings", "history", "about"] {
+        if let Some(window) = app.get_webview_window(label) {
+            let _ = window.set_title(language::window_title(locale, label));
+        }
+    }
+    #[cfg(not(target_os = "linux"))]
+    if let Some(tray) = app.tray_by_id("cfvigil") {
+        // Preserve the tray event handler; only replace its localized menu.
+        if let Ok(menu) = translated_tray_menu(app, locale) {
+            let _ = tray.set_menu(Some(menu));
+        }
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+fn translated_tray_menu(app: &AppHandle, locale: &str) -> tauri::Result<Menu<tauri::Wry>> {
+    let open = MenuItem::with_id(app, "open", language::menu(locale, "open"), true, None::<&str>)?;
+    let history = MenuItem::with_id(app, "history", language::menu(locale, "history"), true, None::<&str>)?;
+    let settings = MenuItem::with_id(app, "settings", language::menu(locale, "settings"), true, None::<&str>)?;
+    let about = MenuItem::with_id(app, "about", language::menu(locale, "about"), true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", language::menu(locale, "quit"), true, None::<&str>)?;
+    Menu::with_items(app, &[&open, &history, &settings, &about, &quit])
 }
 
 #[tauri::command]
@@ -643,17 +695,21 @@ fn main() {
         .plugin(tauri_plugin_autostart::Builder::new().build())
         .setup(|app| {
             let handle = app.handle().clone();
+            let locale = read_json::<LanguagePreference>(&handle, "language.json")
+                .map_err(std::io::Error::other)?;
             let settings = read_json::<Config>(&handle, "settings.json")
                 .map_err(std::io::Error::other)?;
             let stored = read_json::<IncidentJournal>(&handle, "incident-state.json")
                 .map_err(std::io::Error::other)?;
             let history = read_json::<Vec<HistoryEvent>>(&handle, "events.json")
                 .map_err(std::io::Error::other)?;
-            let storage_warning = settings.quarantined || stored.quarantined || history.quarantined;
+            let storage_warning = settings.quarantined || stored.quarantined || history.quarantined || locale.quarantined;
+            let language = language::sanitize(locale.value);
             let journal = stored.value.restore(&settings.value.account_id);
             let (poll_refresh, _receiver) = tokio::sync::watch::channel(0u64);
             app.manage(AppState {
                 config: Mutex::new(settings.value),
+                language: Mutex::new(language.clone()),
                 resources: Mutex::new(journal.active.clone()),
                 history: Mutex::new({
                     let mut events = history.value;
@@ -676,12 +732,7 @@ fn main() {
             }
             #[cfg(not(target_os = "linux"))]
             {
-            let open = MenuItem::with_id(app, "open", msg::TRAY_SHOW_CARD, true, None::<&str>)?;
-            let history = MenuItem::with_id(app, "history", msg::TRAY_EVENT_HISTORY, true, None::<&str>)?;
-            let settings = MenuItem::with_id(app, "settings", msg::TRAY_SETTINGS, true, None::<&str>)?;
-            let about = MenuItem::with_id(app, "about", msg::TRAY_ABOUT, true, None::<&str>)?;
-            let quit = MenuItem::with_id(app, "quit", msg::TRAY_EXIT, true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&open, &history, &settings, &about, &quit])?;
+            let menu = translated_tray_menu(app.handle(), &language.locale)?;
             let icon = app.default_window_icon().cloned()
                 .unwrap_or_else(|| Image::new_owned(vec![50,50,50,255],1,1));
             TrayIconBuilder::with_id("cfvigil")
@@ -707,6 +758,7 @@ fn main() {
                 })
                 .build(app)?;
             }
+            update_native_language(&handle, &language.locale);
             run_polling(handle);
             Ok(())
         })
@@ -718,6 +770,8 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             get_settings,
+            get_language,
+            set_language,
             get_autostart,
             save_settings,
             get_snapshot,
@@ -790,6 +844,7 @@ mod security_tests {
         };
         let state = AppState {
             config: Mutex::new(Config {account_id:"a".repeat(32),refresh_seconds:60}),
+            language: Mutex::new(LanguagePreference::default()),
             resources: Mutex::new(vec![previously_healthy]),
             history: Mutex::new(Vec::new()),
             last_notified: Mutex::new(NotificationWindow::default()),

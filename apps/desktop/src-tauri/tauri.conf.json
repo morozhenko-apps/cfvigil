@@ -27,7 +27,7 @@
         "url": "settings.html",
         "title": "Settings",
         "width": 460,
-        "height": 390,
+        "height": 460,
         "resizable": false,
         "visible": false,
         "maximizable": false

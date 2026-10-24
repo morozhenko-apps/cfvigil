@@ -1,0 +1,62 @@
+//! Localized native shell labels and isolated, durable language preference.
+//! An unsupported locale never activates incomplete UI strings.
+use serde::{Deserialize, Serialize};
+
+pub const ACTIVE: &[&str] = &["en", "ru", "pt"];
+
+fn default_locale() -> String { "en".to_owned() }
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct LanguagePreference {
+    #[serde(default = "default_locale")]
+    pub locale: String,
+}
+impl Default for LanguagePreference {
+    fn default() -> Self { Self { locale: default_locale() } }
+}
+pub fn supported(locale: &str) -> bool { ACTIVE.contains(&locale) }
+pub fn sanitize(value: LanguagePreference) -> LanguagePreference {
+    if supported(&value.locale) { value } else { LanguagePreference::default() }
+}
+
+pub fn menu(locale: &str, action: &str) -> &'static str {
+    match (locale, action) {
+        ("ru", "open") => "Показать карточку",
+        ("ru", "history") => "История событий",
+        ("ru", "settings") => "Настройки",
+        ("ru", "about") => "О программе",
+        ("ru", "quit") => "Выход",
+        ("pt", "open") => "Mostrar painel",
+        ("pt", "history") => "Histórico de eventos",
+        ("pt", "settings") => "Definições",
+        ("pt", "about") => "Sobre",
+        ("pt", "quit") => "Sair",
+        (_, "open") => "Show Card",
+        (_, "history") => "Event History",
+        (_, "settings") => "Settings",
+        (_, "about") => "About",
+        (_, "quit") => "Exit",
+        _ => "CFVigil",
+    }
+}
+pub fn window_title(locale: &str, label: &str) -> &'static str {
+    match label {
+        "main" => "CFVigil",
+        "about" => match locale { "ru" => "О CFVigil", "pt" => "Sobre o CFVigil", _ => "About CFVigil" },
+        "settings" => menu(locale, "settings"),
+        "history" => menu(locale, "history"),
+        _ => "CFVigil",
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn unknown_languages_fail_closed() {
+        assert!(ACTIVE.iter().all(|l| supported(l)));
+        assert!(!supported("pt-BR"));
+        assert!(!supported("zh-Hans"));
+        assert_eq!(sanitize(LanguagePreference {locale: "zz".into()}).locale, "en");
+        assert_eq!(sanitize(LanguagePreference {locale: "pt".into()}).locale, "pt");
+    }
+}
