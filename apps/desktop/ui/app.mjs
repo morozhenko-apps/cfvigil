@@ -11,6 +11,7 @@ let openMenuKey = null;
 let openMenuTrigger = null;
 let syncAvailable = false;
 let accountConfigured = false;
+let storageWarning = false;
 let resizing = false;
 
 function clearMenu(restoreFocus = false) {
@@ -235,9 +236,16 @@ function applySnapshot(payload) {
   resources = snapshot.resources;
   syncAvailable = snapshot.ready;
   accountConfigured = snapshot.configured;
-  if (syncAvailable && !byId("toggle-list").classList.contains("blink")) {
-    byId("toggle-list").title = "Toggle resource list";
-    announce("");
+  storageWarning = payload?.storage_warning === true;
+  if (!byId("toggle-list").classList.contains("blink")) {
+    if (storageWarning) {
+      const warning = "Local data was damaged and backed up. See Settings for details.";
+      byId("toggle-list").title = warning;
+      announce(warning);
+    } else if (syncAvailable) {
+      byId("toggle-list").title = "Toggle resource list";
+      announce("");
+    }
   }
   render();
 }
