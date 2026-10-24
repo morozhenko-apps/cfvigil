@@ -58,3 +58,8 @@ plural/RTL/date diagnostics, syntax, Python release invariants and stable Rust.
 2026-10-24: Rerun 0.7 final stable suite after correcting the sole
 JavaScript harness failure (undefined read helper in storage-contract test).
 Verify localization checker, all JS/Python tests, Rust check and Rust tests.
+
+2026-10-24: Verify 0.8 language selection foundation with complete
+draft ru/pt-PT catalogs, cross-window updates, isolated durable preferences,
+native tray labels and localization regression tests. One stable JS/Python/Rust
+Preflight; no release publication, tags or Cloudflare API changes.
