@@ -237,6 +237,30 @@ that event history survived a prior disk failure. Recovery, file permissions
 and interruption behavior still require physical acceptance on KDE and
 Windows filesystems before distribution.
 
+## Download and storage contract
+
+GitHub remains the public source and CI hosting service, not an installer
+distribution archive. After a successful release, the **only durable home for
+DEB, AppImage, Windows NSIS, SHA-256 manifests and signed APT metadata is
+Cloudflare R2** under `dist/CFVigil/` with a unique signing and access
+scope. Optional GitHub Release entries contain text/version metadata and
+links to the verified R2 downloads, but **no binary attachments**.
+
+Release pipeline sequence: validate commit/tag and checked builds; stage
+temporary cross-job artifacts; upload all immutable release objects to R2;
+fetch public GET responses and compare full bytes/size/SHA-256 to the
+original files; write a verified readback receipt; remove *only* matching
+GitHub Actions artifacts for that SHA/run; confirm their deletion. Cleanup
+uses `Actions: write` in a separately permissioned final job and must
+never run after an incomplete upload or bad checksum. If cleanup fails,
+publication cannot be reported fully completed.
+
+Until the R2 publisher is operational, unsigned Linux/Windows candidates
+remain available only temporarily (minimum one day, set by GitHub Actions).
+They are not released or uploaded to R2. GitHub workflow run records and
+logs are separate metadata subject to the platform's retention policies.
+This rule applies to future GitHub releases as well as current candidates.
+
 ## Nonpublishing Linux package candidates (source; packaging run pending)
 
 CFVigil's Linux distribution target is **amd64 DEB and AppImage**, with

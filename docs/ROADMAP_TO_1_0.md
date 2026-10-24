@@ -57,8 +57,17 @@ not claims that a feature has passed acceptance.
 ### 0.6 — Distribution and developer documentation
 - Follow RepoTicker's Apache-2.0 and NOTICE terms.
 - Linux amd64 DEB and AppImage, signed APT publication, Windows x64
-  installer, tagged GitHub Releases, controlled Cloudflare R2 path/key
-  separation, deterministic versioning and checksums.
+  installer, controlled Cloudflare R2 path/key separation, deterministic
+  versioning and checksums. Tags and optional metadata-only GitHub Releases
+  reference R2-hosted downloads; GitHub Releases MUST NOT carry installers,
+  checksums, APT repository files or binary attachments.
+- GitHub Actions binary artifacts may be used only as temporary handoffs.
+  Following successful R2 publication and *public byte-for-byte SHA-256
+  readback*, delete the matching GitHub artifacts with Actions:write,
+  scoped by source run, commit and artifact name; verify their deletion.
+  If upload/readback fails, do not delete the only validated copies.
+  Candidate artifacts use the minimum one-day retention, not permanent
+  GitHub storage. Never reuse RepoTicker's R2 key or signing credentials.
 - Bug-report-only Issue Form, private vulnerability link, no empty issues.
   No third-party PR/feature contribution intake; independent forks allowed.
 - Physical installer/upgrade/removal scenarios can be explored here,

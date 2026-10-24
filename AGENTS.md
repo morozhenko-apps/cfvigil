@@ -14,6 +14,16 @@ This file applies to all coding agents working in this repository.
   Do not delete another agent's unmerged work.
 - Never fast-forward `dev` to `main`, tag or publish a release without the
   owner's explicit instruction and passing release acceptance.
+- **Distribution storage invariant:** GitHub stores source, CI and optional
+  release metadata only; no permanent DEB, AppImage, NSIS, checksum, or
+  signed APT binary attachments on GitHub Releases. Upload release assets
+  only into CFVigil's isolated Cloudflare R2 prefix, verify the public GET
+  body size and SHA-256, and ONLY THEN delete exact matching temporary GitHub
+  Actions archives. A failed upload/readback MUST NOT trigger deletion.
+  Check deletion success; fail the release gate if cleanup fails.
+  Candidate artifacts have a minimum one-day expiry because R2 test
+  publication does not yet exist. Cargo.lock is tracked in source, never
+  separately uploaded again for review.
 - Separate source/config changes from documentation-only commits.
 - **Never trigger CI for every source commit.** CFVigil dev's Preflight uses
   an explicit verification marker: update `ci/run-preflight.txt` exactly once

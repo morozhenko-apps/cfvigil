@@ -543,3 +543,42 @@ for LF/CRLF and tampered headers.
 A fresh Windows candidate is required before claiming an NSIS build
 or Windows Rust test pass. This is strictly a nonpublishing candidate;
 there is no Windows installer acceptance, release tag or `main` change.
+
+## 2026-10-24 — Binary retention policy: Cloudflare R2 only
+
+Owner decision: after published files are uploaded and verified in
+Cloudflare R2, no generated installers, checksums or APT archives may
+remain as GitHub-hosted binary assets. GitHub continues hosting the
+source repository, CI logs/run history, source tags and optional text-only
+GitHub Releases; it is *not* a second download mirror.
+
+Changes now in `dev`:
+- Linux and Windows **candidate** workflow upload retention shortened
+  from seven days to **one day** (GitHub's minimum). This is not
+  retroactive to artifacts of previous workflow runs. Candidate archives
+  are intentionally retained briefly for physical testing because there
+  is not yet a CFVigil R2 publisher.
+- Removed the redundant dedicated `Cargo.lock` review upload; the exact
+  lockfile is already committed and reviewed through source control.
+- Added `scripts/cleanup-published-artifacts.mjs`. Its fail-closed
+  release-only API deletion helper requires a publisher-generated
+  receipt containing two exact CFVigil release artifact names, source
+  run IDs, commit SHA, scoped public R2 URLs, and matching original vs
+  public readback SHA-256 and sizes. Deletes only those source-run
+  artifacts using GitHub Actions REST DELETE (Actions:write); re-lists
+  to confirm deletion. Safe to retry if already cleaned. Cannot delete
+  unrelated GitHub run artifacts or RepoTicker packages.
+- Added deterministic tests of invalid/missing publication receipts,
+  unrelated artifacts, mismatched source SHA, successful deletion and
+  one-day retention of current development candidates.
+
+**Not integrated into the production pipeline yet:** no CFVigil R2
+publication or verified receipt generator exists, so the cleanup helper
+is never automatically invoked. The eventual tag/main/release publisher
+MUST wire it as the final gated action after R2 public GET hash checks,
+with `actions:write` scoped to cleanup and a separate last verification
+that no release artifacts remain on GitHub. It must not attach binary
+assets to a GitHub Release. No signing key, R2 token, release or deletion
+of previous test artifacts was performed in this development change.
+
+Reference: https://docs.github.com/en/rest/actions/artifacts
