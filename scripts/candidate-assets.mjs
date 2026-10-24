@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Validate and stage unsigned local Linux candidates. Never uploads remotely.
-import { readFileSync, readdirSync, existsSync, lstatSync, mkdirSync, copyFileSync, writeFileSync } from "node:fs";
+import { openSync, readSync, closeSync, readFileSync, readdirSync, existsSync, lstatSync, mkdirSync, copyFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
@@ -48,7 +48,27 @@ function filesBelow(root, relative = "", visited = {count:0}) {
 }
 
 function sha256(filename) {
-  return createHash("sha256").update(readFileSync(filename)).digest("hex");
+  const hash = createHash("sha256");
+  const fd = openSync(filename, "r");
+  try {
+    const buffer = Buffer.allocUnsafe(1024 * 1024);
+    let read;
+    while ((read = readSync(fd, buffer, 0, buffer.length, null)) !== 0) {
+      hash.update(buffer.subarray(0, read));
+    }
+    return hash.digest("hex");
+  } finally { closeSync(fd); }
+}
+
+function prefix(filename, length) {
+  const fd = openSync(filename, "r");
+  try {
+    const buffer = Buffer.alloc(length);
+    if (readSync(fd, buffer, 0, length, 0) !== length) {
+      throw Error("Truncated package header");
+    }
+    return buffer;
+  } finally { closeSync(fd); }
 }
 
 function field(filename, fieldName) {
@@ -87,11 +107,11 @@ function collect(source, target) {
         Package:field(from,"Package"), Version:field(from,"Version"),
         Architecture:field(from,"Architecture"), Depends:field(from,"Depends"),
       }, version);
-      if (readFileSync(from).subarray(0,8).toString("ascii") !== "!<arch>\n") {
+      if (prefix(from,8).toString("ascii") !== "!<arch>\n") {
         throw Error("Invalid Debian archive header");
       }
     } else {
-      const magic = readFileSync(from).subarray(0,4);
+      const magic = prefix(from,4);
       if (!magic.equals(Buffer.from([0x7f,0x45,0x4c,0x46]))) {
         throw Error("Invalid AppImage ELF header");
       }
