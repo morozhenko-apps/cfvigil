@@ -181,6 +181,34 @@ Native startup registration in KDE Wayland/X11 and Windows, desktop
 login/reboot behavior, DEB/AppImage move/upgrade paths and disable/uninstall
 cleanup must be physically checked before release.
 
+## Keyboard and resource focus behavior (source implemented; desktop acceptance pending)
+
+The expanded drawer uses native HTML buttons for each resource's single
+Cloudflare action; Tab/Shift+Tab remain standard browser navigation. When
+focus is on a resource action, Up/Down move between visible resource actions
+(wrapping at either end), and Home/End jump to the first/last action. Down
+from the search field moves to the first visible resource action. Enter or
+Space activates the focused native button. The menu itself contains one
+actual `menuitem`, is keyboard focused when opened, and Escape closes the
+menu **before** it collapses or hides the main card.
+
+The menu flyout is anchored to the five-cell card viewport, not to a child
+of the resource list's scrolling region, so scrolling cannot cut it off.
+When an update re-renders the list, keyboard focus is recovered by resource
+key when still present. Incident focus resets a stale text search, reveals
+the affected resource and puts keyboard focus on its action after expansion.
+Without an incident, expanding the drawer focuses search. Closing the
+drawer returns focus to Resources. A concurrent second resize is ignored.
+
+All resource entries expose list semantics and status text to screen readers.
+The Resources button reports `aria-expanded`, and the flyout trigger reports
+its own expanded state. The compact strip remains **three counters and two
+actions**, with its original dimensions and no extra banner.
+
+The source-level tests cover arrow boundary/wrap rules and presence of
+accessibility semantics. Keyboard/scroll/focus behavior on actual KDE
+Wayland/X11 and Windows WebViews must still pass physical acceptance.
+
 ## Settings and tray menu
 
 Right-click menu: Show Card, Event History, Settings, About, Exit.

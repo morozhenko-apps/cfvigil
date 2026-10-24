@@ -335,3 +335,30 @@ implement **opt-in**, OS-native autostart:
 Official API reference: https://v2.tauri.app/plugin/autostart/
 No `main` fast-forward, release, or system login registration is performed
 by this development commit.
+
+## 2026-10-24 — Native card keyboard/focus and flyout usability
+
+Implemented in `dev`:
+- Added `resource-navigation.mjs`, a deterministic, DOM-free keyboard
+  navigation policy for Up/Down/Home/End against the *visible* resource list.
+  Native Tab, Shift+Tab, Enter and Space behavior is preserved.
+- Resource action flyout is hosted by the top-level card instead of the
+  overflow-clipped scroll region, with bounded placement and proper
+  menu/menuitem semantics. Opening moves focus to the action, Escape returns
+  focus to its trigger, and outside clicks dismiss the flyout.
+- Resource options expose `aria-haspopup`, `aria-expanded`, resource
+  rows are listitems, and lamp statuses are exposed through accessible
+  descriptions. Drawer expansion uses `aria-expanded` and `aria-controls`.
+- On resource updates, focused actions are restored by stable resource key.
+  With a pending incident, opening the drawer focuses the incident action;
+  otherwise it focuses search. Closing the drawer returns to Resources.
+  Concurrent resize commands are suppressed while the native resize runs.
+- Kept the compact card at three metrics + two actions and unchanged
+  390×122/390×510 target sizes. All incident text remains non-overlay.
+- Added tests for focus/navigation contract and keyboard boundary cases
+  alongside existing card/layout contract tests.
+
+The last completed preflight for the *previous* launch-at-login block,
+`40085602559`, passed. The new keyboard block requires its own single
+explicit Preflight and real-device KDE Wayland/X11 + Windows confirmation.
+This source work does not imply native interactive acceptance or a release.

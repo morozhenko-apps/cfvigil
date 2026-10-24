@@ -53,6 +53,7 @@ For Ubuntu KDE development, install Tauri's WebKitGTK and GTK dependencies befor
 - **Working branch: `dev`.** `main` is for owner-approved stable integrations/releases.
 - One serialized background poller wakes on settings changes, marks stale/locked-account data unknown, and backs off after core Cloudflare API failures.
 - Optional OS-native launch at sign-in is available through Settings, off by default; it does not trigger Cloudflare polling when only that setting is changed.
+- Keyboard-accessible resource drawer and menus, stable focus during polling, and resource-specific incident focus.
 - Partial Workers/Pages/Analytics/WAF outages preserve verified results and show unavailable data as unknown; one shared 120-call budget per polling cycle respects REST 429 Retry-After. No overlapping per-save refreshes.
 - CI uses one **GitHub-hosted Ubuntu 24.04** job. Normal `dev` code/docs commits **do not launch GitHub Actions**. After a completed feature or fix, update [`ci/run-preflight.txt`](ci/run-preflight.txt) once to request JavaScript and Rust checks on the resulting head; temporary PRs are checked automatically for code changes. This avoids repeated queued jobs. CI is not a CFVigil product integration.
 - **20 UI languages are planned** as the last functionality milestone, after all other MVP features and before the final end-to-end QA campaign; the required locale set and per-language contextual audit are in the roadmap.
