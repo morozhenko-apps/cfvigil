@@ -20,7 +20,7 @@ import swedish from "../apps/desktop/ui/locales/sv.mjs";
 const read = path => readFileSync(new URL("../" + path, import.meta.url), "utf8");
 
 test("only complete and explicitly reviewed-for-key-parity dictionaries can be enabled", () => {
-  assert.deepEqual(ACTIVE_LOCALES, ["en","ru","pt","es","de","fr","it","pl","nl","sv"]);
+  assert.equal(ACTIVE_LOCALES.length, 20);
   assert.deepEqual(validateCatalog(russian, english, "ru"), []);
   assert.deepEqual(validateCatalog(portuguese, english, "pt"), []);
   assert.deepEqual(validateCatalog(spanish, english, "es"), []);
@@ -93,7 +93,7 @@ test("independent native language storage cannot wake Cloudflare polling", () =>
   const end=main.indexOf("fn update_native_language(",start);
   const setter=main.slice(start,end);
   assert.doesNotMatch(setter,/poll_refresh|refresh_once|invalidate_resources|last_notified/);
-  assert.match(native,/pub const ACTIVE: &\[&str\] = &\["en", "ru", "pt", "es", "de", "fr", "it", "pl", "nl", "sv"\]/);
+  assert.match(native,/pub const ACTIVE: &\[&str\] = &\[/);
   assert.match(native,/fn unknown_languages_fail_closed\(/);
   assert.match(read("apps/desktop/src-tauri/src/linux_tray.rs"),/language::menu\(&locale, "open"\)/);
   assert.match(main,/tray\.set_menu\(Some\(menu\)\)/);
@@ -203,4 +203,43 @@ test("enabled locales and native supported locales remain in exact sync", () => 
   assert.ok(line);
   const actual=[...line.matchAll(/"([^"]+)"/g)].map(x=>x[1]);
   assert.deepEqual(actual, ACTIVE_LOCALES);
+});
+
+
+test("all twenty dictionaries match baseline keys, placeholders and CLDR forms", async () => {
+  const languages = ["en","ru","es","pt","de","fr","it","pl","hi","zh-Hant","ja","nl","sv","tr","ko","bn","th","id","fil","ar"];
+  assert.deepEqual(ACTIVE_LOCALES, languages);
+  for (const locale of languages) {
+    const mod = await import("../apps/desktop/ui/locales/" + locale + ".mjs");
+    const dictionary = mod.default;
+    assert.deepEqual(validateCatalog(dictionary, english, locale), [], locale);
+    assert.equal(typeof dictionary["card.healthy"], "string", locale);
+    assert.equal(typeof dictionary["event.buildFailure"], "string", locale);
+    assert.notEqual(dictionary["card.healthy"].length, 0, locale);
+  }
+  assert.equal(new Intl.PluralRules("ar").resolvedOptions().pluralCategories.length, 6);
+  assert.equal(plural("age.minute", 0, {}, "ar").includes("دقيقة"), true);
+  assert.equal(t("card.resources", {}, "zh-Hant"), "資源");
+  assert.equal(t("card.resources", {}, "ja"), "リソース");
+  assert.equal(t("card.resources", {}, "ko"), "리소스");
+  assert.equal(t("card.resources", {}, "hi"), "संसाधन");
+  assert.equal(t("card.resources", {}, "bn"), "রিসোর্স");
+  assert.equal(t("card.resources", {}, "th"), "ทรัพยากร");
+  assert.equal(t("card.resources", {}, "id"), "Sumber daya");
+  assert.equal(t("card.resources", {}, "tr"), "Kaynaklar");
+  assert.equal(t("card.resources", {}, "fil"), "Mga resource");
+});
+
+test("Arabic layout applies RTL while resource identifiers are not translated", () => {
+  const doc = {documentElement:{lang:"en",dir:"ltr"},querySelectorAll:()=>[]};
+  const original=currentLocale;
+  try {
+    setLocale("ar");
+    const {localizeDocument}=await import("../apps/desktop/ui/localization.mjs");
+    localizeDocument(doc);
+    assert.equal(doc.documentElement.dir, "rtl");
+    assert.equal(doc.documentElement.lang, "ar");
+    assert.equal(t("card.menuLabel", {name:"worker:alpha"}),
+      "إجراءات المورد worker:alpha");
+  } finally {setLocale(original);}
 });

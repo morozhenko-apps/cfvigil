@@ -8,19 +8,31 @@ import italian from "./locales/it.mjs";
 import polish from "./locales/pl.mjs";
 import dutch from "./locales/nl.mjs";
 import swedish from "./locales/sv.mjs";
+import turkish from "./locales/tr.mjs";
+import indonesian from "./locales/id.mjs";
+import filipino from "./locales/fil.mjs";
+import traditionalChinese from "./locales/zh-Hant.mjs";
+import japanese from "./locales/ja.mjs";
+import korean from "./locales/ko.mjs";
+import hindi from "./locales/hi.mjs";
+import bengali from "./locales/bn.mjs";
+import thai from "./locales/th.mjs";
+import arabic from "./locales/ar.mjs";
 
 // The exact product locale set. Only reviewed dictionaries can be activated.
 export const PLANNED_LOCALES = Object.freeze([
   "en", "ru", "es", "pt", "de", "fr", "it", "pl", "hi", "zh-Hant",
   "ja", "nl", "sv", "tr", "ko", "bn", "th", "id", "fil", "ar"
 ]);
-export const ACTIVE_LOCALES = Object.freeze(["en", "ru", "pt", "es", "de", "fr", "it", "pl", "nl", "sv"]);
+export const ACTIVE_LOCALES = Object.freeze([...PLANNED_LOCALES]);
 export const catalogs = Object.freeze({en: english, ru: russian, pt: portuguese,
   es: spanish, de: german, fr: french,
-  it: italian, pl: polish, nl: dutch, sv: swedish});
+  it: italian, pl: polish, nl: dutch, sv: swedish,
+  "tr": turkish, "id": indonesian, "fil": filipino, "zh-Hant": traditionalChinese, "ja": japanese, "ko": korean, "hi": hindi, "bn": bengali, "th": thai, "ar": arabic});
 export const LANGUAGE_NAMES = Object.freeze({en:"English", ru:"Русский", pt:"Português (Portugal)",
   es:"Español", de:"Deutsch", fr:"Français",
-  it:"Italiano", pl:"Polski", nl:"Nederlands", sv:"Svenska"});
+  it:"Italiano", pl:"Polski", nl:"Nederlands", sv:"Svenska",
+  "tr": "Türkçe", "id": "Bahasa Indonesia", "fil": "Filipino", "zh-Hant": "繁體中文", "ja": "日本語", "ko": "한국어", "hi": "हिन्दी", "bn": "বাংলা", "th": "ไทย", "ar": "العربية"});
 export let currentLocale = "en";
 
 export function setLocale(locale) {
