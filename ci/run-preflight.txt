@@ -37,3 +37,8 @@ startup integration, and all stable JavaScript/Rust regressions once.
 2026-10-24: Verify R2-only release artifact policy and deletion safety:
 no deletion without verified public readback, correct source run/SHA,
 unrelated artifacts unaffected, idempotent cleanup, one-day candidate TTL.
+
+2026-10-24: One source-level Preflight for isolated CFVigil-only R2
+read-only Worker, signed APT builder, protected exact-main/tag release,
+private/public checksum readback, post-upload GitHub artifact deletion,
+and all JS/Python/Rust unit and security regression tests. No live publish.
