@@ -29,3 +29,7 @@ native Tauri autostart plugin compilation, Rust refresh decision and JS UX.
 2026-10-24: Completed keyboard-accessible resource drawer milestone.
 Verify accessible resource menus, focus restoration, incident navigation,
 unchanged five-cell compact card, plus all stable JS and Rust tests.
+
+2026-10-24: Completed atomic private JSON persistence and quarantine recovery.
+Verify Rust crash-safe storage tests, permissions, symlink defense, native
+startup integration, and all stable JavaScript/Rust regressions once.
