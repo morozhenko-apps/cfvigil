@@ -11,6 +11,7 @@ let openMenuKey = null;
 let openMenuTrigger = null;
 let syncAvailable = false;
 let accountConfigured = false;
+let resizing = false;
 
 function clearMenu(restoreFocus = false) {
   const trigger = openMenuTrigger;
@@ -104,6 +105,7 @@ function render() {
   for (const resource of filtered) {
     const row = document.createElement("div");
     row.className = "resource-row";
+    row.setAttribute("role", "listitem");
     row.dataset.key = resource.key;
     if (resource.key === focusedKey) row.classList.add("focused");
     const name = document.createElement("span");
@@ -116,6 +118,8 @@ function render() {
     const lamp = document.createElement("span");
     lamp.className = `lamp ${resource.status}`;
     lamp.title = resource.detail || resource.status;
+    lamp.setAttribute("role", "img");
+    lamp.setAttribute("aria-label", resource.status + ": " + (resource.detail || resource.name));
     const button = document.createElement("button");
     button.className = "more";
     button.type = "button";
@@ -147,6 +151,8 @@ function alertOnResources(message) {
   if (!expanded) button.classList.add("blink");
 }
 async function toggleList() {
+  if (resizing) return;
+  resizing = true;
   const next = !expanded;
   try {
     await invoke("set_card_expanded", { expanded: next });
@@ -169,6 +175,8 @@ async function toggleList() {
     }
   } catch {
     alertOnResources("Unable to resize the card");
+  } finally {
+    resizing = false;
   }
 }
 byId("toggle-list").onclick = toggleList;
