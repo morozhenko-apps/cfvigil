@@ -35,11 +35,13 @@ jobs:
         run: |
           node scripts/candidate-version.mjs --check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node --test tests/*.test.mjs
+          node --test
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          cargo check -p cfvigil-desktop
+          cargo metadata --locked --format-version 1 --no-deps | Out-Null
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          cargo test -p cfvigil-desktop
+          cargo check --locked -p cfvigil-desktop
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo test --locked -p cfvigil-desktop
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Install Tauri CLI
         run: |

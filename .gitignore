@@ -8,3 +8,6 @@
 !*.example
 .DS_Store
 node_modules
+
+# Windows CI icons generated from the committed source PNG
+/apps/desktop/src-tauri/icons/ci-windows/

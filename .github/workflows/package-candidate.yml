@@ -47,8 +47,9 @@ jobs:
             node --check "$file"
           done
           node --test tests/*.test.mjs
-          cargo check -p cfvigil-desktop
-          cargo test -p cfvigil-desktop
+          cargo metadata --locked --format-version 1 --no-deps >/dev/null
+          cargo check --locked -p cfvigil-desktop
+          cargo test --locked -p cfvigil-desktop
       - name: Install Tauri CLI with its locked dependencies
         run: cargo install tauri-cli --version '^2' --locked
       - name: Build unsigned Linux DEB and AppImage candidate
