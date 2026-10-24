@@ -1,4 +1,6 @@
 import { filterHistory, historyTimestamp } from "./history-model.mjs";
+import {localizeDocument, t, plural, eventText} from "./localization.mjs";
+localizeDocument(document);
 
 const invoke = (name, args={}) => window.__TAURI__.core.invoke(name, args);
 const listen = (name, callback) => window.__TAURI__.event.listen(name, callback);
@@ -10,11 +12,11 @@ let events = [];
 
 function render() {
   const filtered = filterHistory(events, search.value, category.value);
-  summary.textContent = `${filtered.length} of ${events.length} events`;
+  summary.textContent = plural("history.eventCount", events.length, {shown:filtered.length, total:events.length});
   const output = document.createDocumentFragment();
   if (!filtered.length) {
     const empty = document.createElement("p");
-    empty.textContent = events.length ? "No matching events." : "No events yet.";
+    empty.textContent = events.length ? t("history.noMatches") : t("history.empty");
     output.append(empty);
   }
   for (const event of filtered) {
@@ -25,23 +27,24 @@ function render() {
     content.className = "history-details";
     const heading = document.createElement("strong");
     heading.textContent = event.name;
+    heading.dir = "auto";
     const meta = document.createElement("time");
     meta.textContent = historyTimestamp(event.at);
     if (Number.isFinite(Date.parse(event.at))) meta.dateTime = event.at;
     const message = document.createElement("span");
-    message.textContent = event.message;
+    message.textContent = eventText(event.message);
     content.append(heading, meta, message);
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = "Cloudflare ↗";
-    button.title = "Open this event in Cloudflare";
+    button.textContent = t("history.open");
+    button.title = t("history.openTitle");
     // Legacy records without a stored URL cannot target their original attempt.
     button.disabled = !event.id || !event.url;
     button.onclick = async () => {
       try {
         await invoke("open_history_event", {id: event.id});
       } catch {
-        button.title = "This historical Cloudflare link is unavailable";
+        button.title = t("history.linkError");
         button.setAttribute("aria-label", button.title);
       }
     };
@@ -57,8 +60,8 @@ async function refreshHistory() {
     events = Array.isArray(snapshot) ? snapshot : [];
     render();
   } catch {
-    summary.textContent = "Event history unavailable";
-    list.textContent = "Unable to load event history.";
+    summary.textContent = t("history.unavailable");
+    list.textContent = t("history.loadError");
   }
 }
 

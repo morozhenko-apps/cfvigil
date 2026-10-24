@@ -1,4 +1,5 @@
 // Pure, deterministic UI status rules. Latest attempt overrides previous failure.
+export {relativeTime} from "./localization.mjs";
 export const STATES = Object.freeze(["healthy", "deploying", "failed", "unknown"]);
 
 export function classifyWorkerBuild(build) {
@@ -36,13 +37,3 @@ export function filterResources(resources, query) {
   return resources.filter(resource => resource.name.toLocaleLowerCase().includes(needle));
 }
 
-export function relativeTime(when, now = Date.now()) {
-  const timestamp = Date.parse(when ?? "");
-  if (!Number.isFinite(timestamp)) return "—";
-  const minutes = Math.max(0, Math.floor((now - timestamp) / 60000));
-  if (minutes < 1) return "now";
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h`;
-  return `${Math.floor(hours / 24)}d`;
-}

@@ -11,3 +11,8 @@
 .history-details span{width:100%;font-size:13px}
 .history-row button{flex:none}
 @media(max-width:500px){.history-controls{grid-template-columns:minmax(0,1fr)}.history-row{align-items:flex-start}.history-row button{font-size:12px}}
+
+/* Do not allow event names or LTR timestamps to reorder neighboring text in RTL. */
+.history-details strong{unicode-bidi:isolate;direction:auto}
+.history-details time{direction:ltr;unicode-bidi:isolate}
+html[dir="rtl"] .history-row,html[dir="rtl"] .history-controls{direction:rtl}

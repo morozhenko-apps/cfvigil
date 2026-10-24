@@ -1,9 +1,11 @@
 import { counters, filterResources, relativeTime } from "./status.mjs";
 import { normalizeSnapshot } from "./snapshot.mjs";
 import { nextResourceIndex } from "./resource-navigation.mjs";
+import {localizeDocument, t, eventText, verboseRelativeTime} from "./localization.mjs";
 const invoke = (command, args = {}) => window.__TAURI__.core.invoke(command, args);
 const listen = (event, callback) => window.__TAURI__.event.listen(event, callback);
 const byId = id => document.getElementById(id);
+localizeDocument(document);
 let resources = [];
 let expanded = false;
 let focusedKey = null;
@@ -46,17 +48,17 @@ function openResourceMenu(resource, trigger) {
   menu.id = "resource-action-menu";
   menu.className = "resource-menu";
   menu.setAttribute("role", "menu");
-  menu.setAttribute("aria-label", "Actions for " + resource.name);
+  menu.setAttribute("aria-label", t("card.menuLabel", {name: resource.name}));
   const open = document.createElement("button");
   open.type = "button";
   open.setAttribute("role", "menuitem");
-  open.textContent = "Open in Cloudflare ↗";
+  open.textContent = t("card.openCloudflare");
   open.onclick = async () => {
     clearMenu(true);
     try {
       await invoke("open_resource", {key: resource.key});
     } catch {
-      alertOnResources("Unable to open Cloudflare");
+      alertOnResources(t("card.openError"));
     }
   };
   menu.append(open);
@@ -92,7 +94,7 @@ function render() {
   if (!resources.length) {
     const message = document.createElement("div");
     message.className = "empty";
-    message.textContent = !accountConfigured ? "Connect Cloudflare in Settings" : syncAvailable ? "No resources found" : "Cloudflare data unavailable";
+    message.textContent = !accountConfigured ? t("card.noAccount") : syncAvailable ? t("card.noResources") : t("card.noData");
     list.append(message);
     return;
   }
@@ -100,7 +102,7 @@ function render() {
   if (!filtered.length) {
     const empty = document.createElement("div");
     empty.className = "empty";
-    empty.textContent = "No matching resources";
+    empty.textContent = t("card.noMatches");
     list.append(empty);
   }
   for (const resource of filtered) {
@@ -109,23 +111,25 @@ function render() {
     row.setAttribute("role", "listitem");
     row.dataset.key = resource.key;
     if (resource.key === focusedKey) row.classList.add("focused");
-    const name = document.createElement("span");
+    const name = document.createElement("bdi");
+    name.dir = "auto";
     name.className = "resource-name";
     name.textContent = resource.name;
     name.title = resource.name;
     const time = document.createElement("span");
     time.className = "resource-time";
     time.textContent = relativeTime(resource.changed_at);
+    time.title = verboseRelativeTime(resource.changed_at);
     const lamp = document.createElement("span");
     lamp.className = `lamp ${resource.status}`;
-    lamp.title = resource.detail || resource.status;
+    lamp.title = eventText(resource.detail || resource.status);
     lamp.setAttribute("role", "img");
-    lamp.setAttribute("aria-label", resource.status + ": " + (resource.detail || resource.name));
+    lamp.setAttribute("aria-label", resource.status + ": " + eventText(resource.detail || resource.name));
     const button = document.createElement("button");
     button.className = "more";
     button.type = "button";
     button.textContent = "⋯";
-    button.setAttribute("aria-label", "Resource options: " + resource.name);
+    button.setAttribute("aria-label", t("card.optionsLabel", {name: resource.name}));
     button.setAttribute("aria-haspopup", "menu");
     button.setAttribute("aria-controls", "resource-action-menu");
     button.setAttribute("aria-expanded", "false");
@@ -164,7 +168,7 @@ async function toggleList() {
     byId("toggle-list").setAttribute("aria-expanded", String(expanded));
     if (expanded) {
       byId("toggle-list").classList.remove("blink");
-      byId("toggle-list").title = "Toggle resource list";
+      byId("toggle-list").title = t("card.toggleTitle");
       await invoke("acknowledge_incident");
       render();
       if (!focusedKey || !focusResource(focusedKey)) byId("search").focus();
@@ -175,7 +179,7 @@ async function toggleList() {
       byId("toggle-list").focus();
     }
   } catch {
-    alertOnResources("Unable to resize the card");
+    alertOnResources(t("card.resizeError"));
   } finally {
     resizing = false;
   }
@@ -227,7 +231,7 @@ await listen("cfvigil-card-hidden", () => {
   byId("toggle-list").setAttribute("aria-pressed","false");
   byId("toggle-list").setAttribute("aria-expanded","false");
   byId("toggle-list").classList.remove("blink");
-  byId("toggle-list").title = "Toggle resource list";
+  byId("toggle-list").title = t("card.toggleTitle");
   announce("");
   clearMenu();
 });
@@ -239,11 +243,11 @@ function applySnapshot(payload) {
   storageWarning = payload?.storage_warning === true;
   if (!byId("toggle-list").classList.contains("blink")) {
     if (storageWarning) {
-      const warning = "Local data was damaged and backed up. See Settings for details.";
+      const warning = t("card.storageWarning");
       byId("toggle-list").title = warning;
       announce(warning);
     } else if (syncAvailable) {
-      byId("toggle-list").title = "Toggle resource list";
+      byId("toggle-list").title = t("card.toggleTitle");
       announce("");
     }
   }
@@ -263,11 +267,11 @@ function presentIncident(payload) {
 }
 await listen("cfvigil-incident", ({payload}) => presentIncident(payload));
 await listen("cfvigil-sync-error", ({payload}) => {
-  announce(payload || "Cloudflare API unavailable");
-  byId("toggle-list").title = payload || "Cloudflare API unavailable";
+  announce(payload || t("card.apiError"));
+  byId("toggle-list").title = payload || t("card.apiError");
 });
 try {
   const snapshot = await invoke("get_snapshot");
   applySnapshot(snapshot);
   if (snapshot.pending_incident) presentIncident(snapshot.pending_incident);
-} catch { alertOnResources("Unable to load resources"); }
+} catch { alertOnResources(t("card.loadError")); }

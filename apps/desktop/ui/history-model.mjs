@@ -1,4 +1,5 @@
 // Pure search/filter logic for the local history window.
+import {formatDate} from "./localization.mjs";
 export const HISTORY_FILTERS = Object.freeze(["all", "incident", "recovery", "update"]);
 
 export function filterHistory(events, query = "", category = "all") {
@@ -13,6 +14,5 @@ export function filterHistory(events, query = "", category = "all") {
 }
 
 export function historyTimestamp(at, language = undefined) {
-  const value = Date.parse(at ?? "");
-  return Number.isFinite(value) ? new Date(value).toLocaleString(language) : "Unknown time";
+  return formatDate(at, language || "en");
 }

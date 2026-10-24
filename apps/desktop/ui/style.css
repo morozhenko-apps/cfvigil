@@ -40,3 +40,9 @@ button{cursor:pointer}
 .resource-menu button:focus-visible,.more:focus-visible,.action:focus-visible,
 .search-row input:focus-visible{outline:2px solid #126eac;outline-offset:2px}
 .resource-menu button:hover,.resource-menu button:focus-visible{background:#eaf5fc}
+
+/* Provider identifiers remain directionally isolated in future RTL layouts. */
+.resource-name{unicode-bidi:isolate;direction:auto}
+.resource-time{direction:ltr;unicode-bidi:isolate}
+html[dir="rtl"] .resource-row{direction:rtl}
+html[dir="rtl"] .actions{direction:rtl}
