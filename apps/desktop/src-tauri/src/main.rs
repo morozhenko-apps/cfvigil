@@ -132,6 +132,7 @@ struct Snapshot {
     configured: bool,
     resources: Vec<Resource>,
     pending_incident: Option<IncidentNotice>,
+    storage_warning: bool,
 }
 
 struct AppState {
@@ -144,6 +145,7 @@ struct AppState {
     ready: AtomicBool,
     refresh_lock: tokio::sync::Mutex<()>,
     poll_refresh: tokio::sync::watch::Sender<u64>,
+    storage_warning: bool,
 }
 
 fn data_path(app: &AppHandle, filename: &str) -> Result<PathBuf, String> {
@@ -152,7 +154,7 @@ fn data_path(app: &AppHandle, filename: &str) -> Result<PathBuf, String> {
     Ok(dir.join(filename))
 }
 
-fn read_json<T: for<'de> Deserialize<'de> + Default>(app: &AppHandle, name: &str) -> Result<T, String> {
+fn read_json<T: for<'de> Deserialize<'de> + Default>(app: &AppHandle, name: &str) -> Result<storage::Loaded<T>, String> {
     storage::read_or_default(&data_path(app, name)?, storage::MAX_JSON_BYTES)
 }
 
@@ -182,6 +184,7 @@ fn current_snapshot(state: &AppState) -> Snapshot {
         configured: !state.config.lock().unwrap().account_id.is_empty(),
         resources: state.resources.lock().unwrap().clone(),
         pending_incident: state.pending_incident.lock().unwrap().clone(),
+        storage_warning: state.storage_warning,
     }
 }
 
@@ -641,18 +644,20 @@ fn main() {
         .plugin(tauri_plugin_autostart::Builder::new().build())
         .setup(|app| {
             let handle = app.handle().clone();
-            let config: Config = read_json(&handle, "settings.json")
+            let settings = read_json::<Config>(&handle, "settings.json")
                 .map_err(std::io::Error::other)?;
-            let stored: IncidentJournal = read_json(&handle, "incident-state.json")
+            let stored = read_json::<IncidentJournal>(&handle, "incident-state.json")
                 .map_err(std::io::Error::other)?;
-            let journal = stored.restore(&config.account_id);
+            let history = read_json::<Vec<HistoryEvent>>(&handle, "events.json")
+                .map_err(std::io::Error::other)?;
+            let storage_warning = settings.quarantined || stored.quarantined || history.quarantined;
+            let journal = stored.value.restore(&settings.value.account_id);
             let (poll_refresh, _receiver) = tokio::sync::watch::channel(0u64);
             app.manage(AppState {
-                config: Mutex::new(config),
+                config: Mutex::new(settings.value),
                 resources: Mutex::new(journal.active.clone()),
                 history: Mutex::new({
-                    let mut events: Vec<HistoryEvent> = read_json(&handle, "events.json")
-                        .map_err(std::io::Error::other)?;
+                    let mut events = history.value;
                     events.truncate(500);
                     normalize_history(&mut events);
                     events
@@ -663,6 +668,7 @@ fn main() {
                 ready: AtomicBool::new(false),
                 refresh_lock: tokio::sync::Mutex::new(()),
                 poll_refresh,
+                storage_warning,
             });
             #[cfg(target_os = "linux")]
             {
@@ -793,6 +799,7 @@ mod security_tests {
             ready: AtomicBool::new(true),
             refresh_lock: tokio::sync::Mutex::new(()),
             poll_refresh,
+            storage_warning: false,
         };
         invalidate_resources(&state, "Credentials unavailable");
         let snapshot = current_snapshot(&state);
