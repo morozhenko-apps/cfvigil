@@ -307,3 +307,31 @@ Reference: Cloudflare API rate-limit and header documentation
 (https://developers.cloudflare.com/fundamentals/api/reference/limits/),
 Workers Builds latest endpoint supports at most 20 script tags per call
 (https://developers.cloudflare.com/api/resources/workers_builds/methods/get_latest_builds/).
+
+## 2026-10-24 — Desktop launch-at-login milestone
+
+Source commits `c0d09e2e3d224139664e79b676819b8f190853e8`
+and `d072ed800677e1505bf65343b9394f87dd3fc0cd` on `dev`
+implement **opt-in**, OS-native autostart:
+- Tauri 2 `tauri-plugin-autostart` registered once in Rust, supporting
+  the official Linux, Windows and macOS platforms; this product's physical
+  acceptance focuses on KDE Linux and Windows x64.
+- `get_autostart` reads the actual operating-system registration. The
+  existing `save_settings` action accepts optional `autostart`; `None`
+  never modifies system startup, including when the OS read fails. Native
+  Rust is the only layer permitted to change the entry; no plugin command
+  permission is granted to JS.
+- Settings adds an opt-in checkbox disabled until the read succeeds. Failed
+  operating-system updates report a clear partial-save error.
+- A pure Rust decision helper prevents a no-op or autostart-only Save from
+  invalidating resource health or waking the Cloudflare poller. Account,
+  token and interval changes retain their existing refresh semantics.
+- JavaScript contract tests cover the opt-in gate and native-only mutation,
+  while Rust tests cover whether a polling refresh is necessary.
+- GitHub-hosted CI compiles and tests source but cannot prove registration
+  works on a real KDE Wayland/X11 login, Windows sign-in, or installed DEB/
+  AppImage paths. These are explicit native acceptance gates.
+
+Official API reference: https://v2.tauri.app/plugin/autostart/
+No `main` fast-forward, release, or system login registration is performed
+by this development commit.

@@ -156,10 +156,36 @@ Cloudflare's documented limits and REST headers:
 https://developers.cloudflare.com/fundamentals/api/reference/limits/
 and https://developers.cloudflare.com/api/resources/workers_builds/methods/get_latest_builds/.
 
+## Optional launch at login (implemented source; physical acceptance pending)
+
+Settings includes an opt-in **Launch CFVigil when I sign in** checkbox.
+It starts unchecked for users who have not already enabled the operating
+system's startup registration. CFVigil never silently turns on autostart
+during installation or first launch.
+
+The native Tauri 2 autostart plugin reads and updates Linux desktop-session
+autostart and Windows user sign-in registration. Only Rust commands can
+perform that action; there are no direct JavaScript autostart permissions.
+The checkbox reads actual OS state, not a potentially stale JSON flag.
+If it cannot be read, Settings disables the checkbox and leaves existing
+registration untouched. Failure to update the OS setting is displayed to
+the user rather than silently treated as success.
+
+CFVigil starts hidden in the tray as it does on manual launch. An
+autostart-only Settings change does **not** invalidate resource statuses,
+reset incident deduplication or trigger an unnecessary Cloudflare request.
+Changing credentials, account or polling interval still wakes the single
+poller as before.
+
+Native startup registration in KDE Wayland/X11 and Windows, desktop
+login/reboot behavior, DEB/AppImage move/upgrade paths and disable/uninstall
+cleanup must be physically checked before release.
+
 ## Settings and tray menu
 
 Right-click menu: Show Card, Event History, Settings, About, Exit.
-Settings: Cloudflare account ID + user-scoped API token, refresh interval.
+Settings: Cloudflare account ID + user-scoped API token, refresh interval,
+and optional launch-at-login registration (off unless enabled explicitly).
 History: chronological local events and resource link.
 The name CFVigil appears in About, not in the card.
 
