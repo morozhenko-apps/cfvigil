@@ -25,3 +25,7 @@ analytics-batch and WAF-zone failures, and all existing Rust/JS regressions.
 
 2026-10-24: Completed opt-in Linux/Windows autostart milestone; verify
 native Tauri autostart plugin compilation, Rust refresh decision and JS UX.
+
+2026-10-24: Completed keyboard-accessible resource drawer milestone.
+Verify accessible resource menus, focus restoration, incident navigation,
+unchanged five-cell compact card, plus all stable JS and Rust tests.
