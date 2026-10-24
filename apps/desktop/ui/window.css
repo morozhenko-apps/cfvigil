@@ -20,3 +20,7 @@ html[dir="rtl"] .history-row,html[dir="rtl"] .history-controls{direction:rtl}
 /* Allow the extra language selector without clipping controls. */
 body{min-width:0}
 #language{width:100%;min-width:0}
+
+/* Localized Settings is content-sized; never inherit a large viewport minimum. */
+html{height:auto;min-height:0}
+body{height:auto;min-height:0;overflow-y:auto}

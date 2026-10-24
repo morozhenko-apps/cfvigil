@@ -3,6 +3,7 @@ import { normalizeSnapshot } from "./snapshot.mjs";
 import { nextResourceIndex } from "./resource-navigation.mjs";
 import {t, resourceDetail, incidentText, verboseRelativeTime, currentLocale, intlLocale} from "./localization.mjs";
 import {initializeLanguage} from "./runtime-language.mjs";
+import {createNativeDragGesture} from "./native-drag.mjs";
 const invoke = (command, args = {}) => window.__TAURI__.core.invoke(command, args);
 const listen = (event, callback) => window.__TAURI__.event.listen(event, callback);
 const byId = id => document.getElementById(id);
@@ -21,6 +22,26 @@ let syncAvailable = false;
 let accountConfigured = false;
 let storageWarning = false;
 let resizing = false;
+let cardVisible = false;
+let idleTimer = null;
+const AUTO_HIDE_MS = 15_000;
+function cancelAutoHide() {
+  if (idleTimer !== null) { clearTimeout(idleTimer); idleTimer = null; }
+}
+function armAutoHide() {
+  cancelAutoHide();
+  if (!cardVisible || expanded || resizing || document.hidden) return;
+  idleTimer = setTimeout(async () => {
+    if (!cardVisible || expanded || resizing) return;
+    try { await invoke("hide_card"); } catch (error) { announce(String(error)); }
+  }, AUTO_HIDE_MS);
+}
+for (const name of ["pointermove", "pointerdown", "keydown", "wheel", "touchstart"]) {
+  document.addEventListener(name, armAutoHide, {passive:true});
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) cancelAutoHide(); else armAutoHide();
+});
 
 function clearMenu(restoreFocus = false) {
   const trigger = openMenuTrigger;
@@ -170,6 +191,8 @@ async function toggleList() {
   try {
     await invoke("set_card_expanded", { expanded: next });
     expanded = next;
+    byId("card").dataset.view = expanded ? "expanded" : "compact";
+    armAutoHide();
     byId("drawer").hidden = !expanded;
     byId("search-row").hidden = !expanded;
     byId("toggle-list").setAttribute("aria-pressed", String(expanded));
@@ -190,6 +213,7 @@ async function toggleList() {
     alertOnResources(t("card.resizeError"));
   } finally {
     resizing = false;
+    armAutoHide();
   }
 }
 byId("toggle-list").onclick = toggleList;
@@ -231,10 +255,11 @@ document.addEventListener("keydown", event => {
   }
 });
 await initializeLanguage({invoke,listen,doc:document,onChange:render});
-await listen("cfvigil-card-hidden", () => {
+function resetCard() {
   expanded = false;
   focusedKey = null;
   byId("search").value = "";
+  byId("card").dataset.view = "compact";
   byId("drawer").hidden = true;
   byId("search-row").hidden = true;
   byId("toggle-list").setAttribute("aria-pressed","false");
@@ -243,6 +268,17 @@ await listen("cfvigil-card-hidden", () => {
   byId("toggle-list").title = t("card.toggleTitle");
   announce("");
   clearMenu();
+}
+await listen("cfvigil-card-reset", resetCard);
+await listen("cfvigil-card-shown", () => {
+  cardVisible = true;
+  armAutoHide();
+});
+await listen("cfvigil-card-hidden", () => {
+  cardVisible = false;
+  cancelAutoHide();
+  stopDragging();
+  resetCard();
 });
 function applySnapshot(payload) {
   const snapshot = normalizeSnapshot(payload);
@@ -284,3 +320,34 @@ try {
   applySnapshot(snapshot);
   if (snapshot.pending_incident) presentIncident(snapshot.pending_incident);
 } catch { alertOnResources(t("card.loadError")); }
+
+/* Drag the card background in either mode. Controls, resource rows and
+   text selection retain their own native click/scroll behavior. */
+const dragSurface = byId("card");
+const dragGesture = createNativeDragGesture({
+  start: () => { cancelAutoHide(); return invoke("start_card_drag"); },
+  stop: async () => { await invoke("stop_card_drag"); armAutoHide(); },
+  onError: error => alertOnResources(String(error))
+});
+let pointerId = null;
+function stopDragging(event = null) {
+  if (event?.pointerId != null && pointerId !== event.pointerId) return;
+  const id = pointerId;
+  if (id === null) return;
+  pointerId = null;
+  dragGesture.end(id);
+  if (dragSurface.hasPointerCapture(id)) dragSurface.releasePointerCapture(id);
+}
+dragSurface.addEventListener("pointerdown", event => {
+  if (event.button !== 0 || !event.isPrimary || !cardVisible ||
+      event.target.closest("button,input,select,a,.resource-row,[role=button]")) return;
+  if (!dragGesture.begin(event.pointerId)) return;
+  pointerId = event.pointerId;
+  dragSurface.setPointerCapture(pointerId);
+});
+dragSurface.addEventListener("pointermove", event => {
+  if (event.pointerId === pointerId && !(event.buttons & 1)) stopDragging(event);
+});
+for (const name of ["pointerup", "pointercancel", "lostpointercapture"]) {
+  dragSurface.addEventListener(name, stopDragging);
+}
