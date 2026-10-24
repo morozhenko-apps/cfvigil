@@ -18,31 +18,45 @@ export function canonicalName(version, suffix) {
   throw Error("Unexpected bundle type");
 }
 
-// Pure selector: detect truncated, duplicate or mixed-version output instead
-// of taking the first file glob returns.
+// Read only final Tauri bundle files. AppImage builds legitimately contain
+// symlinks in intermediate AppDir directories; they are not distributables.
 export function selectArtifacts(names, version) {
   const selected = {};
-  for (const suffix of SUFFIXES) {
-    const candidates = names.filter(name =>
-      name.endsWith(suffix) && name.includes(version) &&
-      !name.split("/").includes("debug"));
+  for (const [dir, suffix] of [["deb", ".deb"], ["appimage", ".AppImage"]]) {
+    const candidates = names.filter(name => name.startsWith(dir + "/") &&
+      !name.slice(dir.length + 1).includes("/") && name.endsWith(suffix));
     if (candidates.length !== 1) {
       throw Error(`Expected exactly one ${suffix} package, found ${candidates.length}`);
+    }
+    const expected = `${dir}/CFVigil_${version}_amd64${suffix}`;
+    if (candidates[0] !== expected) {
+      throw Error(`Unexpected Tauri ${suffix} bundle filename/version`);
     }
     selected[suffix] = candidates[0];
   }
   return selected;
 }
 
-function filesBelow(root, relative = "", visited = {count:0}) {
+export function bundleFiles(root) {
+  if (lstatSync(root).isSymbolicLink() || !lstatSync(root).isDirectory()) {
+    throw Error("Unsafe package output root");
+  }
   const result = [];
-  for (const name of readdirSync(path.join(root, relative))) {
-    const rel = path.join(relative, name);
-    const info = lstatSync(path.join(root, rel));
-    if (++visited.count > 2000) throw Error("Unexpectedly large bundle output tree");
-    if (info.isSymbolicLink()) throw Error("Unsafe symlink in bundle output");
-    if (info.isDirectory()) result.push(...filesBelow(root, rel, visited));
-    else if (info.isFile()) result.push(rel.split(path.sep).join("/"));
+  for (const [dir, suffix] of [["deb", ".deb"], ["appimage", ".AppImage"]]) {
+    const folder = path.join(root, dir);
+    if (lstatSync(folder).isSymbolicLink() || !lstatSync(folder).isDirectory()) {
+      throw Error("Unsafe package output directory");
+    }
+    for (const filename of readdirSync(folder)) {
+      // Never traverse AppDir, AppImage build tools or their symlink trees.
+      if (!filename.endsWith(suffix)) continue;
+      const candidate = path.join(folder, filename);
+      const info = lstatSync(candidate);
+      if (info.isSymbolicLink() || !info.isFile()) {
+        throw Error("Unsafe final package (not a regular file)");
+      }
+      result.push(`${dir}/${filename}`);
+    }
   }
   return result;
 }
@@ -94,7 +108,7 @@ function collect(source, target) {
   if (existsSync(target) && readdirSync(target).length) {
     throw Error("Refusing nonempty candidate staging directory");
   }
-  const paths = filesBelow(source);
+  const paths = bundleFiles(source);
   const choice = selectArtifacts(paths, version);
   const prepared = [];
   for (const suffix of SUFFIXES) {
