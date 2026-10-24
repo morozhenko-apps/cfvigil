@@ -61,3 +61,20 @@ test("dedicated download Worker is read only and not a RepoTicker mirror",()=>{
   assert.doesNotMatch(source,/\.put\(|\.delete\(|\.list\(/);
   assert.match(source,/request\.method !== "GET" && request\.method !== "HEAD"/);
 });
+
+test("release artifact handoff paths match the verified Linux and Windows staging directories", () => {
+  // GitHub interpolates double-braced expressions; any trailing brace is a
+  // literal path character and silently breaks artifact upload/download.
+  assert.doesNotMatch(release,/\$\{\{[^}\n]+\}\}\}/);
+  const handoffPaths = [...release.matchAll(/^\s*path: (\$\{\{ runner\.temp \}\}\/release\/(?:linux|windows)(?:\/\*)?)\s*$/gm)]
+    .map(match => match[1]).sort();
+  assert.deepEqual(handoffPaths, [
+    "${{ runner.temp }}/release/linux",
+    "${{ runner.temp }}/release/linux/*",
+    "${{ runner.temp }}/release/windows",
+    "${{ runner.temp }}/release/windows/*"
+  ]);
+  assert.equal(release.split("\n").filter(line => /^\s*path:.*runner\.temp/.test(line)).length, 4);
+  assert.match(release,/--target "\$RUNNER_TEMP\/release\/linux"/);
+  assert.match(release,/--target "\$folder"/);
+});
