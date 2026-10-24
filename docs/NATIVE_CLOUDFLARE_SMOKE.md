@@ -154,3 +154,39 @@ toast), preserve truthful verified Worker counters on partial API failure,
 then compile and make another unsigned candidate. Do not invent a successful
 Pages response, artificially increment status counters, or force more polling.
 Do not begin Mode B until this installed result is rechecked.
+
+### 2026-10-25 corrective source batch pending installed retest
+
+The user confirmed Worker rows are visible. They also reported no Pages
+entries, no observed yellow state or change in status totals after a rebuild,
+and selection of static UI labels blocking drag.
+
+Root cause confirmed in source: a denied Pages request was discarded when
+Worker discovery succeeded; the snapshot then set `ready=false` for *all*
+counters, even when Worker states were verified. The partial result also
+returned `false` from `refresh_once`, triggering exponential backoff up to
+30 minutes despite healthy Workers discovery. All of this may make a
+successful rebuild appear to be ignored.
+
+Changes: keep endpoint-specific *redacted* diagnostic lines for Workers,
+Workers Builds, Worker deployments, Pages projects, Pages deployments in
+each snapshot; show them atop the expanded drawer; keep verified
+per-status Worker totals on partial success; use normal configured poll
+interval while either provider catalog is available; reserve backoff for
+full discovery outage or exhausted API budget. Removed static-text selection
+from card/Settings/history/about, preserving actual editable text controls.
+Allow dragging from non-interactive resource rows. No API writes or
+Cloudflare credential exposure.
+
+**Remaining owner check:** inspect the native warning banner. In the Cloudflare
+token editor verify **Account → Cloudflare Pages → Read** is actually granted
+(the preceding token screenshot's final scope was unselected). A 403 must
+appear as a Pages permission error, not be presented as zero Pages projects.
+If Pages catalog is 200 + empty array, check the account has Pages projects
+under the configured Account ID. A newly completed build may not increment
+any metric count if its Worker was already green; inspect the row's
+`changed_at`/latest attempt rather than lifetime build counts. A yellow
+interval shorter than the polling cadence may be missed.
+
+The next candidate's source is **not yet accepted** on Alcotester.
+Mode B and broad test coverage remain blocked.

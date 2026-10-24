@@ -692,3 +692,14 @@ panel and retained window position after installing candidate
 these three scenarios; prior failing observations remain in the machine
 gate's history. Do not mark the entire native-machine gate or Mode B
 accepted: Windows and Cloudflare/locale/security scenarios are outstanding.
+
+## 2026-10-25: Partial Cloudflare scope and polling correction
+
+After the first live connection, verified Workers appeared but Pages were
+absent without a visible reason. Source corrections expose redacted
+per-provider HTTP errors, prevent missing Pages permission from hiding
+verified Worker counters, and prevent exponential polling backoff on
+one-provider partial failures. Static UI text selection is disabled so
+native card/Settings dragging works; actual editable inputs remain editable.
+No provider writes or release scope changes. Full CI/candidate verification
+and installed KDE retest pending. Mode B not started.
