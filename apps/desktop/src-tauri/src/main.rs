@@ -44,7 +44,7 @@ use tauri::{
 const KEYRING_SERVICE: &str = "com.morozhenko.cfvigil.cloudflare";
 const KEYRING_USER: &str = "cloudflare-api-token-v1";
 const CARD_WIDTH: f64 = 390.0;
-const COMPACT_HEIGHT: f64 = 122.0;
+const COMPACT_HEIGHT: f64 = 92.0;
 const EXPANDED_HEIGHT: f64 = 510.0;
 
 fn default_refresh() -> u64 {
@@ -395,7 +395,7 @@ fn show_window(app: &AppHandle, label: &str) {
 fn show_card(app: &AppHandle) {
     #[cfg(target_os = "linux")]
     if linux_surface::enabled() {
-        let _ = linux_surface::request_resize(app, 122);
+        let _ = linux_surface::request_resize(app, COMPACT_HEIGHT as i32);
         let _ = app.emit("cfvigil-card-reset", ());
         let _ = linux_surface::show(app);
         let _ = app.emit("cfvigil-card-shown", ());
@@ -415,7 +415,7 @@ fn hide_card(app: AppHandle) {
     #[cfg(target_os = "linux")]
     if linux_surface::enabled() {
         let _ = linux_surface::hide(&app);
-        let _ = linux_surface::request_resize(&app, 122);
+        let _ = linux_surface::request_resize(&app, COMPACT_HEIGHT as i32);
         let _ = app.emit("cfvigil-card-hidden", ());
         return;
     }

@@ -52,3 +52,6 @@ html[dir="rtl"] .actions{direction:rtl}
 .card:active{cursor:grabbing}
 .card button,.card input,.card select{cursor:pointer}
 .card[data-view="compact"]{justify-content:flex-end;align-content:flex-end}
+
+/* Compact height is exactly 70px actions + 2×10px padding + 2px border. */
+.card[data-view="compact"]{gap:0}

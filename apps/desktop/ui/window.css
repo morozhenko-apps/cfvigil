@@ -41,3 +41,38 @@ body{height:auto;min-height:0;overflow-y:auto}
 .settings-page input,.settings-page select{max-width:100%;box-sizing:border-box}
 .settings-page form{gap:12px}
 .settings-page .footer{margin-top:5px}
+
+/* Distinct KDE utility surface: the frameless Settings window must remain
+   clearly bounded against light browser/desktop backgrounds. */
+
+html:has(body.settings-page){height:100%}
+body.settings-page{
+  box-sizing:border-box;
+  height:100%;
+  color-scheme:light;
+  color:#25313d;
+  background:#e8eef4;
+  border:2px solid #8192a3;
+  border-radius:11px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.85),
+    inset 0 3px 12px rgba(40,61,82,.10);
+  overflow-x:hidden;
+  overflow-y:auto;
+}
+.settings-page .window-header{
+  background:#dce5ee;
+  color:#263747;
+  border-bottom:1px solid #acbbc8;
+  font-weight:600;
+}
+.settings-page .settings-content{
+  background:#f7f9fc;
+}
+.settings-page input:not([type="checkbox"]),.settings-page select{
+  background:#fff;
+  color:#25313d;
+  border:1px solid #b0bfcd;
+  border-radius:6px;
+}
+.settings-page .window-close{color:#263747}
+.settings-page .window-close:hover{background:#c8d5e0}

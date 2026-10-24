@@ -29,10 +29,12 @@ impl Default for CardPosition {
 
 
 const WIDTH: i32 = 390;
-const COMPACT_HEIGHT: i32 = 122;
+// The five 70px controls plus 10px padding and 1px border on each edge.
+// Compact content must not inherit the expanded drawer's empty headroom.
+const COMPACT_HEIGHT: i32 = 92;
 static ENABLED: AtomicBool = AtomicBool::new(false);
 static VISIBLE: AtomicBool = AtomicBool::new(false);
-static HEIGHT: AtomicI32 = AtomicI32::new(122);
+static HEIGHT: AtomicI32 = AtomicI32::new(COMPACT_HEIGHT);
 static DRAG_ACTIVE: AtomicBool = AtomicBool::new(false);
 static DRAG_MOVED: AtomicBool = AtomicBool::new(false);
 
@@ -128,14 +130,14 @@ pub fn install(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
     viewport.set_policy(gtk::PolicyType::Never, gtk::PolicyType::Never);
     viewport.set_propagate_natural_height(false);
     viewport.set_propagate_natural_width(false);
-    viewport.set_min_content_height(122);
-    viewport.set_max_content_height(122);
+    viewport.set_min_content_height(COMPACT_HEIGHT);
+    viewport.set_max_content_height(COMPACT_HEIGHT);
     viewport.set_min_content_width(WIDTH);
     viewport.set_max_content_width(WIDTH);
-    viewport.set_size_request(WIDTH, 122);
-    content.set_size_request(WIDTH, 122);
+    viewport.set_size_request(WIDTH, COMPACT_HEIGHT);
+    content.set_size_request(WIDTH, COMPACT_HEIGHT);
     viewport.add(&content);
-    apply_geometry(&layer, 122);
+    apply_geometry(&layer, COMPACT_HEIGHT);
     layer.add(&viewport);
     layer.init_layer_shell();
     layer.set_namespace("cfvigil");
@@ -234,7 +236,7 @@ fn apply_height(window: &gtk::ApplicationWindow, height: i32) -> Result<(), Stri
 }
 
 pub fn request_resize(app: &AppHandle, height: i32) -> Result<(), String> {
-    if height != 122 && height != 510 { return Err("Invalid popup height".into()); }
+    if height != COMPACT_HEIGHT && height != 510 { return Err("Invalid popup height".into()); }
     on_main(app, move |window| {
         if let Err(err) = apply_height(window, height) {
             eprintln!("CFVigil popup resize: {err}");
@@ -243,7 +245,7 @@ pub fn request_resize(app: &AppHandle, height: i32) -> Result<(), String> {
 }
 
 pub async fn resize(app: AppHandle, height: i32) -> Result<(), String> {
-    if height != 122 && height != 510 { return Err("Invalid popup height".into()); }
+    if height != COMPACT_HEIGHT && height != 510 { return Err("Invalid popup height".into()); }
     let (send, receive) = std::sync::mpsc::sync_channel(1);
     app.run_on_main_thread(move || {
         let value = CARD.with(|slot| {
