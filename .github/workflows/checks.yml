@@ -48,6 +48,8 @@ jobs:
           for file in apps/desktop/ui/*.mjs scripts/*.mjs infra/download-worker/src/*.mjs; do
             node --check "$file"
           done
+      - name: Validate localization keys and message contracts
+        run: node scripts/check-i18n.mjs
       - name: Run stable JavaScript tests
         run: node --test tests/*.test.mjs
       - name: Run offline release/Cloudflare distribution tests
