@@ -362,3 +362,35 @@ The last completed preflight for the *previous* launch-at-login block,
 `40085602559`, passed. The new keyboard block requires its own single
 explicit Preflight and real-device KDE Wayland/X11 + Windows confirmation.
 This source work does not imply native interactive acceptance or a release.
+
+## 2026-10-24 — Private crash-safe local state and damage recovery
+
+Completed in source on `dev`:
+- New `storage.rs` implements bounded (4 MiB) typed reads, atomic
+  file replacement via unique same-directory temporary files, file flush,
+  Unix directory sync and `0600` permissions on new and previously existing
+  JSON files. Cloudflare token handling is unchanged and remains exclusively
+  in the OS keychain.
+- Malformed or oversized state is preserved unmodified as a unique
+  `<filename>.corrupt.<pid>.<timestamp>` sibling before defaults are
+  returned; files that cannot be read or quarantined, and symlinks, cause
+  explicit failure rather than silent empty-state replacement.
+- Startup restoration of `settings.json`, `incident-state.json` and
+  `events.json` all uses that same checked storage layer. History is
+  truncated to 500 entries at load, before legacy event IDs are normalized.
+  Persistence errors of event history now emit a redacted diagnostic.
+- A `storage_warning` flag on native snapshots identifies recovery at
+  startup. The compact card exposes the warning through the Resources
+  tooltip and screen-reader status region; Settings describes where to
+  find the preserved backup. There is no additional compact-card overlay.
+- Rust tests cover exact-byte quarantine retention, valid/missing files,
+  oversized reads and writes, second atomic replacement, restrictive Unix
+  permissions, directory misuse and symlink rejection. Node contract tests
+  cover integration into all three records and the UI warning path.
+- Source-level CI is not a substitute for physical interrupted-write testing
+  or Windows filesystem checks. Recovery does not imply automatic repair of
+  lost data; the user must inspect the preserved backup if needed.
+- Prior keyboard accessibility Preflight
+  [#40086493690](https://github.com/morozhenko-apps/cfvigil/actions/runs/40086493690)
+  finished green before this milestone. A new single marker-driven Preflight
+  is still required for the storage work. No main merge or release.

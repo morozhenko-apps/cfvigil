@@ -209,6 +209,34 @@ The source-level tests cover arrow boundary/wrap rules and presence of
 accessibility semantics. Keyboard/scroll/focus behavior on actual KDE
 Wayland/X11 and Windows WebViews must still pass physical acceptance.
 
+## Durable local state and recovery (source implemented; native acceptance pending)
+
+Local app state uses three private JSON records in the operating system's
+per-app configuration folder: `settings.json`, `incident-state.json`,
+and `events.json`. The Cloudflare token remains **exclusively in the OS
+credential store**; it is never copied into any JSON or recovery file.
+
+All JSON writes are bounded to 4 MiB and use a fresh private temporary file
+in the same directory, file flush and atomic rename. On Unix, the new file
+mode is `0600`, and existing state files are restricted to `0600` when
+read. An interrupted write must not truncate the previous complete record.
+
+Malformed or oversized JSON is **moved intact to a uniquely named
+`.corrupt.*` sibling** before any empty/default replacement is accepted.
+The previous bytes remain available for manual recovery. Regular missing
+files still use defaults on first launch; OS permission errors and unsafe
+symlinked state files fail closed rather than being silently interpreted
+as missing. A sanitized diagnostic is logged, and the startup snapshot
+reports a non-secret recovery warning, shown accessibly on the card and in
+Settings. No token or damaged JSON content appears in the warning.
+
+Loaded event history is bounded to the latest 500 records; older valid
+record formats remain supported. Local damaged-state recovery preserves
+the original file but does not reconstruct data automatically or prove
+that event history survived a prior disk failure. Recovery, file permissions
+and interruption behavior still require physical acceptance on KDE and
+Windows filesystems before distribution.
+
 ## Settings and tray menu
 
 Right-click menu: Show Card, Event History, Settings, About, Exit.
