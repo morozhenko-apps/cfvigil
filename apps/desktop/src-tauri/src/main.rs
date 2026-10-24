@@ -121,7 +121,7 @@ struct IncidentNotice {
     message: String,
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 struct Snapshot {
     ready: bool,
     configured: bool,
