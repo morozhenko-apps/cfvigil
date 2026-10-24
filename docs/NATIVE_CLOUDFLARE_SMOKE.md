@@ -117,3 +117,40 @@ resource names, query parameters and user directory paths as appropriate.
 
 **KDE geometry PASS, live Cloudflare connected smoke NOT TESTED.
 Full native-machine gate remains IN PROGRESS; Mode B BLOCKED.**
+
+## 2026-10-25: real connected KDE probe — partial failure
+
+The owner confirmed an actual Cloudflare connection, populated Worker rows,
+search and green lamps on the installed KDE candidate. After a manual
+Cloudflare rebuild, the owner did not observe a yellow state or a change
+to the counters. **Counters represent the number of resources in a state,
+not the lifetime number of builds.** An already-healthy Worker succeeding
+again legitimately leaves the green count unchanged. A short build can
+also finish between polls, so the yellow interval is not guaranteed.
+The resource's latest `changed_at` and attempt identity remain the
+stronger acceptance evidence; they have not yet been compared with
+Cloudflare for the reported rebuild.
+
+The owner reports **zero Pages entries**, with no visible explanation.
+The existing discovery code tolerates an independent Pages failure, but
+drops its error status and publishes the Worker-only snapshot as
+`ready=false`. Existing UI hides all three counters when `ready=false`,
+even if individual Worker states are verified. Distinguish these cases:
+(a) Pages Read scope missing -> 403; (b) Pages catalog legitimately empty;
+(c) malformed/unavailable Pages response; (d) Pages names/data filtered out.
+Cloudflare API confirms `GET /accounts/{id}/pages/projects` requires
+Pages Read or Pages Write. The token screenshot earlier in the session
+showed an empty final permission selector; scope must be verified in the
+Cloudflare dashboard and never inferred.
+
+Owner also reports selectable text in the card resource list and Settings,
+interfering with the drag gesture. Source change should disable selection
+for static UI text in all windows, while retaining selection/normal cursor
+behavior in actual text-entry controls (search, Account ID, API token).
+
+**Implementation ordering:** CSS selection fix, expose redacted per-provider
+HTTP/scope diagnostics in the snapshot and expanded card (not only a transient
+toast), preserve truthful verified Worker counters on partial API failure,
+then compile and make another unsigned candidate. Do not invent a successful
+Pages response, artificially increment status counters, or force more polling.
+Do not begin Mode B until this installed result is rechecked.
