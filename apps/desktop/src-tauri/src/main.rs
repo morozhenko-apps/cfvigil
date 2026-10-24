@@ -12,6 +12,8 @@ mod storage;
 #[cfg(target_os = "linux")]
 mod linux_surface;
 #[cfg(target_os = "linux")]
+mod linux_settings;
+#[cfg(target_os = "linux")]
 mod linux_tray;
 
 use cloudflare::{Cloudflare, Resource};
@@ -451,6 +453,10 @@ fn start_settings_drag(app: AppHandle) -> Result<(), String> {
 #[tauri::command]
 fn fit_settings(app: AppHandle, height: f64) -> Result<(), String> {
     if !height.is_finite() { return Err("Invalid settings height".into()); }
+    #[cfg(target_os = "linux")]
+    if linux_settings::enabled() {
+        return linux_settings::fit(&app, height.ceil() as i32);
+    }
     let window = app.get_webview_window("settings").ok_or("Settings window unavailable")?;
     let height = height.clamp(370.0, 740.0);
     let scale = window.scale_factor().unwrap_or(1.0);
@@ -817,6 +823,7 @@ fn main() {
             #[cfg(target_os = "linux")]
             {
                 linux_surface::install(app)?;
+                linux_settings::install(app)?;
                 // Always log the backend, including fallback. No secrets.
                 eprintln!(
                     "CFVigil surface mode={} session={} wayland_display={} gdk_backend={}",
