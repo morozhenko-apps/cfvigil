@@ -53,10 +53,14 @@ export function validateCatalog(candidate, baseline = english, locale = "en") {
           typeof val.other !== "string" || !val.other.trim()) {
         errors.push(`Invalid plural: ${key}`); continue;
       }
-      for (const category of new Intl.PluralRules(intlLocale(locale)).resolvedOptions().pluralCategories) {
+      const categories = new Intl.PluralRules(intlLocale(locale)).resolvedOptions().pluralCategories;
+      for (const category of categories) {
         if (typeof val[category] !== "string" || !val[category].trim()) {
           errors.push(`Missing plural form ${category}: ${key}`);
         }
+      }
+      for (const category of Object.keys(val)) {
+        if (!categories.includes(category)) errors.push(`Unexpected plural form ${category}: ${key}`);
       }
       const expectedTokens = tokens(ref.other);
       for (const [category, value] of Object.entries(val)) {

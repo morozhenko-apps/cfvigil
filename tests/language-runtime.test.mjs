@@ -16,6 +16,13 @@ test("only complete English, Russian and European Portuguese can be enabled", ()
   assert.deepEqual(ACTIVE_LOCALES, ["en","ru","pt"]);
   assert.deepEqual(validateCatalog(russian, english, "ru"), []);
   assert.deepEqual(validateCatalog(portuguese, english, "pt"), []);
+  // European Portuguese uses CLDR "many" for multiples of one million.
+  assert.ok(new Intl.PluralRules("pt-PT").resolvedOptions().pluralCategories.includes("many"));
+  for (const key of ["age.minute", "age.hour", "age.day", "history.eventCount"]) {
+    assert.equal(typeof portuguese[key].many, "string", key);
+  }
+  assert.equal(plural("history.eventCount", 1000000,
+    {shown:2,total:1000000}, "pt"), "2 de 1000000 eventos");
   assert.equal(intlLocale("pt"), "pt-PT");
   assert.equal(t("card.issues", {}, "ru"), "Проблемы");
   assert.equal(t("card.resources", {}, "pt"), "Recursos");
