@@ -89,6 +89,12 @@ have been added to `dev`. CI and native-platform acceptance are distinct;
   demands it.
 
 ### 0.8 — All 20 standard locales (final product feature)
+
+Source work begun (2026-10-24): English baseline and complete draft dictionaries
+for Russian and European Portuguese are integrated with a separate persistent
+language setting and native menu/window labels. The other 17 locales and
+all 20 contextual audits remain outstanding; do not mark 0.8 accepted yet.
+
 Use exactly the same **20 UI locale codes as PersonalLanding**, preserving
 their meanings and casing:
 

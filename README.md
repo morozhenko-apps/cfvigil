@@ -30,7 +30,7 @@ Windows x64 NSIS **candidates only**; neither publishes a release.
 
 ## Localization readiness
 
-The desktop currently ships **English-only**. Its user interface uses semantic
+The desktop development branch supports **English, Russian and European Portuguese** at the UI layer (the latter two are draft, pending contextual acceptance). Its user interface uses semantic
 keys in `apps/desktop/ui/locales/en.mjs` with native Rust diagnostic strings
 centralized in `native_messages.rs`. Validation for keys, interpolation,
 plural rules, date formatting and RTL direction is available via:

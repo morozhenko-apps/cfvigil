@@ -635,3 +635,16 @@ an undefined `read(...)` helper instead of the existing `source(...)`.
 Correction committed separately in the test file. Python and Rust steps
 were skipped by fail-fast, **not failed**. One follow-up Preflight is required;
 do not label Rust compilation or source acceptance successful yet.
+
+## 2026-10-24: 0.8 partial locale wiring
+
+The initial RU and pt-PT draft dictionaries, independent native locale
+persistence, translated native tray/menu/window labels and cross-WebView
+updates have been integrated on `dev`. The first 0.8 marker failed safely in
+`check-i18n` because the pt-PT plural rule includes `many`, which was
+initially missing from the four plural messages. The catalog and tests have
+been corrected; follow-up CI validation is not yet recorded here.
+
+Do not label the feature milestone complete: 17 non-English dictionaries,
+full native error presentation localization, 20 contextual audit records,
+physical KDE/Windows verification and final Mode B testing remain.

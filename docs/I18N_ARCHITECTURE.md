@@ -1,6 +1,6 @@
 # CFVigil: feature-freeze localization architecture (0.7)
 
-Status: source implementation complete on `dev`; one final Preflight is pending.
+Status: 0.7 source and Preflight completed. 0.8 runtime localization implementation started.
 Only English is enabled; translation/editorial acceptance remains milestone 0.8.
 Scope: centralize all desktop presentation strings without changing provider
 status decisions, incident persistence semantics, Cloudflare query logic, or
@@ -91,3 +91,20 @@ and Windows smoke evidence.
   checked; no history event codes or persistent schema were changed.
 - Preflight (JS syntax, source checker, JS/Python/Rust suites) is the pending
   acceptance gate. No tags, R2 uploads, Worker deploys or `main` changes.
+
+## Stage 0.8 incremental delivery (2026-10-24)
+
+- Two complete non-English draft dictionaries: `ru.mjs` and `pt.mjs`.
+- New native `LanguagePreference` in `language.json`, using existing private
+  atomic JSON persistence and fail-closed language-code validation. Language
+  changes emit `cfvigil-language-changed` without touching the provider poller.
+- WebViews update their own locale and formatted timestamps when they receive
+  the native language event. Settings allows switching before Cloudflare
+  credentials are configured. The native tray labels and window titles update
+  for the enabled locales.
+- Validation now explicitly enforces the CLDR `many` plural category in
+  European Portuguese. The initial CI gate correctly rejected missing forms;
+  the catalog and negative/positive tests were repaired before rerun.
+- The 17 remaining target-language dictionaries, native error message
+  presentation localization, all editorial audits, screenshot/accessibility
+  checks, and full release QA are not yet complete.

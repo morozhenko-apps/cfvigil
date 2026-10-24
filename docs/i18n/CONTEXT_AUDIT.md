@@ -1,7 +1,6 @@
 # CFVigil — 20-locale contextual audit ledger
 
-**Status: PLANNED. No CFVigil translations or language-specific audits have
-been completed.** This ledger will be populated in the final product-feature
+**Status: IN PROGRESS. Russian and European Portuguese draft dictionaries are implemented, not context-approved. No native language-specific audits have been completed.** This ledger will be populated in the final product-feature
 milestone, after all other MVP functionality/distribution work and before
 the exhaustive v1.0.0 test campaign.
 
@@ -13,9 +12,9 @@ owner-approved product decision.
 | Locale | Display language | Context audit | Required attention |
 | --- | --- | --- | --- |
 | en | English | Pending | Developer terminology baseline |
-| ru | Русский | Pending | Deploy/build distinction, plural forms |
+| ru | Русский | Draft dictionary; audit pending | Deploy/build distinction, plural forms |
 | es | Español | Pending | Neutral software/monitoring terminology |
-| pt | Português (Portugal) | Pending | **pt-PT only**, not Brazilian Portuguese |
+| pt | Português (Portugal) | Draft dictionary; audit pending | **pt-PT only**, not Brazilian Portuguese |
 | de | Deutsch | Pending | Technical compounds, clipped labels |
 | fr | Français | Pending | Native technical terms, articles/elision |
 | it | Italiano | Pending | Technical terms, gender agreement |
@@ -47,3 +46,18 @@ guarantee service uptime; an in-progress newer build overrides the previous
 failed attempt; Worker error spikes are not individual failed deployments;
 zone WAF blocks are not proof of an attack or necessarily attributable to
 a Worker; grey is unknown/unverified, not healthy.
+
+## 2026-10-24: 0.8 implementation checkpoint
+
+Complete baseline-key dictionaries have been committed for `ru` and `pt`
+(European Portuguese) with no English-fallback inheritance. The `pt-PT`
+`many` plural forms are included; both dictionaries remain **editorial
+drafts**. Switching via Settings persists independently of account settings
+in `language.json`, updates WebViews, native window titles and native tray
+labels, and does not start a Cloudflare network refresh.
+
+Source-level parity and representative content tests are not equivalent to
+native reviewer sign-off. Run context audit, screenshot/font-width review,
+relative-time, accessibility, RTL, plural and device acceptance when the
+remaining 17 dictionaries are implemented. `en` is the baseline, not an
+accepted target-language editorial review.
