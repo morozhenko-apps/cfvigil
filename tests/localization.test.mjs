@@ -54,6 +54,16 @@ test("catalog diagnostics reject mismatches instead of silently falling back", (
     .includes("Undeclared UI key: missing"));
   assert.ok(referencedKeys({main:'<html lang="en" dir="ltr"><p data-i18n="card.healthy"></p>'},{})
     .keys.has("card.healthy"));
+  assert.ok(checkSourceKeys({
+    keys:new Set(["card.menuLabel"]),errors:[],
+    usages:[{kind:"html",key:"card.menuLabel"}]
+  }, english).some(x => x.includes("HTML key requires parameters")));
+  assert.ok(referencedKeys({main:'<html lang="en" dir="ltr"><p data-i18n-unknown="foo"></p>'},{})
+    .errors.some(x => x.includes("Unsupported localization attribute")));
+  assert.ok(checkSourceKeys({
+    keys:new Set(["history.eventCount"]),errors:[],
+    usages:[{kind:"t",key:"history.eventCount"}]
+  }, english).some(x => x.includes("Expected simple text key")));
 });
 
 test("dates and relative timestamps remain deterministic and locale-aware", () => {

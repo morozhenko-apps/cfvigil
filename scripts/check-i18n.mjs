@@ -15,13 +15,14 @@ const htmlKinds = Object.freeze({
 });
 
 export function referencedKeys(htmlSources, jsSources) {
-  const keys = new Set(), errors = [];
+  const keys = new Set(), errors = [], usages = [];
   for (const [name, html] of Object.entries(htmlSources)) {
-    for (const match of html.matchAll(/\b(data-i18n(?:-title|-placeholder|-aria-label)?)="([^"]+)"/g)) {
+    for (const match of html.matchAll(/\b(data-i18n[a-z-]*)="([^"]+)"/g)) {
       if (!Object.hasOwn(htmlKinds, match[1])) {
         errors.push(`Unsupported localization attribute in ${name}: ${match[1]}`);
       } else {
         keys.add(match[2]);
+        usages.push({key: match[2], kind:"html"});
       }
     }
     if (!/<html\s+lang="en"\s+dir="ltr">/.test(html)) {
@@ -31,14 +32,15 @@ export function referencedKeys(htmlSources, jsSources) {
   for (const [name, source] of Object.entries(jsSources)) {
     // Dynamic inputs must never be used as translation keys. All ordinary
     // presentation calls use literal IDs, and tests exercise the renderer.
-    for (const match of source.matchAll(/\b(?:t|plural)\(\s*"([^"]+)"/g)) {
-      keys.add(match[1]);
+    for (const match of source.matchAll(/\b(t|plural)\(\s*"([^"]+)"/g)) {
+      keys.add(match[2]);
+      usages.push({key:match[2], kind:match[1]});
     }
     if (/\b(?:t|plural)\(\s*(?:resource|event|payload)\b/.test(source)) {
       errors.push(`Provider-supplied translation key in ${name}`);
     }
   }
-  return {keys, errors};
+  return {keys, errors, usages};
 }
 
 export function checkSourceKeys(source, dictionary) {
@@ -48,6 +50,19 @@ export function checkSourceKeys(source, dictionary) {
     else if (typeof dictionary[key] !== "string" &&
              (!dictionary[key] || typeof dictionary[key].other !== "string")) {
       failures.push(`Invalid UI key type: ${key}`);
+    }
+  }
+  for (const usage of source.usages || []) {
+    if (!(usage.key in dictionary)) continue;
+    const value = dictionary[usage.key];
+    if (usage.kind === "plural" && (typeof value !== "object" || !value)) {
+      failures.push(`Expected plural key: ${usage.key}`);
+    }
+    if ((usage.kind === "t" || usage.kind === "html") && typeof value !== "string") {
+      failures.push(`Expected simple text key: ${usage.key}`);
+    }
+    if (usage.kind === "html" && typeof value === "string" && tokens(value).length) {
+      failures.push(`HTML key requires parameters: ${usage.key}`);
     }
   }
   return failures;
