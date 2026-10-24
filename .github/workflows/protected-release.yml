@@ -1,0 +1,239 @@
+name: Protected CFVigil R2 release
+# Tag-only, main-SHA admission; dev pushes never publish.
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+concurrency:
+  group: cfvigil-release
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${ steps.admit.outputs.version }
+    steps:
+      - uses: actions/checkout@v5
+        with: {fetch-depth: 0, persist-credentials: false}
+      - uses: actions/setup-node@v7
+        with: {node-version: 24}
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Admit exact main HEAD and source version
+        id: admit
+        env:
+          RELEASE_TAG: ${ github.ref_name }
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          git fetch --no-tags origin main
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main^{commit})"
+          node scripts/candidate-version.mjs --check-tag "$RELEASE_TAG"
+          cargo metadata --locked --format-version 1 --no-deps >/dev/null
+          node --test tests/*.test.mjs
+          python3 -m unittest discover -s tests -p 'test_release_*.py'
+          echo "version=$(echo "$RELEASE_TAG" | cut -c 2-)" >> "$GITHUB_OUTPUT"
+
+  linux:
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@v5
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v7
+        with: {node-version: 24}
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install native Linux packaging libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends build-essential curl file wget \
+            pkg-config libssl-dev dpkg-dev libwebkit2gtk-4.1-dev libgtk-3-dev \
+            libayatana-appindicator3-dev libgtk-layer-shell-dev libxdo-dev \
+            librsvg2-dev libfuse2t64 libwayland-dev libwayland-bin wayland-protocols
+      - name: Build Linux packages from locked Rust dependencies
+        run: |
+          set -euo pipefail
+          cargo check --locked -p cfvigil-desktop
+          cargo test --locked -p cfvigil-desktop
+          cargo install tauri-cli --version '^2' --locked
+          ( cd apps/desktop/src-tauri && cargo tauri build --bundles deb,appimage )
+          node scripts/candidate-assets.mjs collect \
+            --source target/release/bundle --target "$RUNNER_TEMP/release/linux"
+          ( cd "$RUNNER_TEMP/release/linux" && sha256sum -c ./*.sha256 )
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cfvigil-release-linux
+          path: ${ runner.temp }}/release/linux/*
+          if-no-files-found: error
+          retention-days: 1
+
+  windows:
+    needs: validate
+    runs-on: windows-2025
+    timeout-minutes: 110
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v5
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v7
+        with: {node-version: 24}
+      - uses: dtolnay/rust-toolchain@stable
+        with: {targets: x86_64-pc-windows-msvc}
+      - name: Build Windows x64 NSIS from locked dependencies
+        working-directory: apps/desktop/src-tauri
+        run: |
+          cargo install tauri-cli --version '^2' --locked
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo tauri icon icons/icon.png --output icons
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo check --locked
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo test --locked
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo tauri build --bundles nsis --config tauri.windows.conf.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Validate unsigned installer and checksum
+        run: |
+          $folder=Join-Path $env:RUNNER_TEMP "release/windows"
+          node scripts/windows-candidate-assets.mjs collect --source target/release/bundle --target "$folder"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $exe=Get-ChildItem $folder -Filter "*.exe"
+          if ($exe.Count -ne 1) { throw "Unexpected NSIS installer count" }
+          if ((Get-AuthenticodeSignature $exe[0].FullName).Status -ne "NotSigned") { throw "Unexpected NSIS signing status" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cfvigil-release-windows
+          path: ${ runner.temp }}/release/windows/*
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: [validate, linux, windows]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    environment: cfvigil-release
+    permissions:
+      contents: read
+    outputs:
+      receipt: ${ steps.publish.outputs.receipt }
+    env:
+      VERSION: ${ needs.validate.outputs.version }
+      APPROVED_TAG: ${ vars.CFVIGIL_RELEASE_APPROVED_TAG }
+      CFVIGIL_APT_FINGERPRINT: ${ vars.CFVIGIL_APT_FINGERPRINT }
+      CFVIGIL_R2_ACCOUNT_ID: ${ vars.CFVIGIL_R2_ACCOUNT_ID }
+    steps:
+      - uses: actions/checkout@v5
+        with: {persist-credentials: false}
+      - uses: actions/download-artifact@v4
+        with:
+          name: cfvigil-release-linux
+          path: ${ runner.temp }}/release/linux
+      - uses: actions/download-artifact@v4
+        with:
+          name: cfvigil-release-windows
+          path: ${ runner.temp }}/release/windows
+      - name: Require explicit owner release approval and dedicated environment
+        run: |
+          set -euo pipefail
+          [[ -n "$APPROVED_TAG" && "$APPROVED_TAG" = "$GITHUB_REF_NAME" ]]
+          [[ "$CFVIGIL_APT_FINGERPRINT" =~ ^[a-fA-F0-9]{40}$ ]]
+          [[ "$CFVIGIL_R2_ACCOUNT_ID" =~ ^[a-f0-9]{32}$ ]]
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends apt-utils dpkg-dev gnupg gpgv
+          python3 -m venv "$RUNNER_TEMP/release-python"
+          "$RUNNER_TEMP/release-python/bin/pip" install --no-cache-dir \
+            -r scripts/requirements-release.txt
+          umask 077
+          mkdir -p "$RUNNER_TEMP/private/gnupg"
+          chmod 700 "$RUNNER_TEMP/private/gnupg"
+      - name: Verify dedicated CFVigil signing SUBKEY (primary is never imported)
+        env:
+          SUBKEY_B64: ${ secrets.CFVIGIL_APT_SIGNING_SUBKEY_BASE64 }
+          SUBKEY_PASSPHRASE: ${ secrets.CFVIGIL_APT_SIGNING_PASSPHRASE }
+        run: |
+          set -euo pipefail
+          [[ -n "$SUBKEY_B64" && -n "$SUBKEY_PASSPHRASE" ]]
+          umask 077
+          printf '%s' "$SUBKEY_B64" | base64 --decode > "$RUNNER_TEMP/private/subkey.gpg"
+          printf '%s' "$SUBKEY_PASSPHRASE" > "$RUNNER_TEMP/private/passphrase"
+          gpg --homedir "$RUNNER_TEMP/private/gnupg" --batch \
+            --import "$RUNNER_TEMP/private/subkey.gpg" >/dev/null 2>&1
+          rm -f "$RUNNER_TEMP/private/subkey.gpg"
+          gpg --homedir "$RUNNER_TEMP/private/gnupg" --batch --with-colons \
+            --list-secret-keys "$CFVIGIL_APT_FINGERPRINT" > "$RUNNER_TEMP/private/inventory"
+          python3 scripts/verify_signing_key.py \
+            --listing "$RUNNER_TEMP/private/inventory" --fingerprint "$CFVIGIL_APT_FINGERPRINT"
+          rm -f "$RUNNER_TEMP/private/inventory"
+      - name: Produce signed CFVigil APT snapshot
+        run: |
+          set -euo pipefail
+          python3 scripts/apt_repository.py \
+            --deb "$RUNNER_TEMP/release/linux/cfvigil_$VERSION"_amd64.deb \
+            --out "$RUNNER_TEMP/apt" --version "$VERSION" \
+            --gpg-home "$RUNNER_TEMP/private/gnupg" \
+            --fingerprint "$CFVIGIL_APT_FINGERPRINT" \
+            --passphrase-file "$RUNNER_TEMP/private/passphrase"
+      - name: Publish isolated R2 objects; publicly verify SHA256 and sizes
+        id: publish
+        env:
+          CFVIGIL_R2_ACCESS_KEY_ID: ${ secrets.CFVIGIL_R2_ACCESS_KEY_ID }
+          CFVIGIL_R2_SECRET_ACCESS_KEY: ${ secrets.CFVIGIL_R2_SECRET_ACCESS_KEY }
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/release-python/bin/python" scripts/r2_release.py \
+            --release "$RUNNER_TEMP/release" --apt "$RUNNER_TEMP/apt" \
+            --version "$VERSION" --commit "$GITHUB_SHA" --run-id "$GITHUB_RUN_ID" \
+            --receipt "$RUNNER_TEMP/publication-receipt.json"
+          printf 'receipt=' >> "$GITHUB_OUTPUT"
+          base64 -w0 "$RUNNER_TEMP/publication-receipt.json" >> "$GITHUB_OUTPUT"
+          printf '\n' >> "$GITHUB_OUTPUT"
+      - name: Destroy temporary GPG secret materials
+        if: always()
+        run: |
+          if [[ -d "$RUNNER_TEMP/private/gnupg" ]]; then
+            gpgconf --homedir "$RUNNER_TEMP/private/gnupg" --kill gpg-agent || true
+          fi
+          rm -rf "$RUNNER_TEMP/private"
+
+  cleanup:
+    needs: [validate, linux, windows, publish]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v5
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v7
+        with: {node-version: 24}
+      - name: Delete exact GitHub release archives only after verified R2 receipt
+        env:
+          RECEIPT_BASE64: ${ needs.publish.outputs.receipt }
+          GH_TOKEN: ${ github.token }
+        run: |
+          set -euo pipefail
+          [[ -n "$RECEIPT_BASE64" ]]
+          printf '%s' "$RECEIPT_BASE64" | base64 --decode > "$RUNNER_TEMP/receipt.json"
+          node scripts/cleanup-published-artifacts.mjs --verified-receipt "$RUNNER_TEMP/receipt.json"
+          rm -f "$RUNNER_TEMP/receipt.json"
+
+  github-release:
+    needs: [validate, publish, cleanup]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Text-only GitHub Release with CFVigil R2 download links
+        env:
+          GH_TOKEN: ${ github.token }
+          VERSION: ${ needs.validate.outputs.version }
+        run: |
+          set -euo pipefail
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+            --verify-tag --title "CFVigil $GITHUB_REF_NAME" \
+            --notes "CFVigil $VERSION. Signed APT and installers are hosted only under https://download.morozhenko.com/dist/CFVigil/ . Windows NSIS is unsigned. Verify SHA256 before installation. GitHub Release contains no binary attachments."
