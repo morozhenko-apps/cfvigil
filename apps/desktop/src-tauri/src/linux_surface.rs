@@ -175,7 +175,8 @@ fn on_main(app: &AppHandle, callback: impl FnOnce(&gtk::ApplicationWindow) + Sen
 
 fn apply_height(window: &gtk::ApplicationWindow, height: i32) -> Result<(), String> {
     let old = HEIGHT.load(Ordering::Acquire);
-    if height == old { return Ok(()); }
+    // Reapply exact geometry even when the requested mode did not change:
+    // WebKitGTK may raise the native layer's allocation above its CSS height.
     let widget = window.child().ok_or("Popup viewport missing")?;
     let viewport = widget.downcast::<gtk::ScrolledWindow>()
         .map_err(|_| "Unexpected popup viewport")?;
@@ -193,6 +194,8 @@ fn apply_height(window: &gtk::ApplicationWindow, height: i32) -> Result<(), Stri
         }
     });
     apply_geometry(window, height);
+    viewport.queue_resize();
+    window.queue_resize();
     // Keep bottom and right margins invariant while growing upwards.
     window.set_anchor(Edge::Bottom, true);
     window.set_anchor(Edge::Right, true);
@@ -232,7 +235,14 @@ pub async fn resize(app: AppHandle, height: i32) -> Result<(), String> {
 
 pub fn show(app: &AppHandle) -> Result<(), String> {
     VISIBLE.store(true, Ordering::Release);
-    on_main(app, |window| window.show_all())
+    on_main(app, |window| {
+        // A compact tray activation must not inherit the last expanded
+        // native WebKit minimum. Expansion is an explicit user action.
+        if let Err(error) = apply_height(window, 122) {
+            eprintln!("CFVigil compact layer geometry: {error}");
+        }
+        window.show_all();
+    })
 }
 
 pub fn hide(app: &AppHandle) -> Result<(), String> {
