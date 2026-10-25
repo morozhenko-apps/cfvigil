@@ -58,3 +58,10 @@ Cloudflare Pages project list uses 20-item pagination, numeric provider
 errors are sanitized and 400 no longer falsely claims missing Pages Read.
 Require Preflight #40181633690 SUCCESS and candidate SUCCESS plus SHA256
 sidecars before installing. Do not publish R2, tag, merge main or Mode B.
+
+2026-10-25: Build unsigned unreleased native Alcotester retest candidate for
+Cloudflare Pages 8000024 invalid list options. The catalog's first request
+has zero pagination params and subsequent pages use page only; Pages
+deployment GETs are unpaged, RFC3339 newest wins. Install only after
+Preflight #40185408101 SUCCESS and this candidate SUCCESS with SHA256
+sidecars. No Mode B, R2, main merge or release.
