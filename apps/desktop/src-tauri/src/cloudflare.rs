@@ -202,7 +202,7 @@ impl Cloudflare {
 
     async fn get(&self, token: &str, path: &str, budget: &ApiBudget) -> Result<(Value, usize), String> {
         budget.check()?;
-        let response = self
+        let mut response = self
             .http
             .get(format!("{API}{path}"))
             .bearer_auth(token)
@@ -214,12 +214,14 @@ impl Cloudflare {
         if !status.is_success() {
             // Read only a small bounded Cloudflare error body; use its numeric
             // code, never echo potentially sensitive free-form messages.
-            let failure_body = response.bytes().await
-                .map_err(|_| format!("Cloudflare HTTP {}", status.as_u16()))?;
-            return Err(cloudflare_failure(
-                status,
-                &failure_body[..failure_body.len().min(8192)],
-            ));
+            let mut failure_body = Vec::new();
+            while let Some(chunk) = response.chunk().await
+                .map_err(|_| format!("Cloudflare HTTP {}", status.as_u16()))?
+            {
+                if failure_body.len() + chunk.len() > 8192 { break; }
+                failure_body.extend_from_slice(&chunk);
+            }
+            return Err(cloudflare_failure(status, &failure_body));
         }
         let bytes = response
             .bytes()
