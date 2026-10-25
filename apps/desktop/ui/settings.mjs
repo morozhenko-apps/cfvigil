@@ -1,7 +1,26 @@
 import {t, currentLocale, ACTIVE_LOCALES, LANGUAGE_NAMES} from "./localization.mjs";
 import {initializeLanguage} from "./runtime-language.mjs";
 const invoke = (name, args={}) => window.__TAURI__.core.invoke(name, args);
-const message = document.getElementById("message");
+const message = document.getElementById("message-text");
+const spinner = document.getElementById("save-spinner");
+const token = document.getElementById("token");
+const tokenStatus = document.getElementById("token-status");
+const submit = document.querySelector('button[type="submit"]');
+let saving = false;
+let tokenPresent = false;
+function showTokenPresence(present) {
+  tokenPresent = present;
+  token.placeholder = present ? "••••••••" : t("settings.tokenPlaceholder");
+  tokenStatus.textContent = present ? t("settings.tokenStored") : "";
+}
+function setSaving(busy) {
+  saving = busy;
+  form.setAttribute("aria-busy", String(busy));
+  spinner.hidden = !busy;
+  submit.disabled = busy;
+  document.getElementById("cancel").disabled = busy;
+  document.getElementById("close-settings").disabled = busy;
+}
 const form = document.getElementById("form");
 const autostart = document.getElementById("autostart");
 const autostartHint = document.getElementById("autostart-hint");
@@ -21,6 +40,7 @@ await initializeLanguage({invoke,listen: (event, callback) => window.__TAURI__.e
   doc:document,onChange: () => {
     confirmedLanguage = currentLocale;
     language.value = currentLocale;
+    showTokenPresence(tokenPresent);
     scheduleFit();
   }});
 language.disabled = false;
@@ -33,7 +53,8 @@ function restoreDraft() {
     document.getElementById("account").value = storedSettings.account_id || "";
     document.getElementById("interval").value = String(storedSettings.refresh_seconds);
   }
-  document.getElementById("token").value = "";
+  token.value = "";
+  showTokenPresence(tokenPresent);
   if (storedAutostart !== null) autostart.checked = storedAutostart;
   language.value = confirmedLanguage;
   message.textContent = "";
@@ -71,43 +92,70 @@ document.getElementById("settings-drag-area").addEventListener("pointerdown", ev
   void invoke("start_settings_drag").catch(error => { console.warn(String(error)); });
 });
 const closeSettings = () => {
+  if (saving) return;
   restoreDraft();
   void window.__TAURI__.window.getCurrentWindow().hide();
 };
 document.getElementById("close-settings").onclick = closeSettings;
 document.getElementById("cancel").onclick = () => {
+  if (saving) return;
   restoreDraft();
   void window.__TAURI__.window.getCurrentWindow().hide();
 };
 form.addEventListener("submit", async event => {
   event.preventDefault();
+  if (saving) return;
+  setSaving(true);
   message.textContent = t("settings.saving");
+  const nextAccount = document.getElementById("account").value.trim();
+  const nextRefresh = Number(document.getElementById("interval").value);
+  const replacement = token.value.trim();
+  const nextLanguage = language.value;
   try {
     await invoke("save_settings", {
-      accountId: document.getElementById("account").value.trim(),
-      token: document.getElementById("token").value.trim() || null,
-      refreshSeconds: Number(document.getElementById("interval").value),
-      // Null means no change when the OS startup state is unavailable.
+      accountId: nextAccount,
+      token: replacement || null,
+      refreshSeconds: nextRefresh,
       autostart: autostartLoaded ? autostart.checked : null,
-      language: language.value
+      language: nextLanguage
     });
-    storedSettings = {
-      account_id: document.getElementById("account").value.trim(),
-      refresh_seconds: Number(document.getElementById("interval").value)
-    };
-    document.getElementById("token").value = "";
-    confirmedLanguage = language.value;
-    message.textContent = t("settings.saved");
-    scheduleFit();
-    if (autostartLoaded) {
-      autostart.checked = await invoke("get_autostart");
-      storedAutostart = autostart.checked;
-      autostartHint.textContent = autostart.checked
-        ? t("settings.autostartEnabled")
-        : t("settings.autostartDisabled");
+    storedSettings = {account_id: nextAccount, refresh_seconds: nextRefresh};
+    token.value = "";
+    confirmedLanguage = nextLanguage;
+    // Never return the secret to JS. Only the native bool state is used.
+    try {
+      showTokenPresence(await invoke("get_token_status"));
+    } catch {
+      tokenStatus.textContent = t("settings.tokenUnavailable");
     }
-  } catch (error) { message.textContent = String(error); }
+    message.textContent = t("settings.saved");
+    if (autostartLoaded) {
+      try {
+        autostart.checked = await invoke("get_autostart");
+        storedAutostart = autostart.checked;
+        autostartHint.textContent = autostart.checked
+          ? t("settings.autostartEnabled")
+          : t("settings.autostartDisabled");
+      } catch {
+        autostartLoaded = false;
+        autostart.disabled = true;
+        autostartHint.textContent = t("settings.autostartUnavailable");
+      }
+    }
+  } catch (error) {
+    message.textContent = String(error);
+  } finally {
+    setSaving(false);
+    scheduleFit();
+  }
 });
+
+try {
+  showTokenPresence(await invoke("get_token_status"));
+} catch {
+  tokenStatus.textContent = t("settings.tokenUnavailable");
+}
+
 try {
   const config = await invoke("get_settings");
   storedSettings = config;
