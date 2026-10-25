@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Validate and stage unsigned local Linux candidates. Never uploads remotely.
-import { openSync, readSync, closeSync, readFileSync, readdirSync, existsSync, lstatSync, mkdirSync, copyFileSync, writeFileSync } from "node:fs";
+import { openSync, readSync, closeSync, readFileSync, readdirSync, existsSync, lstatSync, mkdirSync, mkdtempSync, rmSync, copyFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import {tmpdir} from "node:os";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -103,6 +104,63 @@ export function validateDebMetadata(metadata, version) {
   }
 }
 
+// KDE menu launchers resolve a freedesktop Icon= name using installed
+// hicolor resources. Native Tauri window/tray icons alone do not prove it.
+export function validateDebLauncherLayout(desktopContents, relativeIconPaths) {
+  const iconLines = desktopContents.split(/\r?\n/).filter(x => x.startsWith("Icon="));
+  if (iconLines.length !== 1) {
+    throw Error("DEB launcher must define exactly one Icon= field");
+  }
+  const name = iconLines[0].slice(5).trim();
+  if (!/^[A-Za-z0-9_.-]+$/.test(name) || name === "." || name === "..") {
+    throw Error("DEB launcher Icon= must be a safe themed icon name");
+  }
+  const matches = relativeIconPaths.filter(relative => {
+    const segments = relative.split("/");
+    return segments.length === 3 && /^\d+x\d+$/.test(segments[0]) &&
+      segments[1] === "apps" && segments[2] === name + ".png";
+  });
+  if (!matches.length) {
+    throw Error("DEB launcher Icon=" + name + " has no matching hicolor PNG");
+  }
+  return {name, paths:matches};
+}
+
+function inspectDebLauncher(filename) {
+  const temp = mkdtempSync(path.join(tmpdir(), "cfvigil-deb-icons-"));
+  try {
+    execFileSync("dpkg-deb", ["-x", filename, temp], {maxBuffer:65536});
+    const applications = path.join(temp, "usr/share/applications");
+    const entries = readdirSync(applications).filter(name => name.endsWith(".desktop"));
+    if (entries.length !== 1) throw Error("Expected exactly one DEB desktop launcher");
+    const desktop = path.join(applications, entries[0]);
+    if (!lstatSync(desktop).isFile()) throw Error("Unsafe DEB desktop entry");
+    const content = readFileSync(desktop, "utf8");
+    const themeRoot = path.join(temp, "usr/share/icons/hicolor");
+    const relativeIcons = [];
+    for (const size of readdirSync(themeRoot)) {
+      if (!/^\d+x\d+$/.test(size)) continue;
+      const folder = path.join(themeRoot, size, "apps");
+      if (!existsSync(folder)) continue;
+      relativeIcons.push(...readdirSync(folder).map(name => size + "/apps/" + name));
+    }
+    const resolved = validateDebLauncherLayout(content, relativeIcons);
+    for (const relative of resolved.paths) {
+      const file = path.join(themeRoot, relative);
+      if (!lstatSync(file).isFile()) throw Error("Unsafe DEB hicolor image");
+      const png = readFileSync(file);
+      if (png.length < 33 || !png.subarray(0,8).equals(
+        Buffer.from([137,80,78,71,13,10,26,10]))) {
+        throw Error("DEB launcher references malformed PNG");
+      }
+    }
+    console.log("Verified KDE launcher Icon=" + resolved.name +
+      " and " + resolved.paths.length + " installed hicolor PNG(s)");
+  } finally {
+    rmSync(temp, {recursive:true, force:true});
+  }
+}
+
 function collect(source, target) {
   const version = sourceVersion();
   if (!existsSync(source) || !lstatSync(source).isDirectory()) {
@@ -127,6 +185,7 @@ function collect(source, target) {
       if (prefix(from,8).toString("ascii") !== "!<arch>\n") {
         throw Error("Invalid Debian archive header");
       }
+      inspectDebLauncher(from);
     } else {
       const magic = prefix(from,4);
       if (!magic.equals(Buffer.from([0x7f,0x45,0x4c,0x46]))) {
