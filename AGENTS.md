@@ -87,7 +87,7 @@ Plan and milestones:
    "not executed" introductions contradict later dated evidence. KDE geometry
    has scoped owner PASS; connected Cloudflare is partial, corrected source
    awaits installed retest, Windows/editorial/overall machine gates remain open.
-2. [ ] Reconcile root status and compact navigation to all existing owners.
+2. [x] Reconcile root status and compact navigation to all existing owners.
    Retain the complete previous root in the existing delivery chronology with
    only link/heading/Markdown whitespace normalization; preserve root anchors.
    Add reading-boundary prefaces to delivery and both native checkpoint owners,

@@ -1,5 +1,24 @@
 # CFVigil Cloudflare-connected native smoke (before broad test coverage)
 
+## Current checkpoint (2026-10-25)
+
+The initial READY/NO LIVE PASS introduction below predates the actual connected
+KDE probe retained later in this file. Worker discovery/search/green lamps were
+observed; missing Pages and partial readiness produced an incomplete result.
+Do not treat either old "not observed" text or partial success as full PASS.
+Corrected source exposes redacted per-provider warnings, retains verified
+Worker counters and normal polling while one catalog works, and fixes static
+text selection/row dragging. Installed retest remains pending.
+
+Read all original minimum-permission and redaction rules below. Pages 403 must
+be distinguished from a verified 200/empty catalog; no token scope is inferred
+from an incomplete screenshot. Counters describe resource states, not lifetime
+build counts; a short running attempt may fall between polls. Do not induce
+failures/traffic or broaden API rights for a synthetic red/yellow observation.
+Overall [machine acceptance](NATIVE_MACHINE_GATE.md) is still IN PROGRESS;
+Windows, incident, offline/keyring and locale cases retain their own gaps.
+
+
 **Status: READY FOR MANUAL EXECUTION; NO LIVE CLOUD­FLARE PASS CLAIMED.**
 Owner's previously installed and checksum-verified KDE candidate is Linux
 Actions run [#40137438889](https://github.com/morozhenko-apps/cfvigil/actions/runs/40137438889)
