@@ -21,6 +21,40 @@ ICONS = ROOT / "apps" / "desktop" / "src-tauri" / "icons"
 WEBVIEW = ROOT / "apps" / "desktop" / "ui" / "icon.png"
 SIZES = (16, 24, 32, 48, 64, 128, 256, 512)
 ICO_SIZES = tuple((size, size) for size in SIZES if size <= 256)
+# Deliberately small visual breathing room at every display size; not 5%
+# additional alpha on top of a source that already has transparent margins.
+PADDING_PERCENT = 5
+ALPHA_THRESHOLD = 8
+
+
+def normalize_icon(source: Image.Image) -> tuple[Image.Image, tuple[int, int, int, int]]:
+    """Fit visible RGBA pixels inside a square source-sized transparent canvas.
+
+    Alpha-bounds are computed before resampling; low-alpha dust is ignored.
+    Crop preserves the image's existing alpha. IMPORTANT: paste WITHOUT a
+    mask, otherwise RGBA alpha is multiplied by itself and becomes faded.
+    The owner-provided source PNG remains untouched on disk.
+    """
+    if source.width != source.height or source.mode != "RGBA":
+        raise ValueError("Expected square RGBA icon source")
+    opaque_enough = source.getchannel("A").point(
+        lambda a: 255 if a >= ALPHA_THRESHOLD else 0
+    )
+    bounds = opaque_enough.getbbox()
+    if bounds is None:
+        raise ValueError("Icon has no visible pixels above alpha threshold")
+    cropped = source.crop(bounds)
+    side = source.width
+    inset = round(side * PADDING_PERCENT / 100)
+    limit = side - 2 * inset
+    factor = limit / max(cropped.width, cropped.height)
+    scaled_size = tuple(max(1, min(limit, round(dim * factor)))
+                        for dim in cropped.size)
+    scaled = cropped.resize(scaled_size, Image.Resampling.LANCZOS)
+    result = Image.new("RGBA", source.size, (0, 0, 0, 0))
+    offset = ((side - scaled.width) // 2, (side - scaled.height) // 2)
+    result.paste(scaled, offset)
+    return result, bounds
 
 
 def encoded(image: Image.Image, image_format: str, **options) -> bytes:
@@ -68,15 +102,24 @@ def main():
         if img.width != img.height or img.width < 512:
             parser.error("Expected a square source at least 512x512")
         img.load()
-        base = img.copy()
-    if base.getpixel((0, 0))[3] != 0:
-        print("WARNING: source top-left corner is not fully transparent")
+        original = img.copy()
+    try:
+        base, bounds = normalize_icon(original)
+    except ValueError as error:
+        parser.error(str(error))
 
     rendered = list(assets(base))
     manifest = {
         "source": str(SOURCE.relative_to(ROOT)),
         "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
-        "source_size": [base.width, base.height],
+        "source_size": [original.width, original.height],
+        "normalization": {
+            "method": "alpha-bbox-fit",
+            "alpha_threshold": ALPHA_THRESHOLD,
+            "padding_percent": PADDING_PERCENT,
+            "bbox_xyxy": list(bounds),
+            "output_size": [base.width, base.height],
+        },
         "files": {
             str(path.relative_to(ROOT)): hashlib.sha256(data).hexdigest()
             for path, data in rendered
@@ -98,9 +141,10 @@ def main():
     if args.check and changed:
         parser.error("Icon assets missing or stale: " + ", ".join(changed))
     if args.check:
-        print("PASS: every platform icon matches the original RGBA PNG")
+        print("PASS: every normalized platform icon matches the owner RGBA PNG")
     else:
         print(f"Imported {source.relative_to(ROOT) if source.is_relative_to(ROOT) else source}")
+        print(f"Normalized visible alpha bbox {bounds} with {PADDING_PERCENT}% outer padding")
         print(f"Generated {len(changed)-1} desktop / WebView icon files and source-manifest.json")
         print("Review icon-16.png, icon-24.png, icon-32.png on light/dark tray panels")
         print("Commit the original and the generated files together")
