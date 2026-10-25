@@ -72,16 +72,16 @@ test("Debian menu entry must reference an installed themed CFVigil PNG", () => {
     "scalable/apps/unrelated.svg",
   ];
   assert.deepEqual(validateDebLauncherLayout(
-    "[Desktop Entry]\\nName=CFVigil\\nIcon=cfvigil\\n", files), {
+    "[Desktop Entry]\nName=CFVigil\nIcon=cfvigil\n", files), {
     name:"cfvigil", paths:files.slice(0,3),
   });
   assert.throws(() => validateDebLauncherLayout(
-    "[Desktop Entry]\\nIcon=old-default\\n", files), /no matching hicolor PNG/);
+    "[Desktop Entry]\nIcon=old-default\n", files), /no matching hicolor PNG/);
   assert.throws(() => validateDebLauncherLayout(
-    "[Desktop Entry]\\nName=CFVigil\\n", files), /exactly one Icon/);
+    "[Desktop Entry]\nName=CFVigil\n", files), /exactly one Icon/);
   assert.throws(() => validateDebLauncherLayout(
-    "[Desktop Entry]\\nIcon=../../outside\\n", files), /safe themed icon/);
+    "[Desktop Entry]\nIcon=../../outside\n", files), /safe themed icon/);
   assert.throws(() => validateDebLauncherLayout(
-    "[Desktop Entry]\\nIcon=cfvigil\\nIcon=old-default\\n", files),
+    "[Desktop Entry]\nIcon=cfvigil\nIcon=old-default\n", files),
     /exactly one Icon/);
 });
