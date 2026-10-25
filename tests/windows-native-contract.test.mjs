@@ -45,3 +45,27 @@ test("Settings saves asynchronously with visible progress and masked token state
   assert.match(html, /id="save-spinner"/);
   assert.doesNotMatch(ui, /localStorage|sessionStorage/);
 });
+
+test("Windows card uses measured outer size and its own resize completion anchor", () => {
+  const card = read("apps/desktop/src-tauri/src/windows_card.rs");
+  assert.match(card, /anchored_position\(anchor, measured_height\)/);
+  assert.match(card, /window\.outer_size\(\)/);
+  assert.match(card, /window\.inner_size\(\)\.ok\(\) == Some\(expected\)/);
+  assert.match(card, /WindowEvent::Resized/);
+  assert.match(card, /windows-card-geometry\.log/);
+});
+
+test("Windows card has no white native frame and hide icon is centered SVG", () => {
+  const config = JSON.parse(read("apps/desktop/src-tauri/tauri.conf.json"));
+  const main = config.app.windows.find(window => window.label === "main");
+  assert.equal(main.transparent, true);
+  assert.equal(main.shadow, false);
+  const html = read("apps/desktop/ui/index.html");
+  const css = read("apps/desktop/ui/style.css");
+  assert.match(html, /id="hide"[^>]*><span class="glyph glyph-chevron"/);
+  assert.match(html, /<svg viewBox="0 0 24 24"/);
+  assert.doesNotMatch(html, />⌄<\/span>/);
+  assert.match(css, /\.glyph-chevron\{display:grid;place-items:center;width:26px;height:26px/);
+  assert.match(css, /\.glyph-chevron svg\{display:block;width:22px;height:22px/);
+  assert.match(css, /html,body\{[^}]*background:transparent/);
+});

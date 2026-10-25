@@ -20,7 +20,8 @@
         "decorations": false,
         "alwaysOnTop": true,
         "skipTaskbar": true,
-        "transparent": true
+        "transparent": true,
+        "shadow": false
       },
       {
         "label": "settings",

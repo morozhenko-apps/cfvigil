@@ -3,6 +3,8 @@
 //! the intermediate top-left produced by expanding/contracting a WebView.
 use crate::{read_json, write_json, CARD_WIDTH, COMPACT_HEIGHT};
 use serde::{Deserialize, Serialize};
+use std::fs::OpenOptions;
+use std::io::Write as _;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Mutex,
@@ -58,11 +60,52 @@ fn default_anchor(window: &WebviewWindow) -> Anchor {
     current_anchor(window).unwrap_or(Anchor {x: 20, bottom: 300})
 }
 
-fn move_to_anchor(window: &WebviewWindow, anchor: Anchor, height: f64) -> Result<(), String> {
-    let top = i64::from(anchor.bottom) - i64::from(physical_height(window, height));
+// Native physical height, not requested logical content height, owns the anchor.
+// Windows frame metrics and fractional DPI can change that height by a few pixels.
+fn anchored_position(anchor: Anchor, measured_outer_height: u32) -> Result<PhysicalPosition<i32>, String> {
+    let top = i64::from(anchor.bottom) - i64::from(measured_outer_height);
     let top = i32::try_from(top).map_err(|_| "Card position out of bounds")?;
-    window.set_position(PhysicalPosition::new(anchor.x, top))
-        .map_err(|_| "Unable to position Windows card".to_owned())
+    Ok(PhysicalPosition::new(anchor.x, top))
+}
+
+fn move_to_anchor(window: &WebviewWindow, anchor: Anchor) -> Result<(), String> {
+    let measured_height = window.outer_size()
+        .map_err(|_| "Unable to read Windows card size")?.height;
+    let next = anchored_position(anchor, measured_height)?;
+    // A redundant native move after a drag must not shift the card on first reopen.
+    if window.outer_position().ok() == Some(next) { return Ok(()); }
+    window.set_position(next).map_err(|_| "Unable to position Windows card".to_owned())
+}
+
+fn resize_if_needed(window: &WebviewWindow, height: f64) -> Result<(), String> {
+    let scale = window.scale_factor().map_err(|_| "Unable to read Windows DPI scale")?;
+    let expected = tauri::PhysicalSize::new(
+        (CARD_WIDTH * scale).round() as u32,
+        physical_height(window, height) as u32,
+    );
+    if window.inner_size().ok() == Some(expected) { return Ok(()); }
+    window.set_size(tauri::LogicalSize::new(CARD_WIDTH, height))
+        .map_err(|_| "Unable to resize Windows card".to_owned())
+}
+
+// GUI releases do not have a console. Geometry-only diagnostics are opt-in.
+// Set CFVIGIL_UI_DEBUG=1 to trace drag and tray reopen on an actual Windows PC.
+fn trace_geometry(app: &AppHandle, window: &WebviewWindow, phase: &str, anchor: Anchor) {
+    if std::env::var_os("CFVIGIL_UI_DEBUG").is_none() { return; }
+    let (Ok(pos), Ok(outer), Ok(inner), Ok(scale)) = (
+        window.outer_position(), window.outer_size(),
+        window.inner_size(), window.scale_factor(),
+    ) else { return };
+    let Ok(path) = crate::data_path(app, "windows-card-geometry.log") else { return };
+    let reset = path.metadata().is_ok_and(|info| info.len() >= 128 * 1024);
+    let Ok(mut file) = OpenOptions::new().create(true).write(true)
+        .append(!reset).truncate(reset).open(path) else { return };
+    let timestamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |elapsed| elapsed.as_millis());
+    let _ = writeln!(file,
+        "{timestamp} {phase} anchor=({}, {}) outer=({}, {}) {}x{} inner={}x{} dpi={scale}",
+        anchor.x, anchor.bottom, pos.x, pos.y,
+        outer.width, outer.height, inner.width, inner.height);
 }
 
 pub fn install(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
@@ -86,10 +129,12 @@ pub fn restore_for_show(app: &AppHandle, window: &WebviewWindow) {
         let mut saved = state.anchor.lock().unwrap();
         *saved.get_or_insert_with(|| default_anchor(window))
     };
-    let _ = window.set_size(tauri::LogicalSize::new(CARD_WIDTH, COMPACT_HEIGHT));
-    if let Err(error) = move_to_anchor(window, anchor, COMPACT_HEIGHT) {
+    trace_geometry(app, window, "show.before", anchor);
+    if let Err(error) = resize_if_needed(window, COMPACT_HEIGHT)
+        .and_then(|_| move_to_anchor(window, anchor)) {
         eprintln!("CFVigil Windows card restore failed: {error}");
     }
+    trace_geometry(app, window, "show.after", anchor);
 }
 
 pub fn resize_anchored(
@@ -104,9 +149,11 @@ pub fn resize_anchored(
             current_anchor(window).unwrap_or_else(|| default_anchor(window))
         })
     };
-    window.set_size(tauri::LogicalSize::new(CARD_WIDTH, height))
-        .map_err(|_| "Unable to resize Windows card".to_owned())?;
-    move_to_anchor(window, anchor, height)
+    trace_geometry(app, window, "resize.before", anchor);
+    resize_if_needed(window, height)?;
+    move_to_anchor(window, anchor)?;
+    trace_geometry(app, window, "resize.after", anchor);
+    Ok(())
 }
 
 pub fn collapse_hidden(app: &AppHandle, window: &WebviewWindow) {
@@ -135,15 +182,29 @@ pub fn end_drag(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         if let Some(anchor) = current_anchor(&window) {
             *state.anchor.lock().unwrap() = Some(anchor);
+            trace_geometry(app, &window, "drag.final", anchor);
             persist_anchor(app, anchor);
         }
     }
 }
 
 pub fn on_window_event(window: &Window, event: &WindowEvent) {
-    let WindowEvent::Moved(position) = event else { return };
     let app = window.app_handle();
     let state = app.state::<NativeCard>();
+    if let WindowEvent::Resized(_) = event {
+        // Late Win32 resize notifications must preserve the real bottom edge.
+        if !state.dragging.load(Ordering::Acquire) {
+            let anchor = *state.anchor.lock().unwrap();
+            if let (Some(anchor), Some(card)) = (anchor, app.get_webview_window("main")) {
+                if let Err(error) = move_to_anchor(&card, anchor) {
+                    eprintln!("CFVigil Windows card resize anchor failed: {error}");
+                }
+                trace_geometry(app, &card, "resize.event", anchor);
+            }
+        }
+        return;
+    }
+    let WindowEvent::Moved(position) = event else { return };
     if !state.dragging.load(Ordering::Acquire) { return; }
     if let Ok(size) = window.outer_size() {
         let bottom = i64::from(position.y) + i64::from(size.height);
@@ -166,7 +227,12 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
                     false
                 }
             };
-            if should_write { persist_anchor(app, anchor); }
+            if should_write {
+                if let Some(card) = app.get_webview_window("main") {
+                    trace_geometry(app, &card, "drag.moved", anchor);
+                }
+                persist_anchor(app, anchor);
+            }
         }
     }
 }
@@ -182,6 +248,16 @@ mod tests {
         assert_eq!(top(510) + 510, top(92) + 92);
         assert_eq!(top(510), 390);
         assert_eq!(top(92), 808);
+    }
+
+    #[test]
+    fn native_outer_height_prevents_first_reopen_shift_after_drag() {
+        let saved = Anchor {x: -100, bottom: 900};
+        let native = anchored_position(saved, 100).unwrap();
+        assert_eq!((native.x, native.y), (-100, 800));
+        assert_eq!(native.y + 100, saved.bottom);
+        assert_ne!(anchored_position(saved, 92).unwrap().y, native.y);
+        assert_eq!(anchored_position(saved, 100).unwrap(), native);
     }
 
     #[test]
