@@ -27,3 +27,10 @@ subsequent docs-only acceptance notes. Verify icon manifest and stable
 native Windows contracts, no deployment, tag, main merge, signing or R2.
 The candidate is for the Windows physical gate BEFORE Mode B; Windows
 installation requires explicit user action on their own workstation.
+
+2026-10-25: Retest physical Windows failures with unsigned NSIS. Build the
+same source as Preflight for Windows 11: native tray click toggles visible
+card; expanded window contracts correctly on hide; bottom anchored position
+survives repeated opens and full restart; Apply indicator and stored-token
+presence never expose the secret; release binary does not open console.
+Owner must run on Windows before any PASS or Mode B. No signing or R2.

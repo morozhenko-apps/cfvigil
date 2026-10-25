@@ -152,3 +152,10 @@ are unsigned native-machine candidates only. No main, tags, R2 or Mode B.
 Icon=hicolor installable image, stable Node/Python/Rust suites and build a
 fresh unreleased DEB/AppImage on exactly this SHA. Earlier installed DEB
 predates asset commit and cannot show this image. No main/Mode B/R2/tags.
+
+2026-10-25: Windows physical failure batch. Check saved-token status is
+boolean only, long Apply is nonblocking during Cloudflare discovery by
+revision-guarding the stale response, Windows tray hide/show resets native
+height, Windows-only persistent bottom anchor, no release console and
+20 consistent UI catalogs. Run one stable Preflight for the completed
+batch only. Do not touch Linux Layer Shell geometry or main/releases.
