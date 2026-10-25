@@ -1,17 +1,32 @@
 {
   "files": {
-    "apps/desktop/src-tauri/icons/icon-128.png": "3e5530600ddc8d8b0e8c70ab92b64defb3f91209a29d13636437efdb3223c848",
-    "apps/desktop/src-tauri/icons/icon-16.png": "0967fc37057d00b4ab9d6de342533fd27d18c5b8b1855ff4279c6c203371737e",
-    "apps/desktop/src-tauri/icons/icon-24.png": "d9d731cfb0559049dd79aac0bb40e1aa6a8842d84a000c5678354e7269c1f1ae",
-    "apps/desktop/src-tauri/icons/icon-256.png": "ad87e1e4eb49c1cdb9840b2cb8b7e740ed43841dd93ab719a584179802e0e314",
-    "apps/desktop/src-tauri/icons/icon-32.png": "52265347c68939d56704fb3a872de63d554501c6539e519cd22bd2c57eef6e90",
-    "apps/desktop/src-tauri/icons/icon-48.png": "8ca955356cc7b68132b2e6a172a396d7ba9e74e6ebdb9e5f398a36761d769fce",
-    "apps/desktop/src-tauri/icons/icon-512.png": "b0520e12d40e7057167fb5808fc8c32e4484b4e614f80d489dce8004a1a37485",
-    "apps/desktop/src-tauri/icons/icon-64.png": "1e4c794fa1af25d348f532436ac58d26371ab2e456249fc306fce4cc98a0e20e",
-    "apps/desktop/src-tauri/icons/icon.icns": "e5139231df5d65980e03783d06c2842e25affff4951c4678ae001afccea36bde",
-    "apps/desktop/src-tauri/icons/icon.ico": "dfe0c43b06cf68837f321b2236c357e3d53493f402a48d82bb8c6d8575bcdf57",
-    "apps/desktop/src-tauri/icons/icon.png": "ad87e1e4eb49c1cdb9840b2cb8b7e740ed43841dd93ab719a584179802e0e314",
-    "apps/desktop/ui/icon.png": "3e5530600ddc8d8b0e8c70ab92b64defb3f91209a29d13636437efdb3223c848"
+    "apps/desktop/src-tauri/icons/icon-128.png": "2058f94fdc08820f024cf10f2e1c1cd66b9f0d343ef098dfd334e0a6a2c017cf",
+    "apps/desktop/src-tauri/icons/icon-16.png": "4deb71857e4327cf0907f65e293441a8385c1604711c8fc35f225b8f8f3060b5",
+    "apps/desktop/src-tauri/icons/icon-24.png": "fe066add6870fd9e1a36cf175809b25a35abbd0b631f7bf91ce640c8d72817c8",
+    "apps/desktop/src-tauri/icons/icon-256.png": "24710151b52ca052119e50306e16fc1bad006be01d55711ddb674d5cdf156437",
+    "apps/desktop/src-tauri/icons/icon-32.png": "446bab3e14974a6fd86cc23160c7fcb0a15c1b3c8b9779838942b63fe092f8f3",
+    "apps/desktop/src-tauri/icons/icon-48.png": "ae5029fb1877e92ded0f5d048443d88de145dad586568accfedd8f6a37ff1808",
+    "apps/desktop/src-tauri/icons/icon-512.png": "19383d385a9271c2a56b45c5b133706072b84e91928a58d3ce4243323ba7cfa2",
+    "apps/desktop/src-tauri/icons/icon-64.png": "7181f6ec8e2917677a0af26bbfb4d356ff58368c8c58009783fe6dab49d6aa6e",
+    "apps/desktop/src-tauri/icons/icon.icns": "7f400623eb53663a593e7ed8eb8a572b2866e714b71a6bc8cd1ced8c11e576b6",
+    "apps/desktop/src-tauri/icons/icon.ico": "8d0d7a42a8a351c6f6f158defb81242a0191a41131fdb9e75a274c7b98893786",
+    "apps/desktop/src-tauri/icons/icon.png": "24710151b52ca052119e50306e16fc1bad006be01d55711ddb674d5cdf156437",
+    "apps/desktop/ui/icon.png": "2058f94fdc08820f024cf10f2e1c1cd66b9f0d343ef098dfd334e0a6a2c017cf"
+  },
+  "normalization": {
+    "alpha_threshold": 8,
+    "bbox_xyxy": [
+      272,
+      216,
+      1054,
+      1034
+    ],
+    "method": "alpha-bbox-fit",
+    "output_size": [
+      1254,
+      1254
+    ],
+    "padding_percent": 5
   },
   "source": "assets/branding/cfvigil_icon.png",
   "source_sha256": "c6712382c86c0e74f13e2f3106b97325a89f985c13a91c4d827cef24f85f0b33",
