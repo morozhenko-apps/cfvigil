@@ -7,6 +7,24 @@ use crate::api_budget::ApiBudget;
 
 const API: &str = "https://api.cloudflare.com/client/v4";
 const PAGE_LIMIT: usize = 50;
+// The Pages Projects API documentation illustrates a 20-item page. Do not
+// reuse large generic list sizes (100) against this provider-specific API.
+const PAGES_PAGE_SIZE: usize = 20;
+
+fn pages_page_path(path: &str, page: usize) -> String {
+    let delimiter = if path.contains('?') { '&' } else { '?' };
+    format!("{path}{delimiter}page={page}&per_page={PAGES_PAGE_SIZE}")
+}
+
+fn scoped_provider_warning(provider: &str, error: &str, scope: &str) -> String {
+    // Authentication/scope errors can be identified by HTTP 403. HTTP 400
+    // is a bad request and must never blame a token scope without evidence.
+    if error.contains("HTTP 403") {
+        format!("{provider}: {error} (check {scope})")
+    } else {
+        format!("{provider}: {error}")
+    }
+}
 const MAX_RESOURCES_PER_TYPE: usize = 256;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -221,8 +239,7 @@ impl Cloudflare {
     ) -> Result<Vec<Value>, String> {
         let mut output = Vec::new();
         for page in 1..=PAGE_LIMIT {
-            let delimiter = if path.contains('?') { '&' } else { '?' };
-            let url = format!("{path}{delimiter}page={page}&per_page=100");
+            let url = pages_page_path(path, page);
             let (result, total_pages) = self.get(token, &url, budget).await?;
             let items = result
                 .as_array()
@@ -255,7 +272,7 @@ impl Cloudflare {
             warnings.push(format!("Workers: {error}"));
         }
         if let Err(error) = &pages {
-            warnings.push(format!("Pages: {error} (requires Pages Read)"));
+            warnings.push(scoped_provider_warning("Pages", error, "Cloudflare Pages Read"));
         }
         let mut resources = Vec::new();
 
@@ -299,7 +316,7 @@ impl Cloudflare {
                     Err(error) => {
                         complete = false;
                         if !warnings.iter().any(|w| w.starts_with("Workers Builds:")) {
-                            warnings.push(format!("Workers Builds: {error} (check Workers CI Read)"));
+                            warnings.push(scoped_provider_warning("Workers Builds", &error, "Workers CI Read"));
                         }
                     }
                 }
@@ -375,7 +392,7 @@ impl Cloudflare {
                     Err(error) => {
                         complete = false;
                         if !warnings.iter().any(|w| w.starts_with("Pages deployments:")) {
-                            warnings.push(format!("Pages deployments: {error} (requires Pages Read)"));
+                            warnings.push(scoped_provider_warning("Pages deployments", &error, "Cloudflare Pages Read"));
                         }
                         ("unknown".into(), String::new(), String::new(), msg::DETAIL_PAGES_UNAVAILABLE.into())
                     },
@@ -404,6 +421,27 @@ impl Cloudflare {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn pages_pagination_uses_documented_page_size_and_preserves_query_separator() {
+        assert_eq!(
+            pages_page_path("/accounts/abc/pages/projects", 1),
+            "/accounts/abc/pages/projects?page=1&per_page=20"
+        );
+        assert_eq!(
+            pages_page_path("/accounts/abc/pages/projects?order=name", 2),
+            "/accounts/abc/pages/projects?order=name&page=2&per_page=20"
+        );
+        assert_eq!(PAGES_PAGE_SIZE, 20);
+        assert_eq!(
+            scoped_provider_warning("Pages", "Cloudflare HTTP 400", "Cloudflare Pages Read"),
+            "Pages: Cloudflare HTTP 400"
+        );
+        assert_eq!(
+            scoped_provider_warning("Pages", "Cloudflare HTTP 403", "Cloudflare Pages Read"),
+            "Pages: Cloudflare HTTP 403 (check Cloudflare Pages Read)"
+        );
+    }
 
     #[test]
     fn worker_list_contract_expects_array_without_silent_defaults() {
