@@ -347,3 +347,13 @@ The overall native machine gate remains **IN PROGRESS**. Verify latest
 build/deploy, navigation, history, persistence, offline behavior, language
 rendering, and a real Windows installation before expanding regression
 coverage and Mode B. Keep existing KDE geometry fixes unchanged.
+
+## 2026-10-25: live latest-failure link verified
+
+On Alcotester, the owner confirmed the red `bannermatch` entry opens
+its **latest failed Cloudflare deployment** through the resource's action
+menu. Record **PASS** for this one observed failed-state and latest-attempt
+deep-link scenario. Pages discovery remains PASS. Dynamic build
+yellow-to-green/red transitions, incident history/recovery, runtime
+persistence, locale and Windows checks are still pending. The overall
+native-machine gate is **IN PROGRESS**; Mode B remains blocked.

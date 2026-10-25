@@ -854,3 +854,11 @@ The screenshot shows 26 healthy resources, one failed and no actively
 deploying entries; those are state totals, not build counts. Follow-up
 scenarios (build transitions/latest timestamp, deep-links, history,
 persistence, locales, Windows) remain incomplete. No Mode B acceptance.
+
+## 2026-10-25: Pages failed-deployment navigation — PASS
+
+The installed candidate's red `bannermatch` row opens the latest failed
+deployment, as explicitly confirmed by the owner on Alcotester. This
+validates correct resource-specific failed-attempt navigation for this
+project. It is not evidence of a newly observed state transition or
+incident persistence, which remain to be checked before Mode B.

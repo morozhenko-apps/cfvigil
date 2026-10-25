@@ -283,3 +283,17 @@ latest-attempt transitions and build start/end timing, Pages deployment
 deep-links, event history and recovery, full token/restart persistence,
 offline/error handling, locale review, Windows installation. Do not infer
 any of those from this screenshot or mark the full machine gate passed.
+
+## 2026-10-25: latest failed Pages deployment deep-link — PASS
+
+On the same installed KDE candidate, the owner opened the red
+`bannermatch` row's context action. It opened the **latest failed
+deployment** for that project in Cloudflare. This confirms an actual
+resource-specific failed status and correct latest-attempt navigation,
+rather than merely a link to a generic product dashboard.
+
+**PASS (observed):** Pages discovery; one failed deployment state and its
+latest-failure deep-link. This does **not** establish that an in-progress
+yellow build was observed, that a new failure was captured during polling,
+that all Worker/Pages deep-links work, or that incidents/recovery/persistence
+passed. Those remain pending native smoke checkpoints.
