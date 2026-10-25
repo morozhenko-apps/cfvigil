@@ -9,6 +9,8 @@ Requires Pillow (on Ubuntu: python3-pil); no network, no image generation.
 Uses the exact committed source, never another application's imagery.
 """
 import argparse
+import hashlib
+import json
 from io import BytesIO
 from pathlib import Path
 from PIL import Image
@@ -53,12 +55,11 @@ def assets(base: Image.Image):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source", type=Path, default=SOURCE)
     parser.add_argument("--check", action="store_true",
                         help="Fail if generated icon assets differ from the source")
     args = parser.parse_args()
 
-    source = args.source.expanduser().resolve()
+    source = SOURCE.resolve()
     if not source.is_file():
         parser.error(f"Source PNG missing: {source}")
     with Image.open(source) as img:
@@ -71,8 +72,22 @@ def main():
     if base.getpixel((0, 0))[3] != 0:
         print("WARNING: source top-left corner is not fully transparent")
 
+    rendered = list(assets(base))
+    manifest = {
+        "source": str(SOURCE.relative_to(ROOT)),
+        "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+        "source_size": [base.width, base.height],
+        "files": {
+            str(path.relative_to(ROOT)): hashlib.sha256(data).hexdigest()
+            for path, data in rendered
+        },
+    }
+    rendered.append((
+        ICONS / "source-manifest.json",
+        (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode("utf-8")
+    ))
     changed = []
-    for path, data in assets(base):
+    for path, data in rendered:
         if args.check:
             if not path.is_file() or path.read_bytes() != data:
                 changed.append(str(path.relative_to(ROOT)))
@@ -86,7 +101,7 @@ def main():
         print("PASS: every platform icon matches the original RGBA PNG")
     else:
         print(f"Imported {source.relative_to(ROOT) if source.is_relative_to(ROOT) else source}")
-        print(f"Generated {len(changed)} desktop / WebView icon files")
+        print(f"Generated {len(changed)-1} desktop / WebView icon files and source-manifest.json")
         print("Review icon-16.png, icon-24.png, icon-32.png on light/dark tray panels")
         print("Commit the original and the generated files together")
 
