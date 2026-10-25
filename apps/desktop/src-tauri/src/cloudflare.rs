@@ -7,9 +7,8 @@ use crate::api_budget::ApiBudget;
 
 const API: &str = "https://api.cloudflare.com/client/v4";
 const PAGE_LIMIT: usize = 50;
-// The Pages Projects API documentation illustrates a 20-item page. Do not
-// reuse large generic list sizes (100) against this provider-specific API.
-const PAGES_PAGE_SIZE: usize = 20;
+// Cloudflare Pages can reject query list options with error 8000024.
+// Discover the first page using the plain API path, then follow result_info.
 
 fn cloudflare_failure(status: reqwest::StatusCode, body: &[u8]) -> String {
     // Never copy arbitrary API error text: messages can contain resource URLs
@@ -25,8 +24,17 @@ fn cloudflare_failure(status: reqwest::StatusCode, body: &[u8]) -> String {
 }
 
 fn pages_page_path(path: &str, page: usize) -> String {
+    if page == 1 { return path.to_owned(); }
     let delimiter = if path.contains('?') { '&' } else { '?' };
-    format!("{path}{delimiter}page={page}&per_page={PAGES_PAGE_SIZE}")
+    format!("{path}{delimiter}page={page}")
+}
+
+/// Cloudflare timestamps are RFC3339; compare parsed instants, not the
+/// textual timezone offset or assumed response order.
+fn latest_pages_deployment(result: &Value) -> Option<&Value> {
+    result.as_array()?.iter().max_by_key(|deployment| {
+        chrono::DateTime::parse_from_rfc3339(str_field(deployment, "created_on")).ok()
+    })
 }
 
 fn scoped_provider_warning(provider: &str, error: &str, scope: &str) -> String {
@@ -259,22 +267,32 @@ impl Cloudflare {
         path: &str,
         budget: &ApiBudget,
     ) -> Result<Vec<Value>, String> {
-        let mut output = Vec::new();
-        for page in 1..=PAGE_LIMIT {
+        // Do not add page=1/per_page to the initial request: the live Pages
+        // API returned 8000024 (invalid list options) with those parameters.
+        let (first, total_pages) = self.get(token, path, budget).await?;
+        let items = first.as_array().ok_or_else(|| msg::CF_LIST_FORMAT.to_string())?;
+        if items.len() > MAX_RESOURCES_PER_TYPE {
+            return Err(msg::CF_PAGES_TOO_MANY.into());
+        }
+        if total_pages > PAGE_LIMIT {
+            return Err(msg::CF_PAGES_PAGINATION.into());
+        }
+        let mut output = items.clone();
+        for page in 2..=total_pages {
             let url = pages_page_path(path, page);
-            let (result, total_pages) = self.get(token, &url, budget).await?;
-            let items = result
-                .as_array()
-                .ok_or_else(|| msg::CF_LIST_FORMAT.to_string())?;
-            if output.len() + items.len() > MAX_RESOURCES_PER_TYPE {
+            let (result, _) = self.get(token, &url, budget).await?;
+            let rows = result.as_array().ok_or_else(|| msg::CF_LIST_FORMAT.to_string())?;
+            if rows.is_empty() {
+                // A claimed additional page must exist; do not call this a
+                // complete catalog and silently lose Pages resources.
+                return Err(msg::CF_PAGES_PAGINATION.into());
+            }
+            if output.len() + rows.len() > MAX_RESOURCES_PER_TYPE {
                 return Err(msg::CF_PAGES_TOO_MANY.into());
             }
-            output.extend(items.iter().cloned());
-            if page >= total_pages || items.is_empty() {
-                return Ok(output);
-            }
+            output.extend(rows.iter().cloned());
         }
-        Err(msg::CF_PAGES_PAGINATION.into())
+        Ok(output)
     }
 
     pub async fn discover(&self, account: &str, token: &str, budget: &ApiBudget) -> Result<Discovery, String> {
@@ -391,13 +409,13 @@ impl Cloudflare {
                 if !valid_name(name) { continue; }
                 let name = name.to_owned();
                 let result = self
-                    .get(token, &format!("{base}/pages/projects/{name}/deployments?per_page=1&page=1"), budget)
+                    .get(token, &format!("{base}/pages/projects/{name}/deployments"), budget)
                     .await;
                 // Own the strings before the REST result is dropped. Holding
                 // &str into a JSON Value from this match caused Rust E0597.
                 let (state, attempt, timestamp, detail) = match result {
                     Ok((result, _)) => {
-                        if let Some(deployment) = result.as_array().and_then(|arr| arr.first()) {
+                        if let Some(deployment) = latest_pages_deployment(&result) {
                             (
                                 pages_state(deployment).to_owned(),
                                 str_field(deployment, "id").to_owned(),
@@ -458,16 +476,20 @@ mod tests {
     }
 
     #[test]
-    fn pages_pagination_uses_documented_page_size_and_preserves_query_separator() {
+    fn pages_initial_request_has_no_list_options_and_followup_uses_page_only() {
         assert_eq!(
             pages_page_path("/accounts/abc/pages/projects", 1),
-            "/accounts/abc/pages/projects?page=1&per_page=20"
+            "/accounts/abc/pages/projects"
         );
         assert_eq!(
-            pages_page_path("/accounts/abc/pages/projects?order=name", 2),
-            "/accounts/abc/pages/projects?order=name&page=2&per_page=20"
+            pages_page_path("/accounts/abc/pages/projects", 2),
+            "/accounts/abc/pages/projects?page=2"
         );
-        assert_eq!(PAGES_PAGE_SIZE, 20);
+        assert_eq!(
+            pages_page_path("/accounts/abc/pages/projects?order=name", 3),
+            "/accounts/abc/pages/projects?order=name&page=3"
+        );
+        assert!(!pages_page_path("/accounts/abc/pages/projects", 1).contains('?'));
         assert_eq!(
             scoped_provider_warning("Pages", "Cloudflare HTTP 400", "Cloudflare Pages Read"),
             "Pages: Cloudflare HTTP 400"
@@ -476,6 +498,18 @@ mod tests {
             scoped_provider_warning("Pages", "Cloudflare HTTP 403", "Cloudflare Pages Read"),
             "Pages: Cloudflare HTTP 403 (check Cloudflare Pages Read)"
         );
+    }
+
+    #[test]
+    fn pages_latest_deployment_uses_timestamps_not_provider_array_order() {
+        let unordered = json!([
+            {"id":"old", "created_on":"2026-10-24T15:00:00Z"},
+            {"id":"new", "created_on":"2026-10-25T09:00:00Z"},
+            {"id":"middle", "created_on":"2026-10-24T23:00:00Z"}
+        ]);
+        assert_eq!(str_field(latest_pages_deployment(&unordered).unwrap(), "id"), "new");
+        assert!(latest_pages_deployment(&json!([])).is_none());
+        assert!(latest_pages_deployment(&json!({"result":[]})).is_none());
     }
 
     #[test]
