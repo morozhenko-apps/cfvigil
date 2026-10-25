@@ -65,3 +65,10 @@ has zero pagination params and subsequent pages use page only; Pages
 deployment GETs are unpaged, RFC3339 newest wins. Install only after
 Preflight #40185408101 SUCCESS and this candidate SUCCESS with SHA256
 sidecars. No Mode B, R2, main merge or release.
+
+2026-10-25: Original owner PNG source+12 derived assets completely tracked
+(including ICO/ICNS), source manifest validated locally by owner, run the
+canonical icon consistency check before stable JS/Python/Rust + unsigned DEB
+and AppImage. Confirm native icon assignment to main, Settings, History,
+About and the Linux tray. Freeze previously accepted KDE geometry. No Mode B,
+R2 upload, main merge, release tagging or installed-machine PASS claim.

@@ -133,3 +133,10 @@ Mode B, R2, main merge or release tags.
 follow documented result_info with page-only subsequent catalog requests,
 preserve fail-closed truncated pagination, choose latest deployment by
 RFC3339. Run stable JS/Python/Rust provider unit tests only; Mode B blocked.
+
+2026-10-25: Original owner PNG source+12 derived assets completely tracked
+(including ICO/ICNS), source manifest validated locally by owner, run the
+canonical icon consistency check before stable JS/Python/Rust + unsigned DEB
+and AppImage. Confirm native icon assignment to main, Settings, History,
+About and the Linux tray. Freeze previously accepted KDE geometry. No Mode B,
+R2 upload, main merge, release tagging or installed-machine PASS claim.
