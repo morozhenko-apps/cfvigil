@@ -23,6 +23,18 @@ git commit -m "assets: install original CFVigil icon across desktop targets"
 git push origin dev
 ```
 
+**Current migration note (2026-10-25).** The first source commit
+`34acd1e` successfully imported the original PNG and ten PNG derivatives,
+but the existing Git ignore rules unintentionally excluded `icon.ico`
+and `icon.icns`. The ignore rules have now been corrected in `dev`.
+If the importer already ran locally, you **do not need to regenerate**:
+run `git pull --ff-only origin dev`, then `git add
+apps/desktop/src-tauri/icons/icon.ico
+apps/desktop/src-tauri/icons/icon.icns`, verify
+`git diff --cached --name-only` contains exactly those two files, commit
+them and push `dev`. Preflight/candidate packaging must not be triggered
+until the complete manifest outputs are present in GitHub.
+
 If Python reports that Pillow is unavailable, install it using the Linux
 distribution's `python3-pil` package; do not use the temporary screenshot
 or fetch an untrusted icon from the web. Never overwrite unrelated
