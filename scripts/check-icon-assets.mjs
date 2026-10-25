@@ -50,6 +50,22 @@ if (manifest.source !== source ||
     JSON.stringify(manifest.source_size) !== JSON.stringify([sourceSize,sourceSize])) {
   throw Error("Source PNG changed: regenerate platform icons with tools/import_icon.py");
 }
+const normalization = manifest.normalization;
+if (normalization?.method !== "alpha-bbox-fit" ||
+    normalization.alpha_threshold !== 8 ||
+    normalization.padding_percent !== 5 ||
+    JSON.stringify(normalization.output_size) !==
+      JSON.stringify([sourceSize, sourceSize]) ||
+    !Array.isArray(normalization.bbox_xyxy) ||
+    normalization.bbox_xyxy.length !== 4) {
+  throw Error("Missing or unexpected alpha-tight normalization metadata");
+}
+const [left, top, right, bottom] = normalization.bbox_xyxy;
+if (![left, top, right, bottom].every(Number.isInteger) ||
+    left < 0 || top < 0 || right > sourceSize || bottom > sourceSize ||
+    left >= right || top >= bottom) {
+  throw Error("Invalid source alpha bounding box in icon manifest");
+}
 const entries = Object.entries(manifest.files ?? {});
 if (entries.length !== expected.size ||
     entries.some(([name]) => !expected.has(name))) {
