@@ -1,12 +1,13 @@
 //! Windows card geometry is a single bottom-anchored native state machine.
 //! Persist the user's physical (x,bottom) only after an actual drag, never
 //! the intermediate top-left produced by expanding/contracting a WebView.
-use crate::{data_path, read_json, write_json, CARD_WIDTH, COMPACT_HEIGHT};
+use crate::{read_json, write_json, CARD_WIDTH, COMPACT_HEIGHT};
 use serde::{Deserialize, Serialize};
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Mutex,
 };
+use std::time::{Duration, Instant};
 use tauri::{App, AppHandle, Manager, PhysicalPosition, WebviewWindow, Window, WindowEvent};
 
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]
@@ -24,6 +25,7 @@ struct SavedPosition {
 struct NativeCard {
     anchor: Mutex<Option<Anchor>>,
     dragging: AtomicBool,
+    last_written: Mutex<Option<Instant>>,
 }
 
 fn physical_height(window: &WebviewWindow, logical_height: f64) -> i32 {
@@ -69,6 +71,7 @@ pub fn install(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
     let state = NativeCard {
         anchor: Mutex::new(loaded.value.anchor),
         dragging: AtomicBool::new(false),
+        last_written: Mutex::new(None),
     };
     app.manage(state);
     Ok(())
@@ -113,7 +116,9 @@ pub fn collapse_hidden(app: &AppHandle, window: &WebviewWindow) {
 }
 
 pub fn begin_drag(app: &AppHandle) {
-    app.state::<NativeCard>().dragging.store(true, Ordering::Release);
+    let state = app.state::<NativeCard>();
+    *state.last_written.lock().unwrap() = None;
+    state.dragging.store(true, Ordering::Release);
 }
 
 fn persist_anchor(app: &AppHandle, anchor: Anchor) {
@@ -148,7 +153,20 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
             // A Windows system move loop can swallow WebView pointerup;
             // saving the latest observed real move guarantees restart
             // persistence even in that case. Programmatic moves are excluded.
-            persist_anchor(app, anchor);
+            // A native Windows move loop can swallow the WebView pointerup.
+            // Persist a bounded checkpoint while dragging, then persist the
+            // exact final position from stop_card_drag when delivered.
+            let now = Instant::now();
+            let should_write = {
+                let mut last = state.last_written.lock().unwrap();
+                if last.is_none_or(|time| now.duration_since(time) >= Duration::from_millis(300)) {
+                    *last = Some(now);
+                    true
+                } else {
+                    false
+                }
+            };
+            if should_write { persist_anchor(app, anchor); }
         }
     }
 }
