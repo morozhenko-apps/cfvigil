@@ -1,6 +1,8 @@
 # Windows 11 native-machine acceptance, CFVigil 0.1.0
 
-Status: NOT TESTED on Windows. GitHub-hosted NSIS build is not an installed-app PASS.
+Status: Windows 11 PARTIAL PASS / OPEN FAILS. First candidate and replacement
+were installed on a real Windows machine; latest source fix remains UNTESTED
+natively. A hosted NSIS build is never an installed-app PASS.
 
 Source: Windows run 40224188456 (SUCCESS), SHA 1b944b0d137ddde952f1e52f4d627e28ed4d1369.
 Artifact: cfvigil-windows-unreleased-unsigned-candidate, one-day retention.
