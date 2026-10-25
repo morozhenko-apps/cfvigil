@@ -109,3 +109,38 @@ RTL interaction, screen reader acceptance, or successful installed execution.
 The user explicitly requires a real Ubuntu KDE/Windows checkpoint between
 initial source validation and broad QA/Mode B. Exact machine gate:
 `docs/NATIVE_MACHINE_GATE.md`. No reviewer or device evidence yet.
+
+## 2026-10-25: RU / pt-PT monitoring terminology source spot-check
+
+Scope: targeted **source-level** terminology review only, commit `3f6f8a2`.
+This is NOT a complete contextual audit, human-native review, window-width
+or installed-app verification. Both locales remain **draft; audit pending**.
+No other language, native Rust diagnostic, Cloudflare data/status contract or
+persisted event message was changed.
+
+Findings and source corrections:
+
+- RU `card.deploying`: `Сборка` incorrectly implied only a Worker build,
+  although the yellow counter also includes in-progress deployments.
+  Now `В процессе`.
+- RU accessible `card.optionsLabel`: `Настройки ресурса` described a
+  non-existent settings operation; the menu contains a Cloudflare action.
+  Now `Действия с ресурсом: {name}`.
+- PT `card.healthy`: `Concluídos` could include failed completed
+  deployments. Now `Sucesso`, tied only to the verified successful state,
+  not to HTTP health or uptime.
+- PT `card.statusUnknown`: `Por verificar` suggested a resource never
+  checked; now `Não verificado`, also suitable for previously known but
+  currently unverified/stale state.
+- PT no-account guidance now says `Configure o Cloudflare nas Definições`,
+  not `Ligue o Cloudflare`.
+- RU/PT account placeholder specifies **32 hexadecimal characters**,
+  matching native input validation, not just any 32 characters.
+
+A focused regression test asserts these specific semantic choices and
+checks full dictionary/parmeter/plural compatibility against the English
+baseline. Native font-fit/accessibility screenshots, locale-specific
+provider diagnostics, polished translations for the remaining strings,
+new incident transitions, and reviewer sign-off remain pending.
+Do not change the audit table to Accepted on the basis of this source
+review or a green Preflight.
