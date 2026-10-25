@@ -1,8 +1,8 @@
 # Windows 11 native-machine acceptance, CFVigil 0.1.0
 
-Status: Windows 11 PARTIAL PASS / OPEN FAILS. First candidate and replacement
-were installed on a real Windows machine; latest source fix remains UNTESTED
-natively. A hosted NSIS build is never an installed-app PASS.
+Status: Windows 11 PARTIAL PASS. The owner has accepted the corrected native
+card appearance and behavior; other native acceptance scenarios remain open.
+A hosted NSIS build is never by itself an installed-app PASS.
 
 Source: Windows run 40224188456 (SUCCESS), SHA 1b944b0d137ddde952f1e52f4d627e28ed4d1369.
 Artifact: cfvigil-windows-unreleased-unsigned-candidate, one-day retention.
@@ -104,3 +104,26 @@ Then expand list, hide/show, check resources and anchoring, quit/relaunch
 and check persisted placement. Previous PASS observations need not be
 retested at high frequency, but should survive the new install.
 Do not close native Windows gate on hosted-CI success alone.
+
+## 2026-10-25: Windows geometry and appearance recheck, owner accepted
+
+Following source fix `ffb0b85` (verification batch `6d30db4`), the owner
+reported the updated Windows card was working correctly and looked right.
+This closes the three directly reported UI defects in the preceding
+replacement-candidate retest **for the observed Windows setup**:
+
+- PASS (owner observation): no first hide/show downward displacement after
+  manually moving the card.
+- PASS (owner observation): no objectionable opaque corners/bevel.
+- PASS (owner observation): Hide-button chevron visually centered and clean.
+
+The owner had already reported PASS for no launch console, saved-token mask
+and retained resource rows in the prior candidate. No source changes or
+CI markers are needed for this acceptance note.
+
+This confirmation does **not** assert that a specified 10-cycle sequence,
+alternate DPI settings, offline/online behavior, language changes,
+Credential Manager replacement, History, uninstall/reinstall or the entire
+Windows native machine matrix was explicitly verified. Those checks retain
+their prior open/not-recorded status until separately confirmed. The full
+release/Mode B gate remains open; do not promote main, tag or publish.
