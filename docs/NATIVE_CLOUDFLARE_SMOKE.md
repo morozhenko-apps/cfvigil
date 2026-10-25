@@ -264,3 +264,22 @@ All calls remain GET-only; no token/account changes.
 8000024 banner disappears, or report new sanitized status/code. Do not
 call this PASS based on source or hosted CI alone. Other known KDE
 drag/position fixes are unchanged, Mode B blocked.
+
+## 2026-10-25: installed KDE Pages catalog — PASS
+
+After GitHub Linux candidate #40185446460 was installed, the owner shared
+a live CFVigil screenshot confirming that previously missing Pages projects
+now appear alongside Workers; the `Pages: Cloudflare HTTP 400 (code 8000024)`
+banner is gone. The list visibly includes Pages-style project names such as
+`bannermatch` and `chromabankshot`. The card displays 26 successful
+resources, 1 failed resource and 0 running builds, with some individually
+unverified grey rows. These are resource-state counters, not cumulative
+build counters.
+
+**Native Pages project discovery: PASS** on Alcotester (owner observed).
+The previous source-only `NOT TESTED` / error paragraphs above are
+historical and superseded for this scenario only. **Not yet accepted:**
+latest-attempt transitions and build start/end timing, Pages deployment
+deep-links, event history and recovery, full token/restart persistence,
+offline/error handling, locale review, Windows installation. Do not infer
+any of those from this screenshot or mark the full machine gate passed.

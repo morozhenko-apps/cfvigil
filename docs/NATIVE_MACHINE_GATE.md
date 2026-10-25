@@ -332,3 +332,18 @@ induced to exercise red incident states. Follow with native localization,
 offline/keyring negative cases and physical Windows testing. Do not enlarge
 test coverage or begin Mode B before the machine gate has an accepted
 result.
+
+## 2026-10-25: live Pages discovery accepted on Alcotester
+
+The owner installed the Linux candidate and supplied a screenshot showing
+the Pages catalog populated without the previous Cloudflare HTTP 400
+8000024 banner. **Pages discovery: PASS (physical KDE observation).**
+Worker discovery and the verified colored resource totals remain visible;
+the screenshot shows 26 green, 1 red and zero in-progress resources,
+plus grey rows. This does not verify the interpretation of a specific
+red/grey state against Cloudflare's dashboard or a live build transition.
+
+The overall native machine gate remains **IN PROGRESS**. Verify latest
+build/deploy, navigation, history, persistence, offline behavior, language
+rendering, and a real Windows installation before expanding regression
+coverage and Mode B. Keep existing KDE geometry fixes unchanged.

@@ -843,3 +843,14 @@ query, follows advertised additional pages with `page` only, and fetches
 deployment lists without optional list arguments. It selects the latest
 deployment from parsed timestamps. No further read scopes requested,
 no Cloudflare mutations, no claimed native PASS until retest.
+
+## 2026-10-25: real KDE Pages catalog smoke — PASS
+
+The owner installed Linux candidate #40185446460 and confirmed Pages
+projects appeared in the resource list without Cloudflare error 8000024.
+This resolves the observed missing Pages catalog failure and validates
+the unpaged first catalog request against the real Cloudflare account.
+The screenshot shows 26 healthy resources, one failed and no actively
+deploying entries; those are state totals, not build counts. Follow-up
+scenarios (build transitions/latest timestamp, deep-links, history,
+persistence, locales, Windows) remain incomplete. No Mode B acceptance.
