@@ -72,3 +72,8 @@ canonical icon consistency check before stable JS/Python/Rust + unsigned DEB
 and AppImage. Confirm native icon assignment to main, Settings, History,
 About and the Linux tray. Freeze previously accepted KDE geometry. No Mode B,
 R2 upload, main merge, release tagging or installed-machine PASS claim.
+
+2026-10-25: Retry bundled icon CI once after aligning legacy Windows
+source contract with tracked ICO/ICNS files. Original 1254x1254 RGBA PNG,
+12 manifest entries; all checks MUST run on the same dev commit. Builds
+are unsigned native-machine candidates only. No main, tags, R2 or Mode B.
