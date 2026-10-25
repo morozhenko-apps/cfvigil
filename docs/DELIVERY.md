@@ -833,3 +833,13 @@ For Ubuntu KDE development, install Tauri's WebKitGTK and GTK dependencies befor
 - Upstream is designed for **structured bug reports only**; feature requests and third-party PRs are not accepted, while independent forks are permitted. The [Bug report form](../.github/ISSUE_TEMPLATE/bug_report.yml) is prepared on `dev` but only becomes visible in GitHub's Issues chooser once it reaches the repository's default branch (`main` at present). See [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 © 2026 Stanislav Moseyko (morozhenko).
+
+## 2026-10-25: live Pages error 8000024, list options correction
+
+The owner provided real evidence `HTTP 400 (code 8000024)` after the
+reduced-page-size candidate. The code maps to rejected list options.
+The new Pages client first fetches the project list without any pagination
+query, follows advertised additional pages with `page` only, and fetches
+deployment lists without optional list arguments. It selects the latest
+deployment from parsed timestamps. No further read scopes requested,
+no Cloudflare mutations, no claimed native PASS until retest.

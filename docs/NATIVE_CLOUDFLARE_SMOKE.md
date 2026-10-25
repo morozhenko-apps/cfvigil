@@ -239,3 +239,28 @@ On the next installed Linux candidate: confirm Pages projects appear,
 or report the new exact sanitized error line. Existing Workers and their
 configured refresh cadence must remain unaffected. This is still a native
 machine-gate failure pending another observed result, not Mode B acceptance.
+
+### 2026-10-25: live 8000024 identifies rejected Pages list options
+
+After installing the 20-item query candidate, the user observed
+`Pages: Cloudflare HTTP 400 (code 8000024)` with verified account-scoped
+`Cloudflare Pages / Read`. The code is associated with Cloudflare
+`Invalid list options provided`; simply reducing `per_page` was
+insufficient. This is a provider request-parameter defect, not evidence
+that the user needs more permissions.
+
+CFVigil now fetches the Pages project catalog from the **plain**
+`GET /accounts/{id}/pages/projects` endpoint without `page=1` or
+`per_page`. If the response advertises `result_info.total_pages > 1`,
+the client requests the next pages by `?page=N` only, with existing
+resource/page upper bounds. A rejected later page or an empty advertised
+additional page remains an explicit failure; no partial catalog is called
+fully synchronized. The latest Pages deployments endpoint is likewise
+queried without optional list parameters and the latest returned attempt
+is selected by parsed RFC3339 timestamp rather than trusting array order.
+All calls remain GET-only; no token/account changes.
+
+**Native retest still required.** Confirm Pages rows appear and the
+8000024 banner disappears, or report new sanitized status/code. Do not
+call this PASS based on source or hosted CI alone. Other known KDE
+drag/position fixes are unchanged, Mode B blocked.
