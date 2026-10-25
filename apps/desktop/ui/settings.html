@@ -17,7 +17,7 @@
   <h2 data-i18n="settings.connection"></h2>
   <form id="form">
     <label><span data-i18n="settings.account"></span><input id="account" data-i18n-placeholder="settings.accountPlaceholder" autocomplete="off"></label>
-    <label><span data-i18n="settings.token"></span><input id="token" type="password" autocomplete="new-password" data-i18n-placeholder="settings.tokenPlaceholder"></label>
+    <label><span data-i18n="settings.token"></span><input id="token" type="password" autocomplete="new-password" data-i18n-placeholder="settings.tokenPlaceholder" aria-describedby="token-status"><span id="token-status" class="hint" role="status" aria-live="polite"></span></label>
     <label><span data-i18n="settings.interval"></span><select id="interval">
       <option value="60" data-i18n="settings.oneMinute"></option>
       <option value="180" data-i18n="settings.threeMinutes"></option>
@@ -28,7 +28,7 @@
     <label class="toggle"><input id="autostart" type="checkbox" disabled><span data-i18n="settings.autostart"></span></label>
     <p id="autostart-hint" class="hint" data-i18n="settings.checkingAutostart"></p>
     <p class="hint" data-i18n="settings.tokenHelp"></p>
-    <div id="message" role="status"></div>
+    <div id="message" role="status" aria-live="polite"><span id="save-spinner" class="save-spinner" hidden aria-hidden="true"></span><span id="message-text"></span></div>
     <div class="footer"><button type="button" id="cancel" data-i18n="settings.cancel"></button><button type="submit" data-i18n="settings.apply"></button></div>
   </form>
   </main>
