@@ -120,3 +120,10 @@ nonselectable drag-safe static UI text; per-endpoint redacted Pages/Builds
 diagnostics; verified Workers counters on partial scope failure; no
 exponential poll backoff while one catalog remains available. Stable
 JS/Python/Rust checks only, then unsigned Linux native retest. No Mode B.
+
+2026-10-25: Cloudflare Pages API HTTP 400 live-smoke correction:
+Projects pagination uses documented per_page=20 instead of 100 and
+preserves page traversal; 400 is not misdiagnosed as missing Pages Read.
+Sanitized provider failures show only bounded numeric HTTP/API codes.
+Run stable JS/Python/Rust source gates and focused provider tests; no
+Mode B, R2, main merge or release tags.
