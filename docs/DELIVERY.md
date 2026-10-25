@@ -871,3 +871,14 @@ and dynamic incident transitions remain unverified. The icon normalization
 assets were regenerated in commit 6706990 but not yet installed: a new
 unsigned DEB and physical app-menu verification are required. Stable
 Cloudflare provider behavior is unchanged, Mode B remains blocked.
+
+## 2026-10-25: latest KDE smoke acceptance and Windows handoff
+
+The owner confirmed post-install normal-sized native tray shield and
+successful persistence of Cloudflare connection, list and History
+through exit/relaunch on Alcotester. The old KDE application-launcher
+icon remains an OPEN issue, not a source-verified failure of image import.
+Linux candidate and Preflight both SUCCESS, Windows NSIS candidate
+#40224188456 SUCCESS on GitHub-hosted Windows 2025. Windows native
+installation and manual smoke still pending; the package is unsigned.
+See [Windows native smoke](WINDOWS_NATIVE_SMOKE.md). No broad Mode B.

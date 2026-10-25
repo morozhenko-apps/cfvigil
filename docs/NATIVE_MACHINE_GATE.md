@@ -377,3 +377,27 @@ alpha-bounds in generated images, but did NOT install a fresh DEB.
 That visual change is pending a new package install, and the launcher
 is FAIL/PENDING DIAGNOSIS until the desktop-entry/hicolor package contract
 and the owner's pinned menu entry are checked. No Mode B approval.
+
+## 2026-10-25: owner retest of enlarged tray and restart persistence
+
+After installing the Linux normalized-icon candidate #40223814222,
+the owner reported that **the tray icon now looks correct**. Record
+**PASS** for new shield tray display on KDE. The application-launch
+icon is still old according to the owner, and its cause is not yet
+confirmed: inspect the actual installed DEB .desktop/icon name, KDE
+user overrides and pinned launcher. Do not infer cache as a proven cause.
+
+The owner also explicitly confirmed that **the Cloudflare connection,
+resource list and History survived a full exit/relaunch**. Record
+**PASS** for native KDE restart persistence and OS keyring reuse in
+that observed scenario, without claiming direct inspection of the
+stored token or acceptance of corrupt JSON handling.
+
+Linux Preflight #40223814263 and Linux candidate #40223814222 both
+SUCCEEDED. Windows unsigned NSIS candidate #40224188456 SUCCEEDED
+and was verified still available via GitHub Actions; however Windows
+installation remains **NOT TESTED**. Follow
+[Windows native smoke](WINDOWS_NATIVE_SMOKE.md) for its physical gate.
+Dynamic yellow transitions, recovery, offline/security cases, all-locale
+font/layout audit and the KDE launcher icon remain outstanding. Mode B
+continues BLOCKED pending owner machine acceptance.

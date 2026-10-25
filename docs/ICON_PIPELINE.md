@@ -153,3 +153,14 @@ launcher is still old, unpin and re-pin that entry. Inspect
 `~/.local/share/applications` for overrides instead of overwriting or
 deleting arbitrary desktop files. Do not rename the application identifier
 to force KDE to refresh its launcher; that would change persistence paths.
+
+## 2026-10-25: owner observation on installed normalized icon
+
+Following installation of candidate #40223814222, the owner verified
+that the transparent-padding-trimmed shield displays at the intended
+size in the KDE tray. **Tray icon PASS**. The application-menu launch
+icon remains visually old; whether KDE's pinned launcher override,
+icon-theme cache or desktop entry is responsible is **unverified**.
+Do not reset application identifiers, delete user launchers, or assume
+cache is the root cause. Inspect the actual installed .desktop Icon=
+entry, hicolor themed paths and user-level overrides on Alcotester.
