@@ -88,3 +88,13 @@ input:not([type="checkbox"]), textarea, [contenteditable="true"] {
 /* Single owner-supplied icon in frameless Settings titlebar. */
 .settings-page .window-brand{display:flex;align-items:center;gap:8px;min-width:0}
 .settings-page .window-brand-icon{width:18px;height:18px;object-fit:contain;flex:none;pointer-events:none}
+
+/* Long-lived Windows keyring writes never leave Settings looking frozen. */
+#message{display:flex;align-items:center;gap:7px;min-height:19px}
+.save-spinner{display:inline-block;width:14px;height:14px;border:2px solid #c0cad4;
+  border-top-color:#2a80bf;border-radius:50%;animation:cfvigil-spin .8s linear infinite;flex:none}
+.save-spinner[hidden]{display:none!important}
+@keyframes cfvigil-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.save-spinner{animation-duration:2s}}
+button:disabled{cursor:wait;opacity:.65}
+#token-status{display:block;min-height:1em}
