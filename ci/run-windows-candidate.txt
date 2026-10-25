@@ -45,3 +45,9 @@ config_revision, required after extracting Cloudflare network reads from
 the settings credential lock. Previous CI had passed cargo check but the
 fixture failed cargo test with missing field E0063. Retry Preflight and
 Windows NSIS at exact current source SHA once; no broad Mode B or release.
+
+2026-10-25: Replacement Windows x64 NSIS physical recheck after first hide/show
+offset following manual drag, opaque corner bevel and misaligned Hide arrow.
+Run JS contracts and Windows Rust/NSIS at exactly the same source as Preflight.
+Unsigned/private candidate only, retain owner installation acceptance gate;
+no main, tags, signing, R2 or publication.

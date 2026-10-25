@@ -170,3 +170,10 @@ config_revision, required after extracting Cloudflare network reads from
 the settings credential lock. Previous CI had passed cargo check but the
 fixture failed cargo test with missing field E0063. Retry Preflight and
 Windows NSIS at exact current source SHA once; no broad Mode B or release.
+
+2026-10-25: Retest first-click Windows drag displacement, opaque rounded
+corners and off-center Hide glyph. Use exact measured native outer geometry,
+skip redundant 92px resizes, finalize anchor after asynchronous Win32 resize,
+remove Tauri default shadow, replace platform text chevron with fixed SVG.
+Verify JS contracts, native Rust unit test and untouched previously working
+tray/list/token/GUI-subsystem behavior. Owner Windows physical gate remains open.
