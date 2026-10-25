@@ -2,13 +2,14 @@
 <html lang="en" dir="ltr">
 <head>
   <meta charset="utf-8">
+  <link rel="icon" type="image/png" href="./icon.png">
   <title data-i18n="settings.title"></title>
   <link rel="stylesheet" href="./window.css">
   <script type="module" src="./settings.mjs"></script>
 </head>
 <body class="settings-page">
   <header class="window-header" id="settings-drag-area">
-    <span data-i18n="settings.title"></span>
+    <span class="window-brand"><img src="./icon.png" alt="" aria-hidden="true" draggable="false" class="window-brand-icon"><span data-i18n="settings.title"></span></span>
     <button type="button" id="close-settings" class="window-close" data-i18n-title="settings.cancel"
       data-i18n-aria-label="settings.cancel" aria-label="Close Settings">×</button>
   </header>

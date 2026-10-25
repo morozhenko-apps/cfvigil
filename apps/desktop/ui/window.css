@@ -84,3 +84,7 @@ input:not([type="checkbox"]), textarea, [contenteditable="true"] {
   -webkit-user-select:text;
   user-select:text;
 }
+
+/* Single owner-supplied icon in frameless Settings titlebar. */
+.settings-page .window-brand{display:flex;align-items:center;gap:8px;min-width:0}
+.settings-page .window-brand-icon{width:18px;height:18px;object-fit:contain;flex:none;pointer-events:none}

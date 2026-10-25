@@ -792,6 +792,22 @@ fn configure_gdk_for_native_wayland() {
     }
 }
 
+/// Use one branded Tauri icon for ALL system-managed windows. KDE's
+/// titlebar otherwise falls back to the generic WebKit/Tauri application icon.
+fn install_window_icons(app: &tauri::App) {
+    if let Some(icon) = app.default_window_icon().cloned() {
+        for label in ["main", "settings", "history", "about"] {
+            if let Some(window) = app.get_webview_window(label) {
+                if let Err(error) = window.set_icon(icon.clone()) {
+                    eprintln!("CFVigil could not set {label} window icon: {error}");
+                }
+            }
+        }
+    } else {
+        eprintln!("CFVigil application icon is missing from bundled resources");
+    }
+}
+
 fn main() {
     #[cfg(target_os = "linux")]
     configure_gdk_for_native_wayland();
@@ -799,6 +815,8 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_autostart::Builder::new().build())
         .setup(|app| {
+            // Explicitly brand History, Settings, About and the main window.
+            install_window_icons(app);
             let handle = app.handle().clone();
             let locale = read_json::<LanguagePreference>(&handle, "language.json")
                 .map_err(std::io::Error::other)?;

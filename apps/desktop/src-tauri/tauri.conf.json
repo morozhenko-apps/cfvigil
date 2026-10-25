@@ -61,7 +61,9 @@
   "bundle": {
     "active": true,
     "icon": [
-      "icons/icon.png"
+      "icons/icon.png",
+      "icons/icon.ico",
+      "icons/icon.icns"
     ],
     "category": "DeveloperTool",
     "shortDescription": "Cloudflare deployments and incident monitoring",
