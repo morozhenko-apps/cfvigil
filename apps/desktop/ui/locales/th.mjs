@@ -65,6 +65,8 @@ export default Object.freeze({
   "settings.account": "ID บัญชี Cloudflare",
   "settings.accountPlaceholder": "ID บัญชี 32 อักขระ",
   "settings.token": "โทเค็น API",
+  "settings.tokenStored": "บันทึกโทเคนไว้ในระบบแล้ว ป้อนโทเคนใหม่เพื่อแทนที่",
+  "settings.tokenUnavailable": "ตรวจสอบโทเคนไม่ได้ (คลังข้อมูลไม่พร้อมใช้งาน)",
   "settings.tokenPlaceholder": "เว้นว่างไว้เพื่อใช้โทเค็นเดิม",
   "settings.interval": "ช่วงเวลารีเฟรช",
   "settings.oneMinute": "1 นาที",

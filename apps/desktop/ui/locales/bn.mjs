@@ -69,6 +69,8 @@ export default Object.freeze({
   "settings.account": "Cloudflare অ্যাকাউন্ট ID",
   "settings.accountPlaceholder": "৩২ অক্ষরের অ্যাকাউন্ট ID",
   "settings.token": "API টোকেন",
+  "settings.tokenStored": "টোকেন সিস্টেমে সংরক্ষিত। বদলাতে নতুন টোকেন লিখুন।",
+  "settings.tokenUnavailable": "সংরক্ষিত টোকেন যাচাই করা যাচ্ছে না (স্টোর অনুপলব্ধ)।",
   "settings.tokenPlaceholder": "আগের টোকেন রাখতে ফাঁকা রাখুন",
   "settings.interval": "রিফ্রেশের ব্যবধান",
   "settings.oneMinute": "১ মিনিট",

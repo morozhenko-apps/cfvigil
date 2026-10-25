@@ -69,6 +69,8 @@ export default Object.freeze({
   "settings.account": "Cloudflare hesap kimliği",
   "settings.accountPlaceholder": "32 karakterlik hesap kimliği",
   "settings.token": "API anahtarı",
+  "settings.tokenStored": "Token sistem kasasında kayıtlı. Değiştirmek için yenisini girin.",
+  "settings.tokenUnavailable": "Kayıtlı token doğrulanamadı (kasa kullanılamıyor).",
   "settings.tokenPlaceholder": "Mevcut anahtarı korumak için boş bırakın",
   "settings.interval": "Yenileme aralığı",
   "settings.oneMinute": "1 dakika",

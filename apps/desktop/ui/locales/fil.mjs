@@ -69,6 +69,8 @@ export default Object.freeze({
   "settings.account": "Cloudflare Account ID",
   "settings.accountPlaceholder": "32-character na account ID",
   "settings.token": "API token",
+  "settings.tokenStored": "Naka-save ang token sa system. Maglagay ng bago para palitan ito.",
+  "settings.tokenUnavailable": "Hindi masuri ang naka-save na token (hindi available ang store).",
   "settings.tokenPlaceholder": "Iwang blangko upang panatilihin ang kasalukuyang token",
   "settings.interval": "Agwat ng pag-refresh",
   "settings.oneMinute": "1 minuto",

@@ -69,6 +69,8 @@ export default Object.freeze({
   "settings.account": "Cloudflare-konto-ID",
   "settings.accountPlaceholder": "Konto-ID med 32 tecken",
   "settings.token": "API-token",
+  "settings.tokenStored": "Token sparad i systemets valv. Ange en ny token för att ersätta den.",
+  "settings.tokenUnavailable": "Kan inte kontrollera sparad token (systemvalvet är inte tillgängligt).",
   "settings.tokenPlaceholder": "Lämna tomt för att behålla befintlig token",
   "settings.interval": "Uppdateringsintervall",
   "settings.oneMinute": "1 minut",

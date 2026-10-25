@@ -69,6 +69,8 @@ export default Object.freeze({
   "settings.account": "Cloudflare-account-ID",
   "settings.accountPlaceholder": "Account-ID van 32 tekens",
   "settings.token": "API-token",
+  "settings.tokenStored": "Token opgeslagen in de systeemkluis. Voer een nieuw token in om het te vervangen.",
+  "settings.tokenUnavailable": "Opgeslagen token niet te controleren (systeemkluis niet beschikbaar).",
   "settings.tokenPlaceholder": "Leeg laten om het huidige token te behouden",
   "settings.interval": "Vernieuwingsinterval",
   "settings.oneMinute": "1 minuut",

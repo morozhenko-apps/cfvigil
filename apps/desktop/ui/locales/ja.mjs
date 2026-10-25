@@ -65,6 +65,8 @@ export default Object.freeze({
   "settings.account": "Cloudflare アカウント ID",
   "settings.accountPlaceholder": "32文字のアカウント ID",
   "settings.token": "API トークン",
+  "settings.tokenStored": "トークンはシステムに保存済みです。変更するには新しいトークンを入力してください。",
+  "settings.tokenUnavailable": "保存されたトークンを確認できません（資格情報ストアが使用不可）。",
   "settings.tokenPlaceholder": "現在のトークンを保持する場合は空欄",
   "settings.interval": "更新間隔",
   "settings.oneMinute": "1分",

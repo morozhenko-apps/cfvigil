@@ -85,6 +85,8 @@ export default Object.freeze({
   "settings.account": "معرّف حساب Cloudflare",
   "settings.accountPlaceholder": "معرّف حساب مكوّن من 32 حرفًا",
   "settings.token": "رمز API",
+  "settings.tokenStored": "الرمز محفوظ في النظام. أدخل رمزًا جديدًا لاستبداله.",
+  "settings.tokenUnavailable": "تعذّر التحقق من الرمز المحفوظ (مخزن بيانات الاعتماد غير متاح).",
   "settings.tokenPlaceholder": "اتركه فارغًا للاحتفاظ بالرمز الحالي",
   "settings.interval": "الفاصل الزمني للتحديث",
   "settings.oneMinute": "دقيقة واحدة",
