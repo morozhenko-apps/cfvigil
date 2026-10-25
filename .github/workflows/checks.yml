@@ -67,7 +67,9 @@ jobs:
             libwebkit2gtk-4.1-dev libgtk-3-dev \
             libayatana-appindicator3-dev libgtk-layer-shell-dev \
             libxdo-dev librsvg2-dev libwayland-dev \
-            libwayland-bin wayland-protocols
+            libwayland-bin wayland-protocols python3-pil
+      - name: Check alpha-tight icon normalization on synthetic images
+        run: python3 -m unittest discover -s tests -p 'test_icon_import.py'
       - name: Check Rust desktop
         run: cargo check --locked -p cfvigil-desktop
       - name: Run Rust desktop unit and provider tests
