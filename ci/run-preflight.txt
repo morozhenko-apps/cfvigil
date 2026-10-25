@@ -127,3 +127,9 @@ preserves page traversal; 400 is not misdiagnosed as missing Pages Read.
 Sanitized provider failures show only bounded numeric HTTP/API codes.
 Run stable JS/Python/Rust source gates and focused provider tests; no
 Mode B, R2, main merge or release tags.
+
+2026-10-25: Fix user-verified Cloudflare Pages GET HTTP 400 code 8000024
+(invalid list options): initial projects/deployments GETs are unpaged;
+follow documented result_info with page-only subsequent catalog requests,
+preserve fail-closed truncated pagination, choose latest deployment by
+RFC3339. Run stable JS/Python/Rust provider unit tests only; Mode B blocked.
