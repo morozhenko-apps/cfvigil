@@ -93,11 +93,11 @@ Plan and milestones:
    Add reading-boundary prefaces to delivery and both native checkpoint owners,
    keeping all original bodies, earlier FAILs, partial states, cases and limits.
    Do not create another SSOT or rename/delete the compact documentation set.
-3. [ ] Add missing local editor/assistant/provider-state ignores; preserve all
+3. [x] Add missing local editor/assistant/provider-state ignores; preserve all
    original rules, safe examples and neutral agent instructions. Keep source,
    CI/packaging markers, Cargo.lock, all 20 dictionaries and per-locale audit,
    licensing/security/distribution contracts and ignored runtime data unchanged.
-4. [ ] Final acceptance: existing JavaScript syntax/i18n/Node tests, offline
+4. [x] Final acceptance: existing JavaScript syntax/i18n/Node tests, offline
    Python release contracts, locked Rust check/tests once; local Markdown
    links/anchors, complete owner catalog, body/hash preservation, isolated-ignore
    and whitespace checks. No new coverage expansion, Mode B, physical/native
@@ -125,3 +125,53 @@ committed capabilities/config and all original files; ignore this exact generate
 schema directory and remove only the task-created JSON schemas after the compiler
 exits. Retain any unrelated data. Also cover nested local IDE state. No source or
 test change is required; rerun only preservation/ignore/whitespace checks.
+
+### Housekeeping validation and recovery receipt (2026-10-25)
+
+Local cleanup acceptance is complete. Root status/navigation separates source,
+scoped KDE geometry PASS, real partial connected smoke, pending installed retest,
+20 draft catalogs and still-open editorial/Windows/overall machine acceptance.
+The complete old root remains in DELIVERY after only link/heading/whitespace
+normalization; all former anchors and complete original bodies of three prefaced
+owners remain. All 11 original documents and 114 tracked paths remain, with no
+new repository index or deleted original. The original agent contract remains.
+All 108 protected original files retain physical SHA-256, including executable
+source/tests, Cargo.lock, 20 locales and every CI/packaging marker.
+
+Executed STABLE groups once, all exit 0:
+
+- Workflow-selected `node --check`: 17 JavaScript files parsed.
+- `node scripts/check-i18n.mjs`: source message/dictionary checks PASS.
+- `node --test tests/*.test.mjs`: 73 passed, 0 failed/skipped.
+- `python3 -m unittest discover -s tests -p 'test_release_*.py' -v`:
+  7 offline release contracts passed, no skips or live provider operations.
+- `cargo check --locked -p cfvigil-desktop`: Linux compile PASS.
+- `cargo test --locked -p cfvigil-desktop`: 51 passed, 0 failed/ignored.
+
+Rust check/test each reports five pre-existing unused native tray-message
+constants (`dead_code`) in unchanged source. They are warnings, not a clean
+warning-free result; full stderr is retained externally. No assertion, source,
+CI gate or flaky classification was weakened. No separate known-flaky suite was
+identified, no broad coverage/Mode B expansion and no repeated stability claim.
+
+Final external cleanup validator: exit 0; 315 static/hash/body/catalog/anchor/
+isolated-ignore checks, 49 local Markdown links, zero broken. Baseline
+`git diff --check a22b481`: exit 0. Initial static validation exposed the four
+Tauri-generated untracked schema JSON files. They were classified above, ignored
+and removed only after compiler exit; all original tracked files/source remained.
+The separate task-owned compiler directory was also removed. No user build,
+runtime, credential, token/keyring or private data was opened or removed.
+
+No CI marker update, manual CI/candidate dispatch, package/GUI launch/install,
+live-account/API probe, Cloudflare/Worker/R2 write, main/tag/release promotion or
+other repository change. Existing read-only and machine-before-Mode-B boundaries
+remain; this receipt does not close a product or physical acceptance gate.
+
+Continue from product/roadmap and current native/live checkpoint owners.
+Before normal dev publication recheck concurrent work; confirm remote branch SHA.
+The audit workspace exports final commits/push, full command and warning output,
+original-body/hash map, document catalog and deterministic rollback patch as
+`outputs/CFVIGIL_CLEANUP*`, `outputs/CFVIGIL_PRESERVATION_MAP.json` and
+`outputs/CFVIGIL_DOCUMENT_CATALOG.json`. Rollback uses scoped reverse docs/config
+reverts; no source, user data, credentials, package or provider restoration.
+All owned local commands completed; no app, watcher or server was launched.

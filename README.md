@@ -5,7 +5,7 @@ Apache-2.0: [LICENSE](LICENSE), [NOTICE](NOTICE), [contribution policy](CONTRIBU
 
 ## Development status
 
-`dev` is the active source branch; `main` is the initial stable baseline.
+`dev` is the active source branch; `main` remains the initial repository baseline.
 Current source includes monitoring, native tray/Settings, notifications,
 private local history, optional launch-at-sign-in and 20 draft locale catalogs.
 This is an unsigned, unreleased development candidate, not stable v1.0.
