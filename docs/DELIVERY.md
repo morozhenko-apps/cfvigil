@@ -703,3 +703,14 @@ one-provider partial failures. Static UI text selection is disabled so
 native card/Settings dragging works; actual editable inputs remain editable.
 No provider writes or release scope changes. Full CI/candidate verification
 and installed KDE retest pending. Mode B not started.
+
+## 2026-10-25: Pages catalog HTTP 400 diagnostic correction
+
+The user verified `Cloudflare Pages — Read` was already granted but the
+installed app reported `Pages: Cloudflare HTTP 400`. CFVigil's Pages
+pagination used `per_page=100` while the official API example uses 20.
+The provider client now requests 20 per page and retains safe pagination
+bounds. Provider warnings no longer conflate HTTP 400 malformed requests
+with HTTP 403 token-scope denials; Cloudflare numeric error codes are
+exposed via bounded/sanitized responses. Await CI and real KDE installed
+candidate retest before marking Pages discovery PASS. Mode B blocked.

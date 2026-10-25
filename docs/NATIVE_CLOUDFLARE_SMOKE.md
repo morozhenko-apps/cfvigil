@@ -190,3 +190,30 @@ interval shorter than the polling cadence may be missed.
 
 The next candidate's source is **not yet accepted** on Alcotester.
 Mode B and broad test coverage remain blocked.
+
+### 2026-10-25: Pages Read verified, HTTP 400 requires request correction
+
+The owner supplied the token's Cloudflare permissions. **Account /
+Cloudflare Pages / Read is present.** The other options named
+`Access: Custom Pages` and `Account Custom Pages` are not substitutes.
+The native client reported **Pages: Cloudflare HTTP 400**, which is a bad
+request response, not a confirmed missing-read-scope denial. The previous
+diagnostic incorrectly attached `(requires Pages Read)` to every Pages
+failure, including HTTP 400.
+
+Source inspection found `list_paginated()` sending
+`GET /accounts/{id}/pages/projects?page=1&per_page=100` and reusing that
+aggressive default on subsequent pages. Cloudflare's documented Pages list
+API permits `page`/`per_page` and its example uses 20 per page. The
+project catalog is now queried with **20** items per page; pagination and
+bounded resource/count limits remain enforced. The hypothesis is that
+the provider rejected the previous oversized request. **Not yet proved
+on the live account:** real API acceptance of the corrected query.
+
+New diagnostics distinguish 400 from 403. Only 403 suggests checking
+Pages Read; both include only Cloudflare's numeric HTTP and error codes
+without copying free-form API error bodies, account IDs or credentials.
+On the next installed Linux candidate: confirm Pages projects appear,
+or report the new exact sanitized error line. Existing Workers and their
+configured refresh cadence must remain unaffected. This is still a native
+machine-gate failure pending another observed result, not Mode B acceptance.
