@@ -159,3 +159,8 @@ revision-guarding the stale response, Windows tray hide/show resets native
 height, Windows-only persistent bottom anchor, no release console and
 20 consistent UI catalogs. Run one stable Preflight for the completed
 batch only. Do not touch Linux Layer Shell geometry or main/releases.
+
+2026-10-25 Windows native recheck after updating strict saved-language
+contract to use its captured Apply draft. Recheck JS, locales, source
+units and Windows Rust/NSIS packaging on this same commit; previous
+failure was an outdated language string-matching test. No releases.

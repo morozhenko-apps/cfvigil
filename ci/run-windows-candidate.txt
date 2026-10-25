@@ -34,3 +34,8 @@ card; expanded window contracts correctly on hide; bottom anchored position
 survives repeated opens and full restart; Apply indicator and stored-token
 presence never expose the secret; release binary does not open console.
 Owner must run on Windows before any PASS or Mode B. No signing or R2.
+
+2026-10-25 Windows native recheck after updating strict saved-language
+contract to use its captured Apply draft. Recheck JS, locales, source
+units and Windows Rust/NSIS packaging on this same commit; previous
+failure was an outdated language string-matching test. No releases.
