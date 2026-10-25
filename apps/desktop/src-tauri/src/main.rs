@@ -32,7 +32,7 @@ use std::{
     path::PathBuf,
     time::Duration,
     sync::{
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicU64, Ordering},
         Mutex,
     },
 };
@@ -158,6 +158,7 @@ struct AppState {
     provider_warnings: Mutex<Vec<String>>,
     ready: AtomicBool,
     refresh_lock: tokio::sync::Mutex<()>,
+    config_revision: AtomicU64,
     poll_refresh: tokio::sync::watch::Sender<u64>,
     storage_warning: bool,
 }
@@ -375,6 +376,9 @@ async fn save_settings(
         *state.config.lock().unwrap() = next.clone();
     }
     if should_refresh {
+        // Invalidate any in-flight Cloudflare response before it can publish
+        // rows from a previous account or previous secret after this save.
+        state.config_revision.fetch_add(1, Ordering::AcqRel);
         state.ready.store(false, Ordering::Release);
         if previous.account_id != next.account_id {
             // Never reuse incidents or identities from another account.
@@ -634,17 +638,22 @@ fn preserved_waf(previous: &[Resource], verified: &HashSet<String>) -> Vec<Resou
 
 async fn refresh_once(app: AppHandle, budget: &ApiBudget) -> bool {
     let state = app.state::<AppState>();
-    let _refresh_guard = state.refresh_lock.lock().await;
-    let config = state.config.lock().unwrap().clone();
-    if config.account_id.is_empty() {
-        return true;
-    }
-    let token = match tauri::async_runtime::spawn_blocking(load_token).await {
-        Ok(Ok(token)) => token,
-        _ => {
-            report_sync_failure(&app, &state, msg::DATA_CREDENTIALS_UNAVAILABLE);
-            return false;
-        }
+    // Hold the credential lock ONLY to take a consistent account/token
+    // snapshot. Cloudflare discovery + metrics may take many seconds and must
+    // never block a settings Apply. A revision check before publication
+    // discards data fetched using outdated credentials.
+    let (config, token, revision) = {
+        let _credential_guard = state.refresh_lock.lock().await;
+        let config = state.config.lock().unwrap().clone();
+        if config.account_id.is_empty() { return true; }
+        let token = match tauri::async_runtime::spawn_blocking(load_token).await {
+            Ok(Ok(token)) => token,
+            _ => {
+                report_sync_failure(&app, &state, msg::DATA_CREDENTIALS_UNAVAILABLE);
+                return false;
+            }
+        };
+        (config, token, state.config_revision.load(Ordering::Acquire))
     };
     let result = match Cloudflare::new() {
         Ok(api) => api.discover(&config.account_id, &token, budget).await,
@@ -653,6 +662,10 @@ async fn refresh_once(app: AppHandle, budget: &ApiBudget) -> bool {
     let discovery = match result {
         Ok(discovery) => discovery,
         Err(message) => {
+            let _guard = state.refresh_lock.lock().await;
+            if state.config_revision.load(Ordering::Acquire) != revision {
+                return true; // The new settings already scheduled a fresh poll.
+            }
             report_sync_failure(&app, &state, &message);
             return false;
         }
@@ -662,7 +675,7 @@ async fn refresh_once(app: AppHandle, budget: &ApiBudget) -> bool {
     // polling to 30 minutes. Backoff is reserved for total discovery outage
     // and API-budget exhaustion; partial provider failures remain visible.
     let catalog_available = discovery.workers_complete || discovery.pages_complete;
-    *state.provider_warnings.lock().unwrap() = discovery.warnings;
+    let warnings = discovery.warnings;
     let previous = state.resources.lock().unwrap().clone();
     let worker_names: HashSet<String> = discovery.resources.iter()
         .filter(|resource| resource.kind == "worker")
@@ -731,6 +744,13 @@ async fn refresh_once(app: AppHandle, budget: &ApiBudget) -> bool {
         }
     };
     resources.sort_by(|a,b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    let _credential_guard = state.refresh_lock.lock().await;
+    if state.config_revision.load(Ordering::Acquire) != revision {
+        // A concurrent Apply won: never publish old-account rows, incidents,
+        // notifications or journal snapshots.
+        return true;
+    }
+    *state.provider_warnings.lock().unwrap() = warnings;
     state.ready.store(core_complete, Ordering::Release);
     *state.resources.lock().unwrap() = resources.clone();
     publish_snapshot(&app, &state);
@@ -900,6 +920,7 @@ fn main() {
                 pending_incident: Mutex::new(None),
                 ready: AtomicBool::new(false),
                 refresh_lock: tokio::sync::Mutex::new(()),
+                config_revision: AtomicU64::new(0),
                 poll_refresh,
                 storage_warning,
             });
