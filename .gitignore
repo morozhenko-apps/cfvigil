@@ -41,3 +41,8 @@ GEMINI.md
 .dev.vars.*
 !.env.example
 !.dev.vars.example
+
+# Regenerable Tauri permission schemas and nested local IDE state
+/apps/desktop/src-tauri/gen/schemas/
+.idea/
+.vscode/
