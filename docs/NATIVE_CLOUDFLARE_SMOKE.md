@@ -297,3 +297,13 @@ latest-failure deep-link. This does **not** establish that an in-progress
 yellow build was observed, that a new failure was captured during polling,
 that all Worker/Pages deep-links work, or that incidents/recovery/persistence
 passed. Those remain pending native smoke checkpoints.
+
+## 2026-10-25: History native UI and search — PASS, restart remains pending
+
+Owner screenshot shows History search for "bann", with 4 of 51 recorded
+events, localized timestamps/descriptions and resource-specific
+Cloudflare action controls. Owner stated the screen works. Mark the
+rendering/filtering portion PASS only. Persistence after a complete
+quit/restart, newly observed incident lifecycle and recovery remain
+NOT TESTED. Do not synthesize missing failure history for an older
+pre-monitoring build.

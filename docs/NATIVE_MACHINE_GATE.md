@@ -357,3 +357,23 @@ deep-link scenario. Pages discovery remains PASS. Dynamic build
 yellow-to-green/red transitions, incident history/recovery, runtime
 persistence, locale and Windows checks are still pending. The overall
 native-machine gate is **IN PROGRESS**; Mode B remains blocked.
+
+## 2026-10-25: History search and current event list — PASS on Alcotester
+
+The owner opened History, searched for `bann` and showed a localized
+history window with four matching records out of 51, each carrying a
+Cloudflare action and dated deployment messages. They explicitly confirmed
+that the history view worked. **PASS: History event rendering, search and
+Cloudflare-action visibility**. Existing recorded success events are not
+proof that the separately failed Pages deployment happened while CFVigil
+was monitoring it. **NOT TESTED: history survives a full process restart,
+incident recovery/deduplication, fresh failure transitions.**
+
+An additional native icon acceptance observation: after the original
+branding install, the tray and application windows adopted the owner shield
+but the KDE application-menu launcher still showed an older icon, and the
+shield was too small. A later owner commit 6706990 normalized the shield
+alpha-bounds in generated images, but did NOT install a fresh DEB.
+That visual change is pending a new package install, and the launcher
+is FAIL/PENDING DIAGNOSIS until the desktop-entry/hicolor package contract
+and the owner's pinned menu entry are checked. No Mode B approval.

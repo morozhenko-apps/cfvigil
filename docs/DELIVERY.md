@@ -862,3 +862,12 @@ deployment, as explicitly confirmed by the owner on Alcotester. This
 validates correct resource-specific failed-attempt navigation for this
 project. It is not evidence of a newly observed state transition or
 incident persistence, which remain to be checked before Mode B.
+
+## 2026-10-25: Evidence update — History smoke PASS, icon candidate pending
+
+KDE screenshot and explicit owner feedback confirm History filtering and
+event presentation (4 of 51 entries on "bann"). Full restart persistence
+and dynamic incident transitions remain unverified. The icon normalization
+assets were regenerated in commit 6706990 but not yet installed: a new
+unsigned DEB and physical app-menu verification are required. Stable
+Cloudflare provider behavior is unchanged, Mode B remains blocked.
