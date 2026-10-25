@@ -112,3 +112,44 @@ owner source on Alcotester. Trigger the one intended Preflight and DEB
 candidate only after all derived assets pass the source manifest.
 Acceptance requires actual KDE tray/launch-menu/History/Settings visual
 checks; Mode B remains blocked.
+
+### Regenerating the normalized outputs on Alcotester
+
+The source and original alpha are retained; the importer crops *generated*
+icons only. The previous committed binaries intentionally fail the new
+manifest verifier until they are rebuilt once. On the owner's existing
+local repository, after pulling `dev` run:
+
+```bash
+python3 tools/import_icon.py
+python3 tools/import_icon.py --check
+python3 -m unittest discover -s tests -p 'test_icon_import.py'
+node scripts/check-icon-assets.mjs
+git diff -- assets/branding/cfvigil_icon.png  # must be empty
+git add apps/desktop/src-tauri/icons apps/desktop/ui/icon.png
+git diff --cached --stat
+git commit -m "assets: enlarge icon artwork by trimming transparent padding"
+git push origin dev
+```
+
+Do not commit the source again unless its actual artwork has changed.
+Once the new binary assets are committed, run deliberate Preflight and
+unsigned Linux candidate jobs on the same SHA.
+
+**KDE menu triage, only after a new verified DEB is installed:** the
+Linux bundler's generated desktop file and icon directories are
+validated before package upload. On the installed workstation:
+
+```bash
+dpkg -L cf-vigil | grep -E '/applications/.*[.]desktop$|/icons/hicolor/'
+for item in $(dpkg -L cf-vigil | grep -E '/applications/.*[.]desktop$'); do
+  grep -E '^(Name|Exec|Icon|StartupWMClass)=' "$item"
+done
+kbuildsycoca6
+```
+
+If the themed image and desktop icon identity match but the pinned KDE
+launcher is still old, unpin and re-pin that entry. Inspect
+`~/.local/share/applications` for overrides instead of overwriting or
+deleting arbitrary desktop files. Do not rename the application identifier
+to force KDE to refresh its launcher; that would change persistence paths.
