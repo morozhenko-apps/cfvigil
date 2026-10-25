@@ -291,3 +291,22 @@ test("KDE backend selection and Settings surface are native before machine retes
   assert.equal(settingsConfig.maximizable, false);
   assert.equal(settingsConfig.minimizable, false);
 });
+
+
+test("ru and pt-PT monitoring terms distinguish running, success, unknown and actions", () => {
+  // A newer running deploy may supersede a failed attempt: it is not merely a build.
+  assert.equal(t("card.deploying", {}, "ru"), "В процессе");
+  assert.equal(t("card.optionsLabel", {name:"worker-a"}, "ru"),
+    "Действия с ресурсом: worker-a");
+  // A finished build can fail. "Completed" must not label the success counter.
+  assert.equal(t("card.healthy", {}, "pt"), "Sucesso");
+  assert.equal(t("card.statusUnknown", {}, "pt"), "Não verificado");
+  assert.equal(t("card.noAccount", {}, "pt"),
+    "Configure o Cloudflare nas Definições");
+  for (const locale of ["ru","pt"]) {
+    const label = t("settings.accountPlaceholder", {}, locale);
+    assert.match(label, /32/);
+    assert.match(label, locale === "ru" ? /шестнадцатеричных/ : /hexadecimais/);
+    assert.deepEqual(validateCatalog(locale === "ru" ? russian : portuguese, english, locale), []);
+  }
+});
