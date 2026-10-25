@@ -78,6 +78,8 @@ export default Object.freeze({
   "settings.account": "ID аккаунта Cloudflare",
   "settings.accountPlaceholder": "ID аккаунта из 32 символов",
   "settings.token": "API-токен",
+  "settings.tokenStored": "Токен сохранён в хранилище ОС. Для замены введите новый.",
+  "settings.tokenUnavailable": "Не удалось проверить сохранённый токен: хранилище недоступно.",
   "settings.tokenPlaceholder": "Оставьте пустым, чтобы сохранить текущий токен",
   "settings.interval": "Интервал обновления",
   "settings.oneMinute": "1 минута",

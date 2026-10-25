@@ -74,6 +74,8 @@ export default Object.freeze({
   "settings.account": "ID da conta Cloudflare",
   "settings.accountPlaceholder": "ID da conta com 32 caracteres",
   "settings.token": "Token API",
+  "settings.tokenStored": "Token guardado nas credenciais do sistema. Introduza outro para o substituir.",
+  "settings.tokenUnavailable": "Não é possível verificar o token guardado (credenciais indisponíveis).",
   "settings.tokenPlaceholder": "Deixe em branco para manter o token atual",
   "settings.interval": "Intervalo de atualização",
   "settings.oneMinute": "1 minuto",

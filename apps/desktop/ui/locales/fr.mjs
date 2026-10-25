@@ -71,6 +71,8 @@ export default Object.freeze({
   "settings.account": "ID du compte Cloudflare",
   "settings.accountPlaceholder": "ID de compte à 32 caractères",
   "settings.token": "Jeton API",
+  "settings.tokenStored": "Jeton enregistré dans le système. Saisissez-en un nouveau pour le remplacer.",
+  "settings.tokenUnavailable": "Impossible de vérifier le jeton (stockage indisponible).",
   "settings.tokenPlaceholder": "Laissez vide pour conserver le jeton actuel",
   "settings.interval": "Intervalle d’actualisation",
   "settings.oneMinute": "1 minute",

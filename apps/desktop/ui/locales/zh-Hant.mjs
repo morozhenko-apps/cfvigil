@@ -65,6 +65,8 @@ export default Object.freeze({
   "settings.account": "Cloudflare 帳戶 ID",
   "settings.accountPlaceholder": "32 字元的帳戶 ID",
   "settings.token": "API 權杖",
+  "settings.tokenStored": "權杖已儲存在系統憑證庫。輸入新權杖即可取代。",
+  "settings.tokenUnavailable": "無法檢查已儲存的權杖（憑證庫無法使用）。",
   "settings.tokenPlaceholder": "留空以保留現有權杖",
   "settings.interval": "重新整理間隔",
   "settings.oneMinute": "1 分鐘",
