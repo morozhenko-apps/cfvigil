@@ -1,0 +1,22 @@
+{
+  "files": {
+    "apps/desktop/src-tauri/icons/icon-128.png": "3e5530600ddc8d8b0e8c70ab92b64defb3f91209a29d13636437efdb3223c848",
+    "apps/desktop/src-tauri/icons/icon-16.png": "0967fc37057d00b4ab9d6de342533fd27d18c5b8b1855ff4279c6c203371737e",
+    "apps/desktop/src-tauri/icons/icon-24.png": "d9d731cfb0559049dd79aac0bb40e1aa6a8842d84a000c5678354e7269c1f1ae",
+    "apps/desktop/src-tauri/icons/icon-256.png": "ad87e1e4eb49c1cdb9840b2cb8b7e740ed43841dd93ab719a584179802e0e314",
+    "apps/desktop/src-tauri/icons/icon-32.png": "52265347c68939d56704fb3a872de63d554501c6539e519cd22bd2c57eef6e90",
+    "apps/desktop/src-tauri/icons/icon-48.png": "8ca955356cc7b68132b2e6a172a396d7ba9e74e6ebdb9e5f398a36761d769fce",
+    "apps/desktop/src-tauri/icons/icon-512.png": "b0520e12d40e7057167fb5808fc8c32e4484b4e614f80d489dce8004a1a37485",
+    "apps/desktop/src-tauri/icons/icon-64.png": "1e4c794fa1af25d348f532436ac58d26371ab2e456249fc306fce4cc98a0e20e",
+    "apps/desktop/src-tauri/icons/icon.icns": "e5139231df5d65980e03783d06c2842e25affff4951c4678ae001afccea36bde",
+    "apps/desktop/src-tauri/icons/icon.ico": "dfe0c43b06cf68837f321b2236c357e3d53493f402a48d82bb8c6d8575bcdf57",
+    "apps/desktop/src-tauri/icons/icon.png": "ad87e1e4eb49c1cdb9840b2cb8b7e740ed43841dd93ab719a584179802e0e314",
+    "apps/desktop/ui/icon.png": "3e5530600ddc8d8b0e8c70ab92b64defb3f91209a29d13636437efdb3223c848"
+  },
+  "source": "assets/branding/cfvigil_icon.png",
+  "source_sha256": "c6712382c86c0e74f13e2f3106b97325a89f985c13a91c4d827cef24f85f0b33",
+  "source_size": [
+    1254,
+    1254
+  ]
+}
