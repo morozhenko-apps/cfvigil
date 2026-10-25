@@ -882,3 +882,14 @@ Linux candidate and Preflight both SUCCESS, Windows NSIS candidate
 #40224188456 SUCCESS on GitHub-hosted Windows 2025. Windows native
 installation and manual smoke still pending; the package is unsigned.
 See [Windows native smoke](WINDOWS_NATIVE_SMOKE.md). No broad Mode B.
+
+## 2026-10-25: first Windows runtime findings and corrective source
+
+Owner screenshots after a successful unsigned NSIS install: Windows
+card opens and reads Cloudflare counts (26/0/1), tray/application icons
+PASS. The current Windows native gate is FAIL due to downward geometry
+drift, lost restart position, broken tray hide/expand state, slow unlabeled
+Settings Apply, token-editor saved-state ambiguity, and release console.
+A platform-isolated Windows card controller and credential-save revision
+synchronization replace the problematic flows in dev source. None of
+these remediations may be called native PASS until installed retest.

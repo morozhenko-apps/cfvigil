@@ -43,3 +43,23 @@ record that fact and keep Windows native acceptance open.
 Record PASS/FAIL/NOT TESTED with sanitized evidence. No production
 deployments should be intentionally broken. No tags, main, R2 or Mode B
 without owner acceptance of real native-machine evidence.
+
+## 2026-10-25: Windows physical first-pass evidence (owner screenshots)
+
+The first unsigned NSIS candidate #40224188456 **installed and ran on
+Windows 11**; orange shield in tray and main application launcher works.
+Cloudflare shows 26 successful resources, 0 deploying, 1 problem. Owner
+reported six defects: repeated window downward drift, lost saved placement
+after restart, incorrect click-to-hide behavior with expanded blank drawer,
+long Settings Apply without spinner, invisible saved token status in the
+password input, and an unexpected console window attached to launch.
+
+The candidate is **FAIL** for native Windows acceptance. Its CI SUCCESS
+only proves build/installability, not correctness. The fixes in subsequent
+Windows source commits remain **UNTESTED** until a replacement NSIS is
+installed on the same Windows machine. Keep original screenshots private;
+never request the API token or log it. Re-run: compact->expanded->tray hide
+->tray show ten times (no drift/blank content); move then quit/relaunch
+(placement retained); input Apply with slow Cloudflare and verify responsive
+spinner; reopen Settings and verify masked placeholder + saved-state text,
+replace token then verify state; launch from Start Menu with no console.

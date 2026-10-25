@@ -401,3 +401,29 @@ installation remains **NOT TESTED**. Follow
 Dynamic yellow transitions, recovery, offline/security cases, all-locale
 font/layout audit and the KDE launcher icon remain outstanding. Mode B
 continues BLOCKED pending owner machine acceptance.
+
+## 2026-10-25: first physical Windows 11 candidate — multiple FAILs
+
+Owner installed unsigned NSIS candidate #40224188456 and supplied real
+screenshots from Windows 11. **PASS (observed):** branded launcher and tray
+icons, Cloudflare resource list and latest-failure states (26 healthy,
+0 deploying, 1 problem). **FAIL (observed):** repeated expand/collapse/show
+makes the native window drift downward; a tray left click does not hide the
+already visible window and sometimes leaves the expanded viewport empty;
+position is not restored after a full restart (top-left spawn);
+Settings Apply appears to stall while storing/changing token, without an
+active spinner; reopening Settings shows a blank token editor with no
+saved-state indicator; a terminal console remains visible after launching
+the production build. Windows main card geometry on the screenshots is
+substantially oversized relative to the KDE 390px design.
+
+All defects are grouped under the Windows native gate. KDE Layer Shell,
+previously accepted Linux Settings geometry, Cloudflare API permissions
+and live Pages behavior must remain unchanged. New source fixes use a
+Windows-only bottom-anchored persisted geometry controller, native tray
+visibility toggle/reset, GUI subsystem in release, asynchronous protected
+keyring presence indicator and save spinner, and revision-guarded provider
+refresh that does not hold a credential lock during network traffic.
+**Source implementation != PASS:** require a NEW unsigned Windows
+candidate installed and inspected for every listed problem before any
+Mode B transition.
