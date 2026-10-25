@@ -77,3 +77,10 @@ R2 upload, main merge, release tagging or installed-machine PASS claim.
 source contract with tracked ICO/ICNS files. Original 1254x1254 RGBA PNG,
 12 manifest entries; all checks MUST run on the same dev commit. Builds
 are unsigned native-machine candidates only. No main, tags, R2 or Mode B.
+
+2026-10-25: Recheck owner-committed normalized shield icons at dev source
+6706990 (alpha visible bbox 272,216 to 1054,1034, 5% outer margin,
+12 generated files). Verify manifest, focused alpha crop tests, KDE .desktop
+Icon=hicolor installable image, stable Node/Python/Rust suites and build a
+fresh unreleased DEB/AppImage on exactly this SHA. Earlier installed DEB
+predates asset commit and cannot show this image. No main/Mode B/R2/tags.
