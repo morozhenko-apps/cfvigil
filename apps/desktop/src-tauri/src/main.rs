@@ -1082,6 +1082,7 @@ mod security_tests {
             pending_incident: Mutex::new(None),
             ready: AtomicBool::new(true),
             refresh_lock: tokio::sync::Mutex::new(()),
+            config_revision: AtomicU64::new(0),
             poll_refresh,
             storage_warning: false,
         };
