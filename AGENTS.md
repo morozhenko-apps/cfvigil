@@ -114,3 +114,14 @@ owner scope and unresolved cases; no product/API/architecture/security change.
 Rollback: scoped reverse docs/ignore commits; no data, credentials, package,
 archive format, provider or source restoration. Ignored private state is outside
 scope and must not be opened or removed.
+
+### Validation-generated build output classification
+
+Existing local Rust check/tests completed successfully, but Tauri generated
+untracked JSON permission schemas under `apps/desktop/src-tauri/gen/schemas/`.
+They did not exist as tracked/untracked source at the clean baseline and are
+regenerable compiler/IDE output, not user runtime or credential data. Preserve
+committed capabilities/config and all original files; ignore this exact generated
+schema directory and remove only the task-created JSON schemas after the compiler
+exits. Retain any unrelated data. Also cover nested local IDE state. No source or
+test change is required; rerun only preservation/ignore/whitespace checks.
