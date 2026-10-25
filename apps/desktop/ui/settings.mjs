@@ -123,11 +123,10 @@ form.addEventListener("submit", async event => {
     token.value = "";
     confirmedLanguage = nextLanguage;
     // Never return the secret to JS. Only the native bool state is used.
-    try {
-      showTokenPresence(await invoke("get_token_status"));
-    } catch {
-      tokenStatus.textContent = t("settings.tokenUnavailable");
-    }
+    if (replacement) showTokenPresence(true);
+    // Credential save has completed at this point; status re-query is
+    // informational and must not keep the Apply spinner on screen.
+    void refreshTokenStatus();
     message.textContent = t("settings.saved");
     if (autostartLoaded) {
       try {
@@ -150,11 +149,15 @@ form.addEventListener("submit", async event => {
   }
 });
 
-try {
-  showTokenPresence(await invoke("get_token_status"));
-} catch {
-  tokenStatus.textContent = t("settings.tokenUnavailable");
+async function refreshTokenStatus() {
+  try {
+    showTokenPresence(await invoke("get_token_status"));
+  } catch {
+    tokenStatus.textContent = t("settings.tokenUnavailable");
+  }
 }
+// Never delay first display of the window while the OS opens its vault.
+void refreshTokenStatus();
 
 try {
   const config = await invoke("get_settings");
