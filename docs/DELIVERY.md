@@ -10,6 +10,9 @@ geometry/Settings PASS and an overall gate still IN PROGRESS; the
 [connected Cloudflare owner](NATIVE_CLOUDFLARE_SMOKE.md) records a real partial
 Worker connection and corrected Pages-diagnostic/polling source awaiting
 installed retest. Do not convert that scope into full machine/live acceptance.
+Pages Read is now owner-verified; the latest observed HTTP 400 is a request/
+pagination defect, not a confirmed missing-scope denial. The bounded 20-item
+query and sanitized numeric-code correction still await native retest.
 
 All 20 UI dictionaries exist as drafts; [per-locale editorial/context and
 physical acceptance](i18n/CONTEXT_AUDIT.md) remain pending. Follow the

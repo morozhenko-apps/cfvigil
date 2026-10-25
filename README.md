@@ -13,7 +13,7 @@ This is an unsigned, unreleased development candidate, not stable v1.0.
 | Evidence boundary | Recorded state | Owner |
 | --- | --- | --- |
 | KDE geometry/Settings/position | Scoped v5 owner PASS; earlier failures retained | [Native-machine checkpoint](docs/NATIVE_MACHINE_GATE.md) |
-| Connected Cloudflare | Worker rows/search/green lamps observed; partial result, missing Pages and corrective source await installed retest | [Connected smoke](docs/NATIVE_CLOUDFLARE_SMOKE.md) |
+| Connected Cloudflare | Worker rows/search/green lamps observed; Pages Read verified, HTTP 400 pagination correction awaits installed retest | [Connected smoke](docs/NATIVE_CLOUDFLARE_SMOKE.md) |
 | Languages | All 20 source dictionaries exist; editorial/context and physical acceptance pending | [Per-locale ledger](docs/i18n/CONTEXT_AUDIT.md) |
 | Whole machine gate, Windows and public release | Not accepted; broad coverage/Mode B follows owner machine acceptance | [Roadmap](docs/ROADMAP_TO_1_0.md), [delivery](docs/DELIVERY.md) |
 

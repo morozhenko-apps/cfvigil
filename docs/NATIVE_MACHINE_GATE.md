@@ -9,7 +9,9 @@ security/credential/offline, connected-provider and release cases still open.
 The [connected smoke](NATIVE_CLOUDFLARE_SMOKE.md) now records actual Worker rows
 and a partial result; old "NOT TESTED" connected summaries apply to their
 checkpoint. Corrected Pages permission warnings, verified partial counters and
-polling/drag source require installed retest. Do not replay a completed geometry
+polling/drag source require installed retest. Pages Read is now owner-verified;
+the later HTTP 400 request/pagination defect must not reopen that permission
+question. The corrected 20-item query is not yet live accepted. Do not replay a completed geometry
 fix or infer missing scopes, a successful Pages response, yellow-state capture
 or incident correctness without evidence. Preserve all earlier FAILs and cases.
 

@@ -175,3 +175,28 @@ original-body/hash map, document catalog and deterministic rollback patch as
 `outputs/CFVIGIL_DOCUMENT_CATALOG.json`. Rollback uses scoped reverse docs/config
 reverts; no source, user data, credentials, package or provider restoration.
 All owned local commands completed; no app, watcher or server was launched.
+
+### Concurrent Pages correction integration (2026-10-25)
+
+The final fetch found six new upstream commits after `a22b481`, through
+`f2b0e46`: provider Rust, two verification/package markers and appended native/
+delivery evidence. Pages Read is owner-verified; HTTP 400 pagination is distinct
+from missing permissions. Retain those facts and pending installed retest.
+Only the six owned, unpublished housekeeping commits were replayed onto that
+base. One DELIVERY append conflict was resolved by retaining the entire new
+upstream body plus the complete old-root appendix; no source was edited.
+Initial baseline/commands/maps and a recovery bundle remain externally saved.
+
+Active dev requires an exceptional short-lived docs branch and PR, not direct
+concurrent writes. Publish only docs/ignore cleanup, verify its diff and merge
+normally, then delete the temporary branch. CI marker changes belong solely to
+upstream and are preserved byte-for-byte relative to the integrated base.
+
+The existing upstream Preflight at exact `33a53d3` (run 40181633690) has SUCCESS.
+Confirm executable/test/config input identity before reusing it for the final
+integrated source; do not repeat a compiler campaign, update a marker or dispatch
+another CI for documentation housekeeping. Initial local counts apply to the
+initial base; latest source/CI and all warning/outcome receipts are recorded
+separately in audit evidence. Whole native/Pages/editorial/Windows gates remain
+open despite source success. Final publication and rollback use the exact merged
+PR diff, preserving every concurrent source and marker change.

@@ -15,6 +15,9 @@ be distinguished from a verified 200/empty catalog; no token scope is inferred
 from an incomplete screenshot. Counters describe resource states, not lifetime
 build counts; a short running attempt may fall between polls. Do not induce
 failures/traffic or broaden API rights for a synthetic red/yellow observation.
+Latest evidence below verifies Pages Read and reports HTTP 400, not a 403
+scope denial. The 20-item pagination and bounded numeric-error correction
+await installed retest; earlier requests to recheck the scope are historical.
 Overall [machine acceptance](NATIVE_MACHINE_GATE.md) is still IN PROGRESS;
 Windows, incident, offline/keyring and locale cases retain their own gaps.
 
