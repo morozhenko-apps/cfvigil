@@ -70,3 +70,47 @@ use the owner's self-hosted CI runners for this. See
 - Bug reports are accepted through the one GitHub Issue form. No external PR
   contribution process, external maintainers or feature request intake.
   Forks are welcome under Apache License 2.0.
+
+## Repository housekeeping (2026-10-25)
+
+Mode A. Scope: existing documentation and local ignore rules only. The owner
+requested this next repository cleanup and normal working-branch publication.
+Selected baseline `a22b481`, clean synchronized dev, 114 tracked files and
+11 Markdown files. A reviewed fast-forward preserved 19 upstream commits after
+local `20847fc`; no uncommitted work, stash, reset or pull. No open PR or tracked
+disposable IDE/assistant preset, generated report or empty workflow was found.
+
+Plan and milestones:
+
+1. [x] Read the working contract, contribution/product/roadmap, delivery,
+   distribution, i18n and native/live-smoke owners. Root initial-source and
+   "not executed" introductions contradict later dated evidence. KDE geometry
+   has scoped owner PASS; connected Cloudflare is partial, corrected source
+   awaits installed retest, Windows/editorial/overall machine gates remain open.
+2. [ ] Reconcile root status and compact navigation to all existing owners.
+   Retain the complete previous root in the existing delivery chronology with
+   only link/heading/Markdown whitespace normalization; preserve root anchors.
+   Add reading-boundary prefaces to delivery and both native checkpoint owners,
+   keeping all original bodies, earlier FAILs, partial states, cases and limits.
+   Do not create another SSOT or rename/delete the compact documentation set.
+3. [ ] Add missing local editor/assistant/provider-state ignores; preserve all
+   original rules, safe examples and neutral agent instructions. Keep source,
+   CI/packaging markers, Cargo.lock, all 20 dictionaries and per-locale audit,
+   licensing/security/distribution contracts and ignored runtime data unchanged.
+4. [ ] Final acceptance: existing JavaScript syntax/i18n/Node tests, offline
+   Python release contracts, locked Rust check/tests once; local Markdown
+   links/anchors, complete owner catalog, body/hash preservation, isolated-ignore
+   and whitespace checks. No new coverage expansion, Mode B, physical/native
+   install, live account/API, token/keyring, release or provider operation.
+   Do not change CI markers or dispatch CI/package jobs for housekeeping.
+   Commit docs/config separately; check concurrent dev before publishing and
+   use the short-lived-branch rule only if concurrent writes are observed.
+   Confirm remote SHA and export patch, preservation map and exact results.
+
+Risks: claiming full machine acceptance from geometry/source, confusing draft
+20-locale catalogs with editorial acceptance, hiding Pages permission failures,
+or treating a repeated green build as an incrementing lifetime counter. Preserve
+owner scope and unresolved cases; no product/API/architecture/security change.
+Rollback: scoped reverse docs/ignore commits; no data, credentials, package,
+archive format, provider or source restoration. Ignored private state is outside
+scope and must not be opened or removed.
