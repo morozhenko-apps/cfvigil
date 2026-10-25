@@ -63,3 +63,42 @@ never request the API token or log it. Re-run: compact->expanded->tray hide
 (placement retained); input Apply with slow Cloudflare and verify responsive
 spinner; reopen Settings and verify masked placeholder + saved-state text,
 replace token then verify state; launch from Start Menu with no console.
+
+## 2026-10-25: Windows replacement NSIS retest (owner observation)
+
+The replacement candidate from Preflight #40232194058 and Windows package
+#40232194059, source `c17ea2b3`, was exercised on the owner's Windows 11.
+Confirmed PASS by owner: no console on launch; saved token has masked
+presence in Settings; previously blank resource drawer now retains rows.
+This is scoped evidence only, not a full Windows acceptance PASS. The
+owner did not explicitly confirm every credential, language, notification
+or history scenario on this pass.
+
+Three remaining FAILs on that installed binary:
+- After each manual repositioning, the **first** tray hide/show displaces
+  the card slightly downward. Subsequent hide/show cycles stay stable
+  until another manual move. This supersedes the earlier cumulative-drift
+  characterization.
+- Card's rounded corner cutouts retain an opaque bevel/white frame.
+- The down glyph on the compact Hide button is off-center and visually
+  inconsistent with the Breeze-inspired controls.
+
+Development fix `ffb0b85` is not yet physically tested on Windows:
+anchor movement uses measured outer height after avoiding unnecessary
+native resizes; late Win32 resize event re-anchors the bottom edge.
+The main transparent window explicitly disables native shadow (Tauri's
+default adds an opaque 1px border to frameless Windows). The hide glyph
+is now fixed-size centered SVG instead of a platform-dependent text
+character. Native geometry diagnostics are opt-in with
+`CFVIGIL_UI_DEBUG=1`, written to bounded local
+`windows-card-geometry.log`; no credentials or provider responses.
+
+Physical recheck after the new unsigned NSIS: drag compact card, record
+its exact location, tray hide/show once, then ten cycles; drag again and
+repeat; verify no vertical delta at both 100% and native display DPI if
+practical. Verify both card corner cutouts are visually transparent
+against a contrasting desktop and the SVG hide-chevron is centered.
+Then expand list, hide/show, check resources and anchoring, quit/relaunch
+and check persisted placement. Previous PASS observations need not be
+retested at high frequency, but should survive the new install.
+Do not close native Windows gate on hosted-CI success alone.
