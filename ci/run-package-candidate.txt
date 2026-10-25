@@ -52,3 +52,9 @@ verified resource counters, normal polling on partial provider failures,
 and drag-safe nonselectable static text. Gate installation on Preflight
 #40142604820 SUCCESS plus this package SUCCESS, verify SHA256. No R2,
 Mode B, tags or Windows releases.
+
+2026-10-25: Unreleased Alcotester Pages HTTP 400 retest candidate;
+Cloudflare Pages project list uses 20-item pagination, numeric provider
+errors are sanitized and 400 no longer falsely claims missing Pages Read.
+Require Preflight #40181633690 SUCCESS and candidate SUCCESS plus SHA256
+sidecars before installing. Do not publish R2, tag, merge main or Mode B.
