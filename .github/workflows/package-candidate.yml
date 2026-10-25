@@ -43,6 +43,7 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/candidate-version.mjs --check
+          node scripts/check-icon-assets.mjs
           for file in apps/desktop/ui/*.mjs scripts/*.mjs; do
             node --check "$file"
           done

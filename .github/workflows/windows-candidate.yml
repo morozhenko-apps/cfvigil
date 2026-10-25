@@ -35,6 +35,8 @@ jobs:
         run: |
           node scripts/candidate-version.mjs --check
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/check-icon-assets.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cargo metadata --locked --format-version 1 --no-deps | Out-Null
@@ -43,14 +45,7 @@ jobs:
         run: |
           cargo install tauri-cli --version '^2' --locked
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Generate icon set from committed source PNG
-        working-directory: apps/desktop/src-tauri
-        run: |
-          # tauri-build requires icons/icon.ico even for cargo check on Windows.
-          cargo tauri icon icons/icon.png --output icons
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if (!(Test-Path icons/icon.ico)) { throw "Missing generated ICO" }
-      - name: Check Windows Rust desktop after icon generation
+      - name: Check Windows Rust desktop with committed ICO and PNG
         run: |
           cargo check --locked -p cfvigil-desktop
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

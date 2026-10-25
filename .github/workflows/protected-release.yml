@@ -30,6 +30,7 @@ jobs:
           git fetch --no-tags origin main
           test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main^{commit})"
           node scripts/candidate-version.mjs --check-tag "$RELEASE_TAG"
+          node scripts/check-icon-assets.mjs
           cargo metadata --locked --format-version 1 --no-deps >/dev/null
           node --test tests/*.test.mjs
           python3 -m unittest discover -s tests -p 'test_release_*.py'
@@ -87,8 +88,6 @@ jobs:
         working-directory: apps/desktop/src-tauri
         run: |
           cargo install tauri-cli --version '^2' --locked
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          cargo tauri icon icons/icon.png --output icons
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cargo check --locked
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

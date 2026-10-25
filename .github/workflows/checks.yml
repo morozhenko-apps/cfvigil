@@ -50,6 +50,8 @@ jobs:
           done
       - name: Validate localization keys and message contracts
         run: node scripts/check-i18n.mjs
+      - name: Verify original icon and derived Windows/Linux/WebView assets
+        run: node scripts/check-icon-assets.mjs
       - name: Run stable JavaScript tests
         run: node --test tests/*.test.mjs
       - name: Run offline release/Cloudflare distribution tests
