@@ -11,6 +11,19 @@ const PAGE_LIMIT: usize = 50;
 // reuse large generic list sizes (100) against this provider-specific API.
 const PAGES_PAGE_SIZE: usize = 20;
 
+fn cloudflare_failure(status: reqwest::StatusCode, body: &[u8]) -> String {
+    // Never copy arbitrary API error text: messages can contain resource URLs
+    // and account information. A bounded numeric code is safe and actionable.
+    let code = serde_json::from_slice::<Value>(body).ok()
+        .and_then(|json| json.get("errors")?.as_array()?.iter()
+            .find_map(|error| error.get("code").and_then(Value::as_u64)));
+    if let Some(code) = code {
+        format!("Cloudflare HTTP {} (code {code})", status.as_u16())
+    } else {
+        format!("Cloudflare HTTP {}", status.as_u16())
+    }
+}
+
 fn pages_page_path(path: &str, page: usize) -> String {
     let delimiter = if path.contains('?') { '&' } else { '?' };
     format!("{path}{delimiter}page={page}&per_page={PAGES_PAGE_SIZE}")
@@ -199,7 +212,14 @@ impl Cloudflare {
         budget.observe(&response);
         let status = response.status();
         if !status.is_success() {
-            return Err(format!("Cloudflare HTTP {}", status.as_u16()));
+            // Read only a small bounded Cloudflare error body; use its numeric
+            // code, never echo potentially sensitive free-form messages.
+            let failure_body = response.bytes().await
+                .map_err(|_| format!("Cloudflare HTTP {}", status.as_u16()))?;
+            return Err(cloudflare_failure(
+                status,
+                &failure_body[..failure_body.len().min(8192)],
+            ));
         }
         let bytes = response
             .bytes()
@@ -421,6 +441,19 @@ impl Cloudflare {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn cloudflare_error_messages_expose_only_numeric_codes_not_private_details() {
+        let body = br#"{"errors":[{"code":7001,"message":"account 123: secret detail"}]}"#;
+        assert_eq!(
+            cloudflare_failure(reqwest::StatusCode::BAD_REQUEST, body),
+            "Cloudflare HTTP 400 (code 7001)"
+        );
+        assert_eq!(
+            cloudflare_failure(reqwest::StatusCode::FORBIDDEN, b"not json"),
+            "Cloudflare HTTP 403"
+        );
+    }
 
     #[test]
     fn pages_pagination_uses_documented_page_size_and_preserves_query_separator() {
