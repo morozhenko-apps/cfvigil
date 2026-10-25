@@ -1,3 +1,5 @@
+#![cfg_attr(all(target_os = "windows", not(debug_assertions)), windows_subsystem = "windows")]
+
 mod cloudflare;
 mod language;
 mod native_messages;
@@ -15,6 +17,8 @@ mod linux_surface;
 mod linux_settings;
 #[cfg(target_os = "linux")]
 mod linux_tray;
+#[cfg(target_os = "windows")]
+mod windows_card;
 
 use cloudflare::{Cloudflare, Resource};
 use language::LanguagePreference;
@@ -181,6 +185,20 @@ fn load_token() -> Result<String, String> {
     token_entry()?
         .get_password()
         .map_err(|_| msg::ERROR_TOKEN_LOCKED.into())
+}
+
+/// Check keyring presence without exposing a token string to the WebView.
+/// Keep a locked or inaccessible vault distinct from an empty vault.
+#[tauri::command]
+async fn get_token_status() -> Result<bool, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let entry = token_entry()?;
+        match entry.get_password() {
+            Ok(value) => Ok(!value.is_empty()),
+            Err(keyring::Error::NoEntry) => Ok(false),
+            Err(_) => Err(msg::ERROR_TOKEN_LOCKED.to_owned()),
+        }
+    }).await.map_err(|_| msg::ERROR_CREDENTIAL_SERVICE) ?
 }
 
 
@@ -398,6 +416,21 @@ fn show_window(app: &AppHandle, label: &str) {
 }
 
 fn show_card(app: &AppHandle) {
+    #[cfg(target_os = "windows")]
+    if let Some(window) = app.get_webview_window("main") {
+        // Already open: do not reset WebView state while leaving its large
+        // expanded native rectangle on screen (blank drawer and huge gap).
+        if window.is_visible().unwrap_or(false) {
+            let _ = window.set_focus();
+            return;
+        }
+        windows_card::restore_for_show(app, &window);
+        let _ = app.emit("cfvigil-card-reset", ());
+        let _ = window.show();
+        let _ = window.set_focus();
+        let _ = app.emit("cfvigil-card-shown", ());
+        return;
+    }
     #[cfg(target_os = "linux")]
     if linux_surface::enabled() {
         let _ = linux_surface::request_resize(app, COMPACT_HEIGHT as i32);
@@ -417,6 +450,15 @@ fn show_card(app: &AppHandle) {
 #[tauri::command]
 fn hide_card(app: AppHandle) {
     *app.state::<AppState>().pending_incident.lock().unwrap() = None;
+    #[cfg(target_os = "windows")]
+    if let Some(window) = app.get_webview_window("main") {
+        // A hidden window must always be compact when next shown; preserve
+        // bottom anchor instead of cumulatively shifting Y on each resize.
+        let _ = window.hide();
+        windows_card::collapse_hidden(&app, &window);
+        let _ = app.emit("cfvigil-card-hidden", ());
+        return;
+    }
     #[cfg(target_os = "linux")]
     if linux_surface::enabled() {
         let _ = linux_surface::hide(&app);
@@ -432,14 +474,21 @@ fn hide_card(app: AppHandle) {
 
 #[tauri::command]
 async fn start_card_drag(app: AppHandle) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    windows_card::begin_drag(&app);
     #[cfg(target_os = "linux")]
     if linux_surface::enabled() { return linux_surface::start_drag(&app).await; }
     let window = app.get_webview_window("main").ok_or(msg::ERROR_CARD_MISSING)?;
-    window.start_dragging().map_err(|_| "Unable to drag card".into())
+    let result = window.start_dragging().map_err(|_| "Unable to drag card".to_owned());
+    #[cfg(target_os = "windows")]
+    if result.is_err() { windows_card::end_drag(&app); }
+    result
 }
 
 #[tauri::command]
 async fn stop_card_drag(app: AppHandle) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    windows_card::end_drag(&app);
     #[cfg(target_os = "linux")]
     if linux_surface::enabled() { return linux_surface::stop_drag(&app).await; }
     let _ = app;
@@ -492,21 +541,26 @@ async fn set_card_expanded(app: AppHandle, expanded: bool) -> Result<(), String>
     if linux_surface::enabled() {
         return linux_surface::resize(app, height as i32).await;
     }
-    let old_position = window.outer_position().ok();
-    let old_size = window.outer_size().ok();
-    window
-        .set_size(tauri::LogicalSize::new(CARD_WIDTH, height))
-        .map_err(|_| msg::ERROR_RESIZE)?;
-    // Preserve the bottom edge when the window manager permits repositioning.
-    if let (Some(position), Some(size)) = (old_position, old_size) {
-        let scale = window.scale_factor().unwrap_or(1.0);
-        let bottom = i64::from(position.y) + i64::from(size.height);
-        let next_top = bottom - (height * scale).round() as i64;
-        if let Ok(top) = i32::try_from(next_top) {
-            let _ = window.set_position(tauri::PhysicalPosition::new(position.x, top));
-        }
+    #[cfg(target_os = "windows")]
+    {
+        return windows_card::resize_anchored(&app, &window, height);
     }
-    Ok(())
+    #[cfg(not(target_os = "windows"))]
+    {
+        let old_position = window.outer_position().ok();
+        let old_size = window.outer_size().ok();
+        window.set_size(tauri::LogicalSize::new(CARD_WIDTH, height))
+            .map_err(|_| msg::ERROR_RESIZE)?;
+        if let (Some(position), Some(size)) = (old_position, old_size) {
+            let scale = window.scale_factor().unwrap_or(1.0);
+            let bottom = i64::from(position.y) + i64::from(size.height);
+            let next_top = bottom - (height * scale).round() as i64;
+            if let Ok(top) = i32::try_from(next_top) {
+                let _ = window.set_position(tauri::PhysicalPosition::new(position.x, top));
+            }
+        }
+        Ok(())
+    }
 }
 
 fn trusted_dashboard_url(candidate: &str) -> bool {
@@ -863,6 +917,8 @@ fn main() {
                 );
                 linux_tray::install(app)?;
             }
+            #[cfg(target_os = "windows")]
+            windows_card::install(app)?;
             #[cfg(not(target_os = "linux"))]
             {
             let menu = translated_tray_menu(app.handle(), &language.locale)?;
@@ -886,7 +942,13 @@ fn main() {
                         button_state: MouseButtonState::Up,
                         ..
                     } = event {
-                        show_card(tray.app_handle());
+                        #[cfg(target_os = "windows")]
+                        if tray.app_handle().get_webview_window("main")
+                            .is_some_and(|window| window.is_visible().unwrap_or(false)) {
+                            hide_card(tray.app_handle().clone());
+                        } else {
+                            show_card(tray.app_handle());
+                        }
                     }
                 })
                 .build(app)?;
@@ -896,13 +958,22 @@ fn main() {
             Ok(())
         })
         .on_window_event(|window, event| {
+            #[cfg(target_os = "windows")]
+            if window.label() == "main" {
+                windows_card::on_window_event(window, event);
+            }
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
-                let _ = window.hide();
+                if window.label() == "main" {
+                    hide_card(window.app_handle().clone());
+                } else {
+                    let _ = window.hide();
+                }
             }
         })
         .invoke_handler(tauri::generate_handler![
             get_settings,
+            get_token_status,
             get_language,
             set_language,
             get_autostart,
