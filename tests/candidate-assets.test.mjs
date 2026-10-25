@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {canonicalName, selectArtifacts, bundleFiles, validateDebMetadata} from "../scripts/candidate-assets.mjs";
+import {canonicalName, selectArtifacts, bundleFiles, validateDebMetadata, validateDebLauncherLayout} from "../scripts/candidate-assets.mjs";
 import {mkdtempSync, mkdirSync, writeFileSync, symlinkSync, rmSync} from "node:fs";
 import {tmpdir} from "node:os";
 import path from "node:path";
@@ -62,4 +62,26 @@ test("ignore AppImage staging symlinks but reject symlinks replacing final packa
     symlinkSync(deb,appimage);
     assert.throws(()=>bundleFiles(root),/Unsafe final package/);
   } finally { rmSync(root,{recursive:true,force:true}); }
+});
+
+test("Debian menu entry must reference an installed themed CFVigil PNG", () => {
+  const files = [
+    "16x16/apps/cfvigil.png",
+    "32x32/apps/cfvigil.png",
+    "256x256/apps/cfvigil.png",
+    "scalable/apps/unrelated.svg",
+  ];
+  assert.deepEqual(validateDebLauncherLayout(
+    "[Desktop Entry]\\nName=CFVigil\\nIcon=cfvigil\\n", files), {
+    name:"cfvigil", paths:files.slice(0,3),
+  });
+  assert.throws(() => validateDebLauncherLayout(
+    "[Desktop Entry]\\nIcon=old-default\\n", files), /no matching hicolor PNG/);
+  assert.throws(() => validateDebLauncherLayout(
+    "[Desktop Entry]\\nName=CFVigil\\n", files), /exactly one Icon/);
+  assert.throws(() => validateDebLauncherLayout(
+    "[Desktop Entry]\\nIcon=../../outside\\n", files), /safe themed icon/);
+  assert.throws(() => validateDebLauncherLayout(
+    "[Desktop Entry]\\nIcon=cfvigil\\nIcon=old-default\\n", files),
+    /exactly one Icon/);
 });
