@@ -73,3 +73,42 @@ actual KDE task switcher / title bar in the native-machine smoke.
 
 No `main` promotion, release tags, R2 publication or Mode B approval
 is implied by the import.
+
+## 2026-10-25: owner-observed too-small icon / unchanged KDE launcher
+
+On Alcotester, the owner confirms the new shield appears in KDE tray,
+Settings and History, but is visibly **too small**; the application-menu
+launcher remained on the previous image. This is a real-machine branding
+defect, not a reason to redraw the source or rewrite Wayland geometry.
+
+**Architectural decision:** keep the original
+`assets/branding/cfvigil_icon.png` unchanged and auditable. Normalize
+only its *generated* outputs. Crop the alpha channel to its nonzero
+bounding box (ignore invisible margin) and fit that rectangle into a
+square transparent 1254px source-sized canvas with a fixed 5% safety
+margin. Use alpha-preserving RGBA composition; never paste with the alpha
+channel as an extra mask (double transparency). All PNG/ICO/ICNS/WebView
+and the native Linux tray are derived from that one normalized bitmap.
+No separate tray artwork, and no repeated in-place cropping of source.
+Record bounding box and normalization configuration in the SHA256
+manifest, then run the deterministic asset check.
+
+For the unchanged KDE menu icon, first **verify package contents** instead
+of assuming a cache issue. A .deb must contain exactly one regular
+`/usr/share/applications/*.desktop` entry with an `Icon` name that
+resolves to at least one installed hicolor PNG under
+`/usr/share/icons/hicolor/<size>/apps/<Icon>.png`. The packaged image
+must use the current shield, not an old/generic Tauri icon. Add this
+verification to the existing unsigned Linux candidate collection.
+For the install-time check, inspect the real system launcher, then
+rebuild KDE's service/icon cache and unpin/re-pin an old launcher only
+if the package identity matches. Do not change Tauri's app identifier or
+user settings location as an icon workaround.
+
+**Order:** docs first, importer/source verifier, DEB installed-icon
+contract, focused tests on synthetic RGBA pixels and fake installed
+desktop/icon tree, then regenerate/commit actual binary outputs from the
+owner source on Alcotester. Trigger the one intended Preflight and DEB
+candidate only after all derived assets pass the source manifest.
+Acceptance requires actual KDE tray/launch-menu/History/Settings visual
+checks; Mode B remains blocked.
