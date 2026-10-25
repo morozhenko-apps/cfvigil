@@ -177,3 +177,11 @@ skip redundant 92px resizes, finalize anchor after asynchronous Win32 resize,
 remove Tauri default shadow, replace platform text chevron with fixed SVG.
 Verify JS contracts, native Rust unit test and untouched previously working
 tray/list/token/GUI-subsystem behavior. Owner Windows physical gate remains open.
+
+2026-10-25: Single focused 0.8 RU/pt-PT terminology validation after source
+commit 3f6f8a2 and separate i18n ledger. Ensure 20 full-key catalogs,
+Russian in-progress builds/deployments and accessible resource-action labels,
+Portuguese successful/unverified state and no-account guidance, hexadecimal
+Account ID hints, interpolation/plurals, unchanged provider/network/incident
+logic. Run stable JS/Python/Rust Preflight only. No candidate package, Mode B,
+main, release, R2 publication, Cloudflare mutations or self-hosted runners.
