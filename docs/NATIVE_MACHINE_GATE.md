@@ -1,5 +1,25 @@
 # CFVigil native-machine checkpoint before Mode B
 
+## Current checkpoint (2026-10-25)
+
+The original BLOCKED/NOT EXECUTED introduction below is historical. Later
+records establish **v5 KDE geometry/Settings/position PASS only**. The overall
+native-machine gate remains IN PROGRESS, with real Windows, locale/editorial,
+security/credential/offline, connected-provider and release cases still open.
+The [connected smoke](NATIVE_CLOUDFLARE_SMOKE.md) now records actual Worker rows
+and a partial result; old "NOT TESTED" connected summaries apply to their
+checkpoint. Corrected Pages permission warnings, verified partial counters and
+polling/drag source require installed retest. Pages Read is now owner-verified;
+the later HTTP 400 request/pagination defect must not reopen that permission
+question. The corrected 20-item query is not yet live accepted. Do not replay a completed geometry
+fix or infer missing scopes, a successful Pages response, yellow-state capture
+or incident correctness without evidence. Preserve all earlier FAILs and cases.
+
+The [roadmap](ROADMAP_TO_1_0.md) and [delivery record](DELIVERY.md) retain order:
+no broad test expansion or Mode B until explicit owner machine acceptance.
+This editorial clarification triggers no package, installation or CI marker.
+
+
 Status: **BLOCKED / NOT EXECUTED**. Source and hosted CI evidence is not
 proof of a usable KDE/Windows application. The owner requires an actual
 machine inspection **after feature/localization implementation and initial

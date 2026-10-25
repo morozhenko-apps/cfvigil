@@ -15,3 +15,34 @@ node_modules
 /apps/desktop/src-tauri/icons/32x32.png
 /apps/desktop/src-tauri/icons/128x128.png
 /apps/desktop/src-tauri/icons/128x128@2x.png
+
+# Local editor and assistant state; neutral operating guides remain versioned
+.vs/
+*.code-workspace
+.cursor/
+.claude/
+.codex/
+.gemini/
+.aider*
+.continue/
+.windsurf/
+.github/agents/
+.github/instructions/
+.github/copilot-instructions.md
+.cursorrules
+.cursorignore
+.windsurfrules
+CLAUDE.md
+GEMINI.md
+
+# Local provider development state and credential examples
+.wrangler/
+.dev.vars
+.dev.vars.*
+!.env.example
+!.dev.vars.example
+
+# Regenerable Tauri permission schemas and nested local IDE state
+/apps/desktop/src-tauri/gen/schemas/
+.idea/
+.vscode/
