@@ -130,16 +130,20 @@ fn parse_zones(body: &Value, account: &str) -> Result<Vec<Zone>, String> {
 }
 
 fn http_client() -> Result<Client, String> {
-    Client::builder().redirect(Policy::none())
+    let client = Client::builder().redirect(Policy::none())
         .timeout(Duration::from_secs(20))
-        .user_agent("CFVigil/0.1.0")
-        .build().map_err(|_| msg::WAF_CLIENT_INIT.into())
+        .user_agent("CFVigil/0.1.0");
+    #[cfg(test)]
+    let client = client.no_proxy(); // Loopback fixtures never use machine proxy.
+    client.build().map_err(|_| msg::WAF_CLIENT_INIT.into())
 }
 
-async fn list_zones(http: &Client, account: &str, token: &str, budget: &ApiBudget) -> Result<Vec<Zone>, String> {
+async fn list_zones(
+    http: &Client, account: &str, token: &str, budget: &ApiBudget, base: &str,
+) -> Result<Vec<Zone>, String> {
     let mut zones = Vec::new();
     for page in 1..=MAX_ZONES.div_ceil(50).max(1) {
-        let url = format!("{BASE}/zones?account.id={account}&page={page}&per_page=50");
+        let url = format!("{base}/zones?account.id={account}&page={page}&per_page=50");
         budget.check()?;
         let response = http.get(url).bearer_auth(token).send().await
             .map_err(|_| msg::WAF_ZONES_UNAVAILABLE)?;
@@ -175,6 +179,7 @@ async fn get_zone_counts(
     token: &str,
     zone: &Zone,
     budget: &ApiBudget,
+    base: &str,
 ) -> Result<(f64, f64), String> {
     let now = Utc::now();
     let recent_end = now - ChronoDuration::minutes(5);
@@ -191,7 +196,7 @@ async fn get_zone_counts(
         }
     });
     budget.check()?;
-    let response = http.post(format!("{BASE}/graphql"))
+    let response = http.post(format!("{base}/graphql"))
         .bearer_auth(token).json(&body).send().await
         .map_err(|_| msg::WAF_REQUEST_FAILED)?;
     budget.observe(&response);
@@ -215,14 +220,25 @@ pub async fn detect(
     token: &str,
     budget: &ApiBudget,
 ) -> Result<WafScan, String> {
+    detect_at(account, token, budget, BASE).await
+}
+
+/// Internal transport seam: the public detector always uses Cloudflare's
+/// fixed endpoint; only cfg(test) fixtures can address loopback.
+async fn detect_at(
+    account: &str,
+    token: &str,
+    budget: &ApiBudget,
+    base: &str,
+) -> Result<WafScan, String> {
     if !valid_id(account) {
         return Err(msg::WAF_BAD_ACCOUNT.into());
     }
     let http = http_client()?;
-    let zones = list_zones(&http, account, token, budget).await?;
+    let zones = list_zones(&http, account, token, budget, base).await?;
     let mut scan = WafScan { incidents: Vec::new(), verified_zones: HashSet::new() };
     for zone in zones {
-        match get_zone_counts(&http, token, &zone, budget).await {
+        match get_zone_counts(&http, token, &zone, budget, base).await {
             Ok((recent, baseline)) => {
                 scan.verified_zones.insert(format!("zone:{}", zone.id));
                 if !waf_spike(recent, baseline) { continue; }
@@ -422,3 +438,7 @@ mod tests {
     }
 
 }
+
+#[cfg(test)]
+#[path = "security_http_tests.rs"]
+mod http_tests;
