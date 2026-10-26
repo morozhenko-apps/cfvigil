@@ -262,4 +262,60 @@ mod tests {
             format!("https://dash.cloudflare.com/{account}/pages/view/frontend"));
     }
 
+    struct TempCatalogDir(std::path::PathBuf);
+    impl TempCatalogDir {
+        fn new() -> Self {
+            use std::sync::atomic::{AtomicU64, Ordering};
+            static SEQUENCE: AtomicU64 = AtomicU64::new(0);
+            let id=SEQUENCE.fetch_add(1,Ordering::Relaxed);
+            let root=std::env::temp_dir().join(format!(
+                "cfvigil-roster-{}-{id}",std::process::id()));
+            std::fs::create_dir(&root).unwrap();
+            Self(root)
+        }
+        fn file(&self)->std::path::PathBuf { self.0.join("resource-catalog.json") }
+    }
+    impl Drop for TempCatalogDir {
+        fn drop(&mut self) { let _=std::fs::remove_dir_all(&self.0); }
+    }
+
+    #[test]
+    fn given_successful_real_storage_roundtrip_when_restarting_then_cached_rows_are_unverified() {
+        use crate::storage::{read_or_default, write_atomic, MAX_JSON_BYTES};
+        let account="a".repeat(32);
+        let other="b".repeat(32);
+        let source=ResourceCatalogCache::from_discovery(&account,&[
+            make("worker","backend","healthy"),
+            make("pages","frontend","failed")
+        ]).unwrap();
+        let dir=TempCatalogDir::new();
+        write_atomic(&dir.file(),&source,MAX_JSON_BYTES).unwrap();
+        let loaded=read_or_default::<ResourceCatalogCache>(&dir.file(),MAX_JSON_BYTES).unwrap();
+        assert!(!loaded.quarantined);
+        let rows=loaded.value.show_stale(&account);
+        assert_eq!(rows.len(),2);
+        assert!(rows.iter().all(|r|r.status=="unknown"&&r.attempt_id.is_empty()));
+        assert!(loaded.value.show_stale(&other).is_empty());
+        assert!(!std::fs::read_to_string(dir.file()).unwrap().contains("evil.example"));
+    }
+
+    #[test]
+    fn given_corrupt_cached_catalog_when_restarting_then_storage_quarantines_without_drawing_old_health() {
+        use crate::storage::{read_or_default, MAX_JSON_BYTES};
+        let dir=TempCatalogDir::new();
+        let broken=b"{\"account_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"resources\":[";
+        std::fs::write(dir.file(),broken).unwrap();
+        let loaded=read_or_default::<ResourceCatalogCache>(&dir.file(),MAX_JSON_BYTES)
+            .unwrap();
+        assert!(loaded.quarantined);
+        assert!(loaded.value.show_stale(&"a".repeat(32)).is_empty());
+        assert!(!dir.file().exists());
+        let backups=std::fs::read_dir(&dir.0).unwrap()
+            .map(|entry|entry.unwrap().path()).collect::<Vec<_>>();
+        assert_eq!(backups.len(),1);
+        assert!(backups[0].file_name().unwrap().to_string_lossy()
+            .contains("resource-catalog.json.corrupt."));
+        assert_eq!(std::fs::read(&backups[0]).unwrap(),broken);
+    }
+
 }
