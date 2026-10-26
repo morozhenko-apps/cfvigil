@@ -1202,3 +1202,36 @@ translations; native History/About icons; KDE launcher identity.
 No live API latency benchmark, Chrome warning classification,
 physical launcher repair, or cross-platform installed smoke is
 claimed as PASS from this source CI.
+
+
+## 2026-10-26: final owner About/History UI corrections; then Mode B
+
+Owner installed both Linux and Windows candidate clients and requested
+three scoped UI corrections only, **without a separate CI/preflight
+afterwards**, before resuming the official Mode B Stages 1–12:
+
+1. About native titlebar shows an unwanted minimize control on some WMs
+   despite `minimizable:false`. Make About frameless with one explicit
+   accessible Close control, and preserve usable close/keyboard semantics.
+   Never add a native Minimize button.
+2. Remove only the *description paragraph* from the About view; retain
+   logo, title, version, author/copyright, project and source links and
+   license. Do not delete locale catalog keys or change other windows.
+3. History continues to show the old/generic WebView icon in some KDE
+   window decorations/task switchers. GTK window pixbuf alone may not
+   resolve the freedesktop themed launcher icon on Wayland. Explicitly
+   apply the bundled `cfvigil-desktop` theme icon name alongside the
+   pixbuf, preserving existing identity and preventing an arbitrary
+   package/app-ID rename. Verify both native window and task switcher
+   on the owner's subsequent physical smoke (not source-only).
+
+Then perform **Mode B per the supplied agent SSOT**, not a numeric
+coverage exercise. The existing `docs/qa/MODE_B_MATRIX.md` is an
+incomplete inventory with `?` cells. Complete and sharpen
+Stages 1–8 (all exported/public testable branches, Positive/N1–N12,
+interaction and coverage plan), then Stage 9 substantive deterministic
+unit/integration tests and Stage 10 mutation review. Stage 11 executes
+one final STABLE suite after changes; keep known flaky separate. Do not
+misrepresent unexecuted Linux/Windows physical tests, external Cloudflare
+or protected R2 release as passing. This source work does not authorize
+`main`, tag or production release.
