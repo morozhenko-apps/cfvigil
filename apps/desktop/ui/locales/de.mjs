@@ -91,7 +91,7 @@ export default Object.freeze({
   "settings.accountPlaceholder": "32-stellige Konto-ID",
   "settings.token": "API-Token",
   "settings.tokenStored": "Token im Systemspeicher gesichert. Zum Ersetzen einen neuen eingeben.",
-  "settings.tokenUnavailable": "Tokenstatus nicht verfügbar (Systemsperre gesperrt).",
+  "settings.tokenUnavailable": "Tokenstatus nicht verfügbar (Anmeldedatenspeicher gesperrt).",
   "settings.tokenPlaceholder": "Leer lassen, um das vorhandene Token zu behalten",
   "settings.interval": "Aktualisierungsintervall",
   "settings.oneMinute": "1 Minute",

@@ -102,7 +102,7 @@ export default Object.freeze({
   "settings.tenMinutes": "10 dakika",
   "settings.autostart": "Oturum açıldığında CFVigil'i başlat",
   "settings.checkingAutostart": "Otomatik başlatma ayarı kontrol ediliyor...",
-  "settings.tokenHelp": "Workers Scripts Read, Workers CI Read, Pages Read, Account Analytics Read, Zone Read ve Zone Analytics Read izinlerine sahip bir kullanıcı API anahtarı kullanın. Son üç izin, Workers hata artışı ve WAF engelleme uyarıları içindir. Anahtar işletim sisteminin kimlik bilgisi deposunda saklanır.",
+  "settings.tokenHelp": "Workers Scripts Read, Workers CI Read, Pages Read, Account Analytics Read, Zone Read ve Zone Analytics Read izinlerine sahip bir kullanıcı API belirteci kullanın. Son üç izin, Workers hata artışı ve WAF engelleme uyarıları içindir. Belirteç işletim sisteminin kimlik bilgisi deposunda saklanır.",
   "settings.cancel": "İptal",
   "settings.apply": "Uygula",
   "settings.saving": "Kaydediliyor...",

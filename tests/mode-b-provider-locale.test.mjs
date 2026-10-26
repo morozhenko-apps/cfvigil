@@ -36,6 +36,33 @@ test("Mode B: audited locale states describe success, in-progress attempts and u
   assert.equal(t("card.deploying", {}, "ar"), "قيد التنفيذ");
 });
 
+
+test("Given latest attempt When success state renders Then English never claims uptime", () => {
+  assert.equal(t("card.healthy", {}, "en"), "Successful");
+  assert.equal(t("card.deploying", {}, "en"), "Deploying");
+  assert.equal(t("card.statusUnknown", {}, "en"), "Unverified");
+});
+
+test("Given locked credential store When German token guidance renders Then it names credentials not system lock", () => {
+  assert.match(t("settings.tokenUnavailable", {}, "de"), /Anmeldedatenspeicher gesperrt/);
+  assert.doesNotMatch(t("settings.tokenUnavailable", {}, "de"), /Systemsperre/);
+});
+
+test("Given user API token When Turkish connection guidance renders Then it does not misname an API key", () => {
+  const actual = t("settings.tokenHelp", {}, "tr");
+  assert.match(actual, /kullanıcı API belirteci/);
+  assert.doesNotMatch(actual, /API anahtarı/);
+});
+
+test("Given persisted build events When localized to Russian Then the attempt wording is grammatical", () => {
+  assert.equal(t("event.buildFailure", {}, "ru"),
+    "Последняя попытка сборки или развёртывания Cloudflare завершилась ошибкой");
+  assert.equal(t("event.buildStarted", {}, "ru"),
+    "Запущена новая сборка или новое развёртывание Cloudflare");
+  assert.equal(incidentText("Latest Cloudflare build/deployment failed", "ru"),
+    "Последняя попытка сборки или развёртывания Cloudflare завершилась ошибкой");
+});
+
 test("Mode B: every activated locale supplies actual visible native descriptions, not English fallback", () => {
   assert.deepEqual(ACTIVE_LOCALES, PLANNED_LOCALES);
   assert.equal(ACTIVE_LOCALES.length, 20);

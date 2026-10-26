@@ -130,11 +130,11 @@ export default Object.freeze({
   "about.license": "Лицензия Apache 2.0",
   "about.copyright": "© 2026 Станислав Мосейко",
   "about.source": "Исходный код проекта",
-  "event.buildFailure": "Последняя сборка или развёртывание Cloudflare завершились ошибкой",
+  "event.buildFailure": "Последняя попытка сборки или развёртывания Cloudflare завершилась ошибкой",
   "event.runtimeSpike": "Обнаружен рост ошибок Workers",
   "event.wafSpike": "Обнаружен рост блокировок WAF",
   "event.runtimeRecovery": "Рост ошибок Workers прекратился",
   "event.wafRecovery": "Рост блокировок WAF прекратился",
-  "event.buildStarted": "Началась новая сборка или развёртывание Cloudflare",
+  "event.buildStarted": "Запущена новая сборка или новое развёртывание Cloudflare",
   "event.buildSuccess": "Последнее развёртывание Cloudflare завершилось успешно"
 });
