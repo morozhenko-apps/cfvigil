@@ -86,3 +86,95 @@ test("candidates use minimum GitHub artifact retention and no release publishing
   }
   assert.doesNotMatch(read(".github/workflows/package-candidate.yml"),/cfvigil-cargo-lock-for-review/);
 });
+
+
+test("Mode B: missing or malformed publication receipts never trigger GitHub DELETE",async()=>{
+  const invalidFiles=[
+    {...receipt(),artifacts:[receipt().artifacts[0],{
+      ...receipt().artifacts[1],files:[]
+    }]},
+    {...receipt(),artifacts:[receipt().artifacts[0],{
+      ...receipt().artifacts[1],files:[{
+        ...receipt().artifacts[1].files[0],readback_status:404
+      }]
+    }]},
+    {...receipt(),artifacts:[receipt().artifacts[0],{
+      ...receipt().artifacts[1],files:[{
+        ...receipt().artifacts[1].files[0],readback_size:12344
+      }]
+    }]},
+    {...receipt(),artifacts:[receipt().artifacts[0],{
+      ...receipt().artifacts[1],files:[{
+        ...receipt().artifacts[1].files[0],
+        url:"https://evil.example/release.exe"
+      }]
+    }]},
+    {...receipt(),artifacts:[receipt().artifacts[0],{
+      ...receipt().artifacts[1],files:[{
+        ...receipt().artifacts[1].files[0],sha256:"invalid"
+      }]
+    }]},
+    {...receipt(),artifacts:[receipt().artifacts[0],{
+      ...receipt().artifacts[1],run_id:0
+    }]},
+  ];
+  for(const invalid of invalidFiles) {
+    let calls=0;
+    await assert.rejects(
+      deletePublishedArtifacts(invalid,"test-only-token",()=>{calls++;throw Error("network forbidden");})
+    );
+    assert.equal(calls,0,"no network call before receipt validation");
+  }
+});
+
+test("Mode B: GitHub artifact listing errors and ambiguous matches block cleanup",async()=>{
+  const scenarios=[
+    {status:403,data:{artifacts:[]},message:/Could not list/},
+    {status:200,data:{artifacts:null},message:/Malformed/},
+    {status:200,data:{artifacts:Array.from({length:101},(_,id)=>({id}))},message:/Malformed/},
+    {status:200,data:{artifacts:[
+      {id:11,name:"cfvigil-release-linux",workflow_run:{id:51,head_sha:COMMIT}},
+      {id:12,name:"cfvigil-release-linux",workflow_run:{id:51,head_sha:COMMIT}}
+    ]},message:/Ambiguous/},
+  ];
+  for(const scenario of scenarios){
+    let deleted=false;
+    const request=async (_url,options={})=>{
+      if(options.method==="DELETE")deleted=true;
+      return {status:scenario.status,json:async()=>scenario.data};
+    };
+    await assert.rejects(
+      deletePublishedArtifacts(receipt(),"test-only-token",request),scenario.message
+    );
+    assert.equal(deleted,false,"never delete after unverified GitHub listing");
+  }
+});
+
+test("Mode B: failed delete and failed post-delete confirmation cannot report completion",async()=>{
+  const artifact={id:101,name:"cfvigil-release-linux",
+    workflow_run:{id:51,head_sha:COMMIT}};
+  for(const failure of ["delete-fails","still-listed"]) {
+    let calls=0;
+    const request=async(url,options={})=>{
+      calls++;
+      if(options.method==="DELETE")
+        return {status:failure==="delete-fails"?503:204};
+      if(url.includes("/runs/51/"))
+        return {status:200,json:async()=>({artifacts:[artifact]})};
+      return {status:200,json:async()=>({artifacts:[]})};
+    };
+    await assert.rejects(
+      deletePublishedArtifacts(receipt(),"test-only-token",request),
+      failure==="delete-fails"?/cleanup failed/:/remains/
+    );
+    assert.ok(calls>=2);
+  }
+});
+
+test("Mode B: cleanup with no credentials or missing archived runs must fail closed or be idempotent",async()=>{
+  let calls=0;
+  await assert.rejects(deletePublishedArtifacts(receipt(),"",()=>{calls++;}),/Missing Actions-write/);
+  assert.equal(calls,0);
+  const request=async()=>({status:200,json:async()=>({artifacts:[]})});
+  assert.equal(await deletePublishedArtifacts(receipt(),"test-only-token",request),0);
+});
