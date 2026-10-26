@@ -243,3 +243,108 @@ async fn given_pages_detail_429_when_discovering_then_budget_stops_new_requests_
     assert!(budget.check().is_err());
     assert_eq!(server.paths().len(),3);
 }
+
+
+#[tokio::test]
+async fn given_build_permission_denied_but_worker_deployed_when_discovering_then_not_falsely_green() {
+    let account="a".repeat(32);
+    let tag="b".repeat(32);
+    let account_copy=account.clone();
+    let tag_copy=tag.clone();
+    let server=Loopback::start(move |path| {
+        let base=format!("/accounts/{account_copy}");
+        if path==format!("{base}/workers/scripts") {
+            okay(json!([{"id":"worker-a","tag":tag_copy}]))
+        } else if path==format!("{base}/pages/projects") {
+            pages(json!([]),1)
+        } else if path.starts_with(&format!("{base}/builds/builds/latest?")) {
+            denied(403,10000)
+        } else if path==format!("{base}/workers/scripts/worker-a/deployments?page=1&per_page=1") {
+            okay(json!({"deployments":[{"created_on":"2026-10-26T12:00:00Z"}]}))
+        } else { panic!("unexpected endpoint: {path}"); }
+    });
+    let result=server.client().discover(&account,"test-only-token",&ApiBudget::new())
+        .await.unwrap();
+    assert!(!result.complete);
+    assert!(result.workers_complete && result.pages_complete,
+        "resource catalog permissions are independent of Builds scope");
+    assert_eq!(result.resources.len(),1);
+    assert_eq!(result.resources[0].status,"unknown",
+        "existing active deployment is not proof of latest build when Builds denied");
+    assert!(result.warnings.iter().any(|w|w.contains("Workers CI Read")));
+    assert_eq!(server.paths().len(),4);
+}
+
+#[tokio::test]
+async fn given_one_pages_detail_bad_request_when_others_succeed_then_only_one_is_unverified() {
+    let server=Loopback::start(|path| {
+        if path.ends_with("/workers/scripts") { okay(json!([])) }
+        else if path.ends_with("/pages/projects") {
+            pages(json!([{"name":"bad-options"},{"name":"healthy-site"}]),1)
+        } else if path.ends_with("/pages/projects/bad-options/deployments") {
+            denied(400,8000024)
+        } else if path.ends_with("/pages/projects/healthy-site/deployments") {
+            okay(json!([{"id":"current","created_on":"2026-10-26T12:00:00Z",
+                "latest_stage":{"status":"success"}}]))
+        } else { panic!("unexpected endpoint {path}"); }
+    });
+    let result=server.client().discover(&"a".repeat(32),"test-only-token",&ApiBudget::new())
+        .await.unwrap();
+    assert!(!result.complete);
+    assert!(result.workers_complete && result.pages_complete);
+    assert_eq!(result.resources.len(),2);
+    assert_eq!(result.resources.iter().find(|r|r.name=="healthy-site").unwrap().status,
+        "healthy");
+    assert_eq!(result.resources.iter().find(|r|r.name=="bad-options").unwrap().status,
+        "unknown");
+    assert!(result.warnings.iter().any(|w|w.contains("HTTP 400 (code 8000024)")));
+    assert!(!result.warnings.join(" ").contains("(check Cloudflare Pages Read)"),
+        "HTTP 400 does not imply invalid token scopes");
+    assert_eq!(server.paths().len(),4);
+}
+
+#[tokio::test]
+async fn given_pages_catalog_declares_over_fifty_pages_then_bound_rejects_without_extra_http() {
+    let server=Loopback::start(|path| {
+        if path.ends_with("/workers/scripts") { okay(json!([])) }
+        else if path.ends_with("/pages/projects") { pages(json!([{"name":"first"}]),51) }
+        else { panic!("unexpected endpoint: {path}"); }
+    });
+    let result=server.client().discover(&"a".repeat(32),"test-only-token",&ApiBudget::new())
+        .await.unwrap();
+    assert!(!result.complete);
+    assert!(result.workers_complete);
+    assert!(!result.pages_complete);
+    assert!(result.resources.is_empty(),"unverified catalog must not be returned as complete");
+    assert_eq!(server.paths().len(),2,"no unbounded page crawl");
+}
+
+#[tokio::test]
+async fn given_rate_limit_in_first_pages_batch_then_next_batch_never_issues_http() {
+    let server=Loopback::start(|path| {
+        if path.ends_with("/workers/scripts") { okay(json!([])) }
+        else if path.ends_with("/pages/projects") {
+            pages(json!([
+                {"name":"first"},{"name":"second"},{"name":"third"},
+                {"name":"fourth"},{"name":"fifth"}
+            ]),1)
+        } else if path.ends_with("/pages/projects/first/deployments") {
+            denied(429,1015)
+        } else if path.contains("/pages/projects/") && path.ends_with("/deployments") {
+            okay(json!([{"created_on":"2026-10-26T12:00:00Z",
+                "latest_stage":{"status":"success"}}]))
+        } else { panic!("unexpected endpoint: {path}"); }
+    });
+    let budget=ApiBudget::new();
+    let result=server.client().discover(&"a".repeat(32),"test-only-token",&budget)
+        .await.unwrap();
+    assert!(!result.complete);
+    assert_eq!(result.resources.len(),5);
+    assert_eq!(result.resources.iter().find(|r|r.name=="first").unwrap().status,"unknown");
+    assert_eq!(result.resources.iter().find(|r|r.name=="fifth").unwrap().status,"unknown");
+    assert_eq!(budget.retry_after_seconds(),75);
+    assert!(budget.exhausted());
+    let paths=server.paths();
+    assert_eq!(paths.len(),6,"two catalogs and at most first four detail requests");
+    assert!(!paths.iter().any(|p|p.contains("/pages/projects/fifth/deployments")));
+}
