@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {
   ACTIVE_LOCALES, PLANNED_LOCALES, directionFor, intlLocale,
-  diagnosticText, resourceDetail, incidentText, formatDate, plural, t
+  diagnosticText, resourceDetail, incidentText, eventText, formatDate, plural, t
 } from "../apps/desktop/ui/localization.mjs";
 import {
   classifyWorkerBuild, classifyPagesDeployment, counters
