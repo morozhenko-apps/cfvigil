@@ -1050,7 +1050,7 @@ including ones mentioned under only one OS.
 
 ### Product decisions and invariants
 
-1. [ ] **Fast startup and remembered resource roster:** avoid serial
+1. [x] **Fast startup and remembered resource roster:** avoid serial
    per-script/provider detail calls; execute bounded concurrent read-only
    Cloudflare detail batches while preserving the one global API budget
    and HTTP 429 backoff. Cache the last successful Worker/Pages roster in
@@ -1060,7 +1060,7 @@ including ones mentioned under only one OS.
    background. Do not persist/replay live verified statuses as healthy.
    A language change must never issue any Cloudflare API request.
    Quarantine bad/oversize data; never reuse another account's catalog.
-2. [ ] **Settings transaction:** all edit controls remain local drafts.
+2. [x] **Settings transaction:** all edit controls remain local drafts.
    Apply is the sole write point, ignores unchanged fields (including
    token, autostart, polling interval and language), awaits confirmed
    persistence, then closes Settings on success. Cancel/window close
@@ -1069,22 +1069,22 @@ including ones mentioned under only one OS.
    successful Apply, without resetting independent connection settings.
    A save error keeps Settings visible with the draft for correction.
    Avoid speculative rollback of successful provider writes.
-3. [ ] **Native tray updates:** on Linux use RepoTicker's KSNI handle
+3. [x] **Native tray updates:** on Linux use RepoTicker's KSNI handle
    `update` mechanism rather than assuming a dynamically rebuilt menu
    will be advertised to the status notifier. On Windows update the
    Tauri menu only after committed locale.
-4. [ ] **Scrollable card:** redesign scrollbar placement and pointer
+4. [x] **Scrollable card:** redesign scrollbar placement and pointer
    dispatch so rows and scroll track/thumb own their interactions, not
    the native drag gesture. Retain drag on intentional empty background
    only. Keep overflow and ellipsis menu completely separated. Verify
    keyboard, wheel, track and thumb semantics for both platforms.
-5. [ ] **Branding and About:** reproduce RepoTicker's actual centered
+5. [x] **Branding and About:** reproduce RepoTicker's actual centered
    icon/title/version/author/site/license layout, with all display
    strings from the twenty enabled catalogs. Ensure the same branded
    app icon is declared on About/History/Settings native windows.
    Investigate Tauri/Linux launcher package icon name and KDE
    desktop overrides. Do not claim uninstall will fix a KDE icon cache.
-6. [ ] **Unsigned Windows warning:** keep Windows NSIS explicitly
+6. [x] **Unsigned Windows warning:** keep Windows NSIS explicitly
    unsigned and published only through trusted GitHub/R2. Document
    verifiable SHA256 and Windows security verification; recommend
    code signing and signing reputation for production, not disabling
@@ -1107,3 +1107,41 @@ Rollback: revert scoped code/test commits; old `settings.json`,
 remain compatible. New resource roster cache may be ignored/removed
 without modifying user settings or history. No production Cloudflare
 mutation, R2 publish, `main`, release or self-hosted runner changes.
+
+### Implementation evidence and owner retest required
+
+- The shared Rust provider now overlaps Workers+Pages discovery, reads
+  per-resource latest details in bounded 4-request groups, retaining
+  independent per-provider warnings and the existing global budget.
+  Deterministic order within the corresponding provider is preserved.
+- `resource_cache.rs` stores an account-bound roster only. Cache output
+  is grey/unknown with canonical dashboard URLs reconstructed from safe
+  resource names. On startup it is merged with existing incident-journal
+  rows, which retain precedence; on account switch the roster is
+  invalidated. No cached success is ever reported as current health.
+  A previously cached starter row does not generate a fake initial
+  failed-build notification.
+- Settings now computes a before/after draft. A true no-op makes no
+  native call, a language-only edit does not validate/write an
+  unchanged keyring token or autostart, Apply closes after commit, and
+  Cancel restores persisted values. Native Linux KSNI handles are
+  explicitly updated on locale commit, matching RepoTicker's approach.
+- Card excludes its drawer/scrollbar from native dragging, reserves a
+  separate scroll gutter and has explicit pointer-operated WebKit
+  thumb/track styling. This applies to Windows and Linux alike.
+- About uses RepoTicker's centered branded icon/header/version/author/
+  links/license pattern and all existing 20-locale message keys. Native
+  version comes from `CARGO_PKG_VERSION`; website/GitHub links open
+  only their fixed destinations through dedicated Rust commands.
+  Linux GTK History/About/Settings receive the exact bundled Pixbuf.
+- Chrome unsigned NSIS/SmartScreen guidance and KDE launcher triage
+  are recorded in `docs/DISTRIBUTION.md` and
+  `docs/ICON_PIPELINE.md`. No security bypass or live OS action
+  was performed remotely.
+
+**Validation remains source-unverified until an exact-SHA final
+Preflight and two installed owner-smoke candidates.** Chrome warning
+classification and the actual old KDE launcher (packaged icon versus
+per-user pinned override) remain not diagnosed on owner's machines.
+Latest initially reported candidate `549d292` is obsolete for this
+repair batch. No `main`, tag, R2, live Cloudflare or release action.
