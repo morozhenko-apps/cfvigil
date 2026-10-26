@@ -319,6 +319,21 @@ fn credential_action(previous: &Config, account_id: &str, token: Option<String>)
     }
 }
 
+// Native operation is injected only at its I/O boundary. On an error the
+// caller aborts BEFORE writing account JSON, changing language, modifying
+// autostart or waking Cloudflare, and no token is returned to the WebView.
+fn perform_credential_action(
+    action: CredentialAction,
+    verify: impl FnOnce() -> Result<(), String>,
+    write: impl FnOnce(&str) -> Result<(), String>,
+) -> Result<(), String> {
+    match action {
+        CredentialAction::None => Ok(()),
+        CredentialAction::VerifyExisting => verify(),
+        CredentialAction::Replace(secret) => write(&secret),
+    }
+}
+
 // No start-at-login entry is installed unless the user explicitly opts in.
 // Read the real platform registration, not a potentially stale JSON flag.
 #[tauri::command]
@@ -417,18 +432,16 @@ async fn save_settings(
     let previous = state.config.lock().unwrap().clone();
     // Fail credentials before writing JSON, refreshing the provider, or
     // committing a locale. A pure locale edit never touches OS keyring.
-    match credential_action(&previous, &account_id, token) {
-        CredentialAction::Replace(token) => {
-            tauri::async_runtime::spawn_blocking(move || {
-                token_entry()?.set_password(&token)
-                    .map_err(|_| msg::ERROR_TOKEN_WRITE.to_string())
-            }).await.map_err(|_| msg::ERROR_CREDENTIAL_SERVICE)??;
-        }
-        CredentialAction::VerifyExisting => {
-            tauri::async_runtime::spawn_blocking(load_token)
-                .await.map_err(|_| msg::ERROR_CREDENTIAL_SERVICE)??;
-        }
-        CredentialAction::None => {}
+    let credential_op = credential_action(&previous, &account_id, token);
+    if !matches!(credential_op, CredentialAction::None) {
+        tauri::async_runtime::spawn_blocking(move || {
+            perform_credential_action(
+                credential_op,
+                || load_token().map(|_| ()),
+                |secret| token_entry()?.set_password(secret)
+                    .map_err(|_| msg::ERROR_TOKEN_WRITE.to_string()),
+            )
+        }).await.map_err(|_| msg::ERROR_CREDENTIAL_SERVICE)??;
     }
     let next = Config { account_id, refresh_seconds };
     let should_refresh = needs_refresh(&previous, &next, token_replaced);
