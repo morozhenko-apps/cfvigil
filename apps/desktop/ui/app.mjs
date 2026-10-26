@@ -1,7 +1,7 @@
 import { counters, filterResources, relativeTime } from "./status.mjs";
 import { normalizeSnapshot } from "./snapshot.mjs";
 import { nextResourceIndex } from "./resource-navigation.mjs";
-import {t, resourceDetail, incidentText, verboseRelativeTime, currentLocale, intlLocale} from "./localization.mjs";
+import {t, resourceDetail, incidentText, diagnosticText, verboseRelativeTime, currentLocale, intlLocale} from "./localization.mjs";
 import {initializeLanguage} from "./runtime-language.mjs";
 import {createNativeDragGesture} from "./native-drag.mjs";
 const invoke = (command, args = {}) => window.__TAURI__.core.invoke(command, args);
@@ -112,7 +112,7 @@ function render() {
   warning.hidden = !providerWarnings.length;
   for (const item of providerWarnings) {
     const entry = document.createElement("div");
-    entry.textContent = item; // never interpolate provider data as HTML
+    entry.textContent = diagnosticText(item); // never interpolate provider data as HTML
     warning.append(entry);
   }
   const totals = counters(resources);
@@ -326,8 +326,9 @@ function presentIncident(payload) {
 }
 await listen("cfvigil-incident", ({payload}) => presentIncident(payload));
 await listen("cfvigil-sync-error", ({payload}) => {
-  announce(payload || t("card.apiError"));
-  byId("toggle-list").title = payload || t("card.apiError");
+  const label = payload ? diagnosticText(payload) : t("card.apiError");
+  announce(label);
+  byId("toggle-list").title = label;
 });
 try {
   const snapshot = await invoke("get_snapshot");

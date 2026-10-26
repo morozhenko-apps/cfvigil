@@ -38,6 +38,31 @@ test("Rust presentation messages have a single native catalog and valid referenc
   }
 });
 
+
+test("translated diagnostics correspond to stable native literals", () => {
+  const declared = constants(native);
+  const expected = [
+    ["CF_NETWORK", "Cloudflare network request failed"],
+    ["CF_BAD_JSON", "Cloudflare returned invalid JSON"],
+    ["DATA_CREDENTIALS_UNAVAILABLE", "Cloudflare credentials unavailable"],
+    ["DATA_PARTIAL", "Some Cloudflare resources are unverified"],
+    ["DATA_STALE", "Cloudflare data is stale or unavailable"],
+    ["DATA_PENDING", "Cloudflare data pending refresh"],
+    ["BUDGET_RATE_LIMIT", "Cloudflare rate limit active; waiting before next poll"],
+    ["CF_DISCOVERY_UNAVAILABLE", "Workers and Pages discovery unavailable. Check token scopes or API limits."]
+  ];
+  const ui = read("apps/desktop/ui/localization.mjs");
+  for (const [name, literal] of expected) {
+    assert.equal(declared.get(name), literal);
+    assert.ok(ui.includes(JSON.stringify(literal)), name);
+  }
+  const app = read("apps/desktop/ui/app.mjs");
+  assert.match(app, /entry\.textContent = diagnosticText\(item\)/);
+  assert.match(app, /payload \? diagnosticText\(payload\)/);
+  assert.match(read("apps/desktop/ui/settings.mjs"), /message\.textContent = diagnosticText\(String\(error\)\)/);
+  assert.doesNotMatch(ui, /t\(resource\./);
+});
+
 test("legacy persisted incident strings stay byte-for-byte compatible with English catalog", () => {
   const declared = constants(native);
   const keys = {

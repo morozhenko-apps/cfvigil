@@ -185,6 +185,39 @@ export function incidentText(message, locale = currentLocale) {
   return message;
 }
 
+// Match only stable native literals and sanitized numeric HTTP diagnostics.
+// Raw provider text is never used as a translation key or interpreted as HTML.
+const nativeDiagnostics = Object.freeze({
+  "Cloudflare network request failed": "diagnostic.network",
+  "Cloudflare returned invalid JSON": "diagnostic.invalidJson",
+  "Cloudflare credentials unavailable": "diagnostic.credentials",
+  "Some Cloudflare resources are unverified": "diagnostic.partial",
+  "Cloudflare data is stale or unavailable": "diagnostic.stale",
+  "Cloudflare data pending refresh": "diagnostic.pending",
+  "Cloudflare rate limit active; waiting before next poll": "diagnostic.rateLimit",
+  "Workers and Pages discovery unavailable. Check token scopes or API limits.": "diagnostic.discovery"
+});
+const providerPrefix = /^(Workers Builds|Worker deployments|Pages deployments|Workers|Pages): (.+)$/;
+const numericCloudflareError = /^Cloudflare HTTP ([1-5][0-9]{2})(?: \(code ([0-9]{1,16})\))?(?: \(check (Cloudflare Pages Read|Workers CI Read)\))?$/;
+
+export function diagnosticText(message, locale = currentLocale) {
+  if (typeof message !== "string") return "";
+  const prefixMatch = providerPrefix.exec(message);
+  const prefix = prefixMatch ? prefixMatch[1] + ": " : "";
+  const detail = prefixMatch ? prefixMatch[2] : message;
+  const http = numericCloudflareError.exec(detail);
+  if (http) {
+    const [, status, code, scope] = http;
+    const codeLabel = code ? " " + t("diagnostic.code", {code}, locale) : "";
+    // Keep Cloudflare's permission identifier LTR inside Arabic guidance.
+    const scopeValue = scope && locale === "ar" ? "\u2068" + scope + "\u2069" : scope;
+    const scopeLabel = scope ? " " + t("diagnostic.checkScope", {scope: scopeValue}, locale) : "";
+    return prefix + "Cloudflare HTTP " + status + codeLabel + scopeLabel;
+  }
+  const key = Object.hasOwn(nativeDiagnostics, detail) ? nativeDiagnostics[detail] : null;
+  return prefix + (key ? t(key, {}, locale) : detail);
+}
+
 export function resourceDetail(message, locale = currentLocale) {
   if (typeof message !== "string") return "";
   const workers = /^Workers errors spiking: (\d+) errors \/ (\d+) requests \((\d+\.\d+%)\)$/.exec(message);
@@ -193,7 +226,7 @@ export function resourceDetail(message, locale = currentLocale) {
   }
   const waf = /^WAF blocks spiking: (\d+) in 10m; previous 30m (\d+)$/.exec(message);
   if (waf) return t("detail.wafSpike", {recent:waf[1],baseline:waf[2]},locale);
-  return eventText(message, locale);
+  return diagnosticText(eventText(message, locale), locale);
 }
 
 export function localizeDocument(doc, locale = currentLocale) {

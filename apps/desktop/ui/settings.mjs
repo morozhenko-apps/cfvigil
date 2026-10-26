@@ -1,4 +1,4 @@
-import {t, currentLocale, ACTIVE_LOCALES, LANGUAGE_NAMES} from "./localization.mjs";
+import {t, diagnosticText, currentLocale, ACTIVE_LOCALES, LANGUAGE_NAMES} from "./localization.mjs";
 import {initializeLanguage} from "./runtime-language.mjs";
 const invoke = (name, args={}) => window.__TAURI__.core.invoke(name, args);
 const message = document.getElementById("message-text");
@@ -142,7 +142,7 @@ form.addEventListener("submit", async event => {
       }
     }
   } catch (error) {
-    message.textContent = String(error);
+    message.textContent = diagnosticText(String(error));
   } finally {
     setSaving(false);
     scheduleFit();

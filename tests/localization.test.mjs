@@ -5,7 +5,7 @@ import {
   ACTIVE_LOCALES, PLANNED_LOCALES, directionFor, validateCatalog,
   setLocale, currentLocale,
   t, plural, formatDate, relativeTime, verboseRelativeTime, eventText,
-  incidentText, resourceDetail, intlLocale,
+  incidentText, resourceDetail, diagnosticText, intlLocale,
   localizeDocument
 } from "../apps/desktop/ui/localization.mjs";
 import {referencedKeys, checkSourceKeys, checkRepository} from "../scripts/check-i18n.mjs";
@@ -90,6 +90,41 @@ test("dates and relative timestamps remain deterministic and locale-aware", () =
   assert.equal(resourceDetail("WAF blocks spiking: 150 in 10m; previous 30m 25"),
     "WAF blocks spiking: 150 in 10m; previous 30m 25");
 
+});
+
+
+test("known Cloudflare diagnostics localize without altering provider, status, or scope", () => {
+  assert.equal(diagnosticText("Pages: Cloudflare HTTP 400 (code 8000024)", "pt"),
+    "Pages: Cloudflare HTTP 400 (código 8000024)");
+  assert.equal(diagnosticText("Pages: Cloudflare HTTP 403 (code 10000) (check Cloudflare Pages Read)", "ru"),
+    "Pages: Cloudflare HTTP 403 (код 10000) (проверьте разрешение Cloudflare Pages Read)");
+  assert.equal(diagnosticText("Workers: Cloudflare network request failed", "ru"),
+    "Workers: Сетевой запрос к Cloudflare не выполнен");
+  assert.equal(diagnosticText("Cloudflare returned invalid JSON", "pt"),
+    "O Cloudflare devolveu JSON inválido");
+  assert.equal(resourceDetail("Cloudflare data pending refresh", "ru"),
+    "Ожидается обновление данных Cloudflare");
+  assert.equal(diagnosticText("Some Cloudflare resources are unverified", "ar"),
+    "بعض موارد Cloudflare لم يتم التحقق منها");
+  assert.match(diagnosticText("Pages: Cloudflare HTTP 403 (check Cloudflare Pages Read)", "ar"),
+    /\u2068Cloudflare Pages Read\u2069/);
+  for (const message of [
+    "Cloudflare HTTP 400 (code 8000024) (check custom permission)",
+    "Pages: Cloudflare HTTP 999 (code 8000024)",
+    "Pages: Cloudflare HTTP 403 (code secret)",
+    "Workers: unexpected Cloudflare response",
+    "Other: Cloudflare network request failed"
+  ]) {
+    assert.equal(diagnosticText(message, "ru"), message);
+  }
+  assert.equal(diagnosticText(null, "pt"), "");
+  assert.equal(diagnosticText("Pages: <img src=x onerror=alert(1)>", "pt"),
+    "Pages: <img src=x onerror=alert(1)>");
+  for (const locale of ACTIVE_LOCALES) {
+    assert.notEqual(diagnosticText("Cloudflare credentials unavailable", locale), "");
+    assert.match(diagnosticText("Workers Builds: Cloudflare HTTP 429 (code 1015)", locale),
+      /Workers Builds: Cloudflare HTTP 429/);
+  }
 });
 
 test("DOM localization uses textContent and explicit direction, never innerHTML", () => {
