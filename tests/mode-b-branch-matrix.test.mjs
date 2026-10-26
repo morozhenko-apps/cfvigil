@@ -161,9 +161,14 @@ test("Given native drag session When duplicated or mismatched Then only matching
 test("Given failing native drag start When the failure is delivered Then the session releases without swallowing error", async () => {
   let attempts=0;
   let resolveReported;
+  let resolveRecovered;
   const reported=new Promise(resolve=>{resolveReported=resolve;});
+  const recovered=new Promise(resolve=>{resolveRecovered=resolve;});
   const gesture=createNativeDragGesture({
-    start:()=>{if(++attempts===1)throw new Error("native drag denied");},
+    start:()=>{
+      if(++attempts===1)throw new Error("native drag denied");
+      resolveRecovered();
+    },
     stop:()=>{},
     onError:error=>resolveReported(error)
   });
@@ -171,7 +176,8 @@ test("Given failing native drag start When the failure is delivered Then the ses
   const error=await reported;
   assert.match(error.message,/native drag denied/);
   assert.equal(gesture.begin("second"),true);
-  assert.equal(attempts,1); // async second start is queued, not immediately invoked.
+  await recovered;
+  assert.equal(attempts,2); // A fresh session successfully starts after failure.
 });
 
 test("Given old incident prefix and attacker-controlled name When rendering Then only known suffix changes", () => {
