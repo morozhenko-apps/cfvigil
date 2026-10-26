@@ -360,3 +360,23 @@ and FSI/PDI isolates around each immutable permission name.
 Never translate/shorten or reorder the permission identifiers in a
 way that changes requested scope. WebView/native bidi acceptance is
 still physical and not inferred from the source.
+
+
+### Account ID validation versus translated Settings placeholders
+
+The actual Settings/Rust validation requires **exactly 32 ASCII
+hexadecimal characters**. The earlier RU/pt-PT source correction
+already explains this, but a full review found the remaining 18
+language placeholders describe merely "32 characters". That permits
+users to infer arbitrary characters are accepted, contrary to the
+native input contract. Correct `settings.accountPlaceholder` in
+`en,es,de,fr,it,pl,hi,zh-Hant,ja,nl,sv,tr,ko,bn,th,id,fil,ar`
+to explicitly say *hexadecimal/base-16* while preserving the exact
+number 32. RU and European Portuguese remain unchanged.
+Also replace Turkish `settings.tokenPlaceholder` "anahtarı"
+(API key) with "belirteci" (token) for consistency with the
+user-API-token requirement.
+
+Add regression evidence for all 20 placeholders that must encode
+32 and the hex requirement in locale-appropriate terms. Structural
+dictionary equality alone cannot catch this semantic error.
