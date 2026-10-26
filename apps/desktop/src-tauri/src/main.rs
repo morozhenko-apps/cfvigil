@@ -11,6 +11,7 @@ mod incident_store;
 mod polling_policy;
 mod security;
 mod storage;
+mod resource_cache;
 #[cfg(target_os = "linux")]
 mod linux_surface;
 #[cfg(target_os = "linux")]
@@ -25,6 +26,7 @@ use language::LanguagePreference;
 use api_budget::ApiBudget;
 use incident_store::{IncidentJournal, NotificationWindow};
 use polling_policy::poll_delay;
+use resource_cache::ResourceCatalogCache;
 use serde::{Deserialize, Serialize};
 use std::{
     fs,
@@ -231,6 +233,8 @@ fn set_language(app: AppHandle, state: State<'_, AppState>, language: String) ->
 }
 
 fn update_native_language(app: &AppHandle, locale: &str) {
+    #[cfg(target_os = "linux")]
+    linux_tray::set_language(app, locale);
     for label in ["settings", "history", "about"] {
         if let Some(window) = app.get_webview_window(label) {
             let _ = window.set_title(language::window_title(locale, label));
@@ -359,16 +363,18 @@ async fn save_settings(
     // an old account ID with a newly replaced OS-keyring token.
     let _refresh_guard = state.refresh_lock.lock().await;
     let token_replaced = token.is_some();
+    let previous = state.config.lock().unwrap().clone();
     if let Some(token) = token {
         tauri::async_runtime::spawn_blocking(move || {
             token_entry()?.set_password(&token).map_err(|_| msg::ERROR_TOKEN_WRITE.to_string())
         }).await.map_err(|_| msg::ERROR_CREDENTIAL_SERVICE)??;
-    } else if !account_id.is_empty() {
+    } else if !account_id.is_empty() && previous.account_id != account_id {
+        // Language-only or interval-only Apply must not reopen a healthy
+        // credential store or fail because an unchanged vault is locked.
         tauri::async_runtime::spawn_blocking(load_token)
             .await.map_err(|_| msg::ERROR_CREDENTIAL_SERVICE)??;
     }
     let next = Config { account_id, refresh_seconds };
-    let previous = state.config.lock().unwrap().clone();
     let should_refresh = needs_refresh(&previous, &next, token_replaced);
     if previous.account_id != next.account_id ||
         previous.refresh_seconds != next.refresh_seconds {
@@ -376,6 +382,15 @@ async fn save_settings(
         *state.config.lock().unwrap() = next.clone();
     }
     if should_refresh {
+        if previous.account_id != next.account_id {
+            // A previous account's resource names must not survive a switch.
+            let empty_catalog = ResourceCatalogCache {
+                account_id: next.account_id.clone(), resources: Vec::new(),
+            };
+            if let Err(error) = write_json(&app, "resource-catalog.json", &empty_catalog) {
+                eprintln!("CFVigil: could not reset resource catalog: {error}");
+            }
+        }
         // Invalidate any in-flight Cloudflare response before it can publish
         // rows from a previous account or previous secret after this save.
         state.config_revision.fetch_add(1, Ordering::AcqRel);
@@ -750,6 +765,13 @@ async fn refresh_once(app: AppHandle, budget: &ApiBudget) -> bool {
         // notifications or journal snapshots.
         return true;
     }
+    if catalog_available {
+        if let Some(catalog) = ResourceCatalogCache::from_discovery(&config.account_id, &resources) {
+            if let Err(error) = write_json(&app, "resource-catalog.json", &catalog) {
+                eprintln!("CFVigil: could not persist resource catalog: {error}");
+            }
+        }
+    }
     *state.provider_warnings.lock().unwrap() = warnings;
     state.ready.store(core_complete, Ordering::Release);
     *state.resources.lock().unwrap() = resources.clone();
@@ -763,6 +785,9 @@ async fn refresh_once(app: AppHandle, budget: &ApiBudget) -> bool {
         // Only zone-level WAF incidents alert on first observation. Pre-existing
         // Workers/Pages deployment attempts do not spam at initial launch.
         let message = match old {
+            // A stale startup roster exists for fast display, not for
+            // manufacturing notifications about old provider attempts.
+            Some(old) if old.detail == msg::DATA_STALE && old.attempt_id.is_empty() => None,
             Some(old) => incident_policy::describe_transition(old, current),
             None => incident_policy::initial_security_event(current),
         };
@@ -900,15 +925,28 @@ fn main() {
                 .map_err(std::io::Error::other)?;
             let history = read_json::<Vec<HistoryEvent>>(&handle, "events.json")
                 .map_err(std::io::Error::other)?;
-            let storage_warning = settings.quarantined || stored.quarantined || history.quarantined || locale.quarantined;
+            let catalog = read_json::<ResourceCatalogCache>(&handle, "resource-catalog.json")
+                .map_err(std::io::Error::other)?;
+            let storage_warning = settings.quarantined || stored.quarantined
+                || history.quarantined || locale.quarantined || catalog.quarantined;
             let language = language::sanitize(locale.value);
             let journal = stored.value.restore(&settings.value.account_id);
+            // Render last known resource names before the first network call.
+            // Every cached resource is unverified; active incidents in the
+            // journal take precedence and preserve their dedup identities.
+            let mut initial_resources = journal.active.clone();
+            for stale in catalog.value.show_stale(&settings.value.account_id) {
+                if !initial_resources.iter().any(|existing| existing.key == stale.key) {
+                    initial_resources.push(stale);
+                }
+            }
+            initial_resources.sort_by(|a,b| a.name.cmp(&b.name));
             let (poll_refresh, _receiver) = tokio::sync::watch::channel(0u64);
             app.manage(AppState {
                 provider_warnings: Mutex::new(Vec::new()),
                 config: Mutex::new(settings.value),
                 language: Mutex::new(language.clone()),
-                resources: Mutex::new(journal.active.clone()),
+                resources: Mutex::new(initial_resources),
                 history: Mutex::new({
                     let mut events = history.value;
                     events.truncate(500);
