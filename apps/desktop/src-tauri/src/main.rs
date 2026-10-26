@@ -1457,4 +1457,72 @@ mod settings_effect_tests {
         let token_replaced=needs_refresh(&old,&locale_only,true);
         assert!(token_replaced);
     }
+    #[test]
+    fn keyring_none_requires_no_native_read_or_write_even_if_vault_locked() {
+        let reads=Cell::new(0u32);
+        let writes=Cell::new(0u32);
+        let result=perform_credential_action(
+            CredentialAction::None,
+            || { reads.set(reads.get()+1); Err("locked".into()) },
+            |_| { writes.set(writes.get()+1); Err("denied".into()) }
+        );
+        assert!(result.is_ok());
+        assert_eq!(reads.get(),0);
+        assert_eq!(writes.get(),0);
+    }
+
+    #[test]
+    fn foreign_account_verification_denied_aborts_before_any_secret_replacement() {
+        let reads=Cell::new(0u32);
+        let writes=Cell::new(0u32);
+        let result=perform_credential_action(
+            credential_action(&prior(),&"b".repeat(32),None),
+            || {
+                reads.set(reads.get()+1);
+                Err(msg::ERROR_TOKEN_LOCKED.into())
+            },
+            |_| { writes.set(writes.get()+1); Ok(()) }
+        );
+        assert_eq!(result,Err(msg::ERROR_TOKEN_LOCKED.into()));
+        assert_eq!(reads.get(),1);
+        assert_eq!(writes.get(),0);
+    }
+
+    #[test]
+    fn new_token_write_denied_aborts_without_falling_back_to_old_credentials() {
+        let reads=Cell::new(0u32);
+        let writes=Cell::new(0u32);
+        let expected="explicit-secret-for-keyring";
+        let result=perform_credential_action(
+            credential_action(&prior(),&prior().account_id,Some(expected.into())),
+            || { reads.set(reads.get()+1); Ok(()) },
+            |secret| {
+                writes.set(writes.get()+1);
+                assert_eq!(secret,expected);
+                Err(msg::ERROR_TOKEN_WRITE.into())
+            }
+        );
+        assert_eq!(result,Err(msg::ERROR_TOKEN_WRITE.into()));
+        assert_eq!(reads.get(),0);
+        assert_eq!(writes.get(),1);
+    }
+
+    #[test]
+    fn successful_explicit_token_write_uses_only_the_provided_secret() {
+        let reads=Cell::new(0u32);
+        let writes=Cell::new(0u32);
+        let result=perform_credential_action(
+            CredentialAction::Replace("verified-test-secret".into()),
+            || { reads.set(reads.get()+1); Err("unexpected read".into()) },
+            |secret| {
+                writes.set(writes.get()+1);
+                assert_eq!(secret,"verified-test-secret");
+                Ok(())
+            }
+        );
+        assert_eq!(result,Ok(()));
+        assert_eq!(reads.get(),0);
+        assert_eq!(writes.get(),1);
+    }
+
 }
