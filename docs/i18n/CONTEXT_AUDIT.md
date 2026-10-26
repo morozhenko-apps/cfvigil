@@ -414,3 +414,12 @@ high-risk-term review** for the fields above. No locale is marked
 native-speaker Accepted. Full per-sentence 114-string editorial review,
 physical glyph metrics, screen-reader output and RTL/native Windows/KDE
 interaction are **NOT VERIFIED**; keep all statuses Draft.
+
+### English accessibility status group label
+
+The English `card.actionsLabel` still says `Resource health` while all
+19 localized counterparts already mean resource *status*. CFVigil does
+not perform uptime/health probes, so the accessible grouping label can
+mislead assistive-technology users. Change English to `Resource status`
+and pin the displayed meaning with a regression assertion. Do not
+change native/internal `healthy` status IDs or UI counter semantics.
