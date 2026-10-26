@@ -39,7 +39,7 @@ test("partial Cloudflare API errors survive snapshot normalization without HTML 
   assert.deepEqual(normalizeSnapshot({provider_warnings:[{}, null, 17]}).provider_warnings, []);
   const card = readFileSync(new URL("../apps/desktop/ui/app.mjs",import.meta.url),"utf8");
   assert.ok(card.includes('warning.replaceChildren()'));
-  assert.ok(card.includes('entry.textContent = item'));
+  assert.match(card, /entry\.textContent = diagnosticText\(item\)/);
   assert.ok(card.includes('resources.some(item =>'));
   assert.ok(!card.includes('closest("button,input,select,a,.resource-row'));
 });
