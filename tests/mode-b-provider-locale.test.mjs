@@ -37,6 +37,23 @@ test("Mode B: audited locale states describe success, in-progress attempts and u
 });
 
 
+
+test("Given legacy deployed-success bytes When a Worker build passes Then the display does not claim deployment", () => {
+  const stored = "Latest Cloudflare deployment succeeded";
+  assert.equal(t("event.buildSuccess", {}, "en"),
+    "Latest Cloudflare build or deployment attempt succeeded");
+  assert.equal(eventText(stored, "en"),
+    "Latest Cloudflare build or deployment attempt succeeded");
+  assert.equal(incidentText("worker-a: " + stored, "ru"),
+    "worker-a: Последняя попытка сборки или развёртывания Cloudflare завершилась успешно");
+  for (const locale of ACTIVE_LOCALES) {
+    const rendered = eventText(stored, locale);
+    assert.ok(rendered.length > 5);
+    assert.equal(rendered, t("event.buildSuccess", {}, locale));
+  }
+  assert.equal(stored, "Latest Cloudflare deployment succeeded");
+});
+
 test("Given latest attempt When success state renders Then English never claims uptime", () => {
   assert.equal(t("card.healthy", {}, "en"), "Successful");
   assert.equal(t("card.deploying", {}, "en"), "Deploying");
