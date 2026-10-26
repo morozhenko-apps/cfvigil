@@ -473,3 +473,32 @@ Native gate is **OPEN** until the owner reports observed results. After a
 PASS, document any open known limitations and request explicit approval for
 main fast-forward, tag and protected R2 publication. Nothing in this
 checklist silently authorizes deploying or publishing.
+
+
+## 2026-10-26: owner inspected both #40380870574 / #40380870719, remediation required
+
+Owner physically tested Linux DEB and Windows NSIS candidates from
+`549d292`. All reported defects apply to **both** platforms unless
+proven platform-specific. The smoke outcome is **NOT ACCEPTED**; no
+release, `main` promotion, signing or public R2 publication is permitted.
+
+| Owner observation | Linux | Windows | Source remediation / acceptance check |
+| --- | --- | --- | --- |
+| First resource discovery ~1 minute at every startup | FAIL | Not reported; check both | Bounded worker/pages detail concurrency; account-scoped persisted grey roster displayed immediately; verify no duplicate poll on locale |
+| KDE launcher icon unchanged | FAIL | Check Windows Start/Menu as well | Confirm actual installed DEB Icon name and hicolor images, KDE cache/user overrides; do not assume purge |
+| Native tray menu locale appears after delay | FAIL | Check Windows native tray | Explicit KSNI update / Windows Tauri menu commit, test right-click immediately after OK |
+| History/About icon uses WebView generic | FAIL | Check both native icons | Explicit GTK pixbuf and Tauri icon, verify OS window/task-switcher |
+| Resource scrollbar overlaps ellipsis; pointer drag scroll captured by native window | FAIL | FAIL | Reserve gutter and a clickable thumb/track, exclude drawer from native dragging on both |
+| About copied from RepoTicker and all text localized | Check Linux | FAIL | Centered branded About, native version/links, 20-locale keys, test title and license |
+| Chrome flags unsigned NSIS as suspicious/malware | N/A | FAIL | Inspect exact warning, verify signed state + hash, do not globally disable protections; owner decision needed for Authenticode |
+| Settings OK should commit and close | Check Linux | FAIL | Changed-only transactional UI with close on native commit |
+| Language and other Settings only commit at OK; no unchanged reapply | Check Linux | FAIL | Draft diff, no-op short-circuit, OS autostart changed-only, no token probe for locale-only |
+| Switching locale leaves account, token, interval, autostart untouched | Check Linux | FAIL / requires verification | Reload Settings, compare native identity/config, no Cloudflare request |
+| Language dropdown and native tray switch instantly after OK | FAIL | FAIL | Repaint local Settings and other windows, update Linux KSNI menu explicitly |
+
+Source commits for this batch live on `dev` and do **NOT**
+retroactively change the `549d292` binary the owner installed.
+The repaired candidates must be produced from an identical new SHA
+after the stable source gate, then manually rechecked on both platforms.
+Mark every row PASS/FAIL with actual machine evidence; do not conflate
+the successful Tauri package build with native UI acceptance.
