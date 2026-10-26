@@ -190,3 +190,10 @@ main, release, R2 publication, Cloudflare mutations or self-hosted runners.
 pt-PT accessibility regression expectation with reviewed `Não verificado`
 source. The previous CI failed on stale literal `Por verificar`, not on
 Windows runtime or provider code. No Windows build, main, Mode B or release.
+
+2026-10-26: Run ONE stable gate after the bounded Cloudflare
+diagnostic-localization source batch. Verify all 20 complete draft locale
+catalogs, safe exact-match numeric HTTP 400/403 and scope formatting,
+native error string contracts, resource/card/Settings presentation,
+existing JavaScript/Python/Rust tests and icon checks. No Mode B,
+owner-machine acceptance claim, package, main, tag, release or R2 upload.
