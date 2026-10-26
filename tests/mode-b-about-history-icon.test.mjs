@@ -19,6 +19,15 @@ test("Given About window When opened on Linux or Windows Then native Minimize is
   assert.equal(win("about").visible,false);
 });
 
+test("Given frameless About When Close runs Then Tauri grants hide only to About and Settings",()=>{
+  const capability=JSON.parse(read("apps/desktop/src-tauri/capabilities/about.json"));
+  const settings=JSON.parse(read("apps/desktop/src-tauri/capabilities/settings.json"));
+  assert.deepEqual(capability.windows,["about"]);
+  assert.deepEqual(capability.permissions,["core:window:allow-hide"]);
+  assert.deepEqual(settings.windows,["settings"]);
+  assert.deepEqual(settings.permissions,["core:window:allow-hide"]);
+});
+
 test("Given frameless About When user clicks Close Then existing window is hidden, not destroyed",()=>{
   assert.match(html,/<button id="about-close"[^>]+type="button"/);
   assert.match(html,/data-i18n-aria-label="about\.close"/);
