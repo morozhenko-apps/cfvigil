@@ -90,7 +90,7 @@ export default Object.freeze({
   "settings.title": "सेटिंग्स",
   "settings.connection": "कनेक्शन",
   "settings.account": "Cloudflare खाता ID",
-  "settings.accountPlaceholder": "32 वर्णों वाला खाता ID",
+  "settings.accountPlaceholder": "32 हेक्साडेसिमल वर्णों वाला खाता ID",
   "settings.token": "API टोकन",
   "settings.tokenStored": "टोकन सिस्टम के सुरक्षित स्टोर में सहेजा गया है। बदलने के लिए नया टोकन डालें।",
   "settings.tokenUnavailable": "टोकन की जाँच नहीं हो सकी (सुरक्षित स्टोर अनुपलब्ध)।",
@@ -127,5 +127,5 @@ export default Object.freeze({
   "event.runtimeRecovery": "Workers रनटाइम त्रुटियों में वृद्धि समाप्त हुई",
   "event.wafRecovery": "WAF ब्लॉक में वृद्धि समाप्त हुई",
   "event.buildStarted": "नया Cloudflare बिल्ड या डिप्लॉयमेंट शुरू हुआ",
-  "event.buildSuccess": "नवीनतम Cloudflare डिप्लॉयमेंट सफल रहा"
+  "event.buildSuccess": "नवीनतम Cloudflare बिल्ड या डिप्लॉयमेंट सफल रहा"
 });

@@ -10,7 +10,7 @@ Developers maintaining Cloudflare Workers and Pages. A small read-only companion
 
 No product name or heading inside the card. The bottom strip has exactly five equally sized cells, in this order:
 
-1. Healthy count
+1. Successful count (UI label; internal Rust/JS status ID remains `healthy`)
 2. Deploying count
 3. Issues count
 4. Resources (toggle drawer)

@@ -5,8 +5,8 @@ export default Object.freeze({
   "card.listLabel": "Monitored Cloudflare resources",
   "card.searchPlaceholder": "Search resources...",
   "card.searchLabel": "Search by resource name",
-  "card.actionsLabel": "Resource health",
-  "card.healthy": "Healthy",
+  "card.actionsLabel": "Resource status",
+  "card.healthy": "Successful",
   "card.deploying": "Deploying",
   "card.issues": "Issues",
   "card.statusUnknown": "Unverified",
@@ -79,7 +79,7 @@ export default Object.freeze({
   "settings.title": "Settings",
   "settings.connection": "Connection",
   "settings.account": "Cloudflare Account ID",
-  "settings.accountPlaceholder": "32-character account ID",
+  "settings.accountPlaceholder": "32-character hexadecimal Account ID",
   "settings.token": "API Token",
   "settings.tokenStored": "Token saved in the system credential store. Enter a new token to replace it.",
   "settings.tokenUnavailable": "Stored token status unavailable (credential store locked).",
@@ -118,5 +118,5 @@ export default Object.freeze({
   "event.runtimeRecovery": "Workers runtime error spike cleared",
   "event.wafRecovery": "WAF block spike cleared",
   "event.buildStarted": "New Cloudflare build/deployment started",
-  "event.buildSuccess": "Latest Cloudflare deployment succeeded"
+  "event.buildSuccess": "Latest Cloudflare build or deployment attempt succeeded"
 });

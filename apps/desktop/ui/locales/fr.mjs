@@ -92,7 +92,7 @@ export default Object.freeze({
   "settings.title": "Paramètres",
   "settings.connection": "Connexion",
   "settings.account": "ID du compte Cloudflare",
-  "settings.accountPlaceholder": "ID de compte à 32 caractères",
+  "settings.accountPlaceholder": "ID de compte de 32 caractères hexadécimaux",
   "settings.token": "Jeton API",
   "settings.tokenStored": "Jeton enregistré dans le système. Saisissez-en un nouveau pour le remplacer.",
   "settings.tokenUnavailable": "Impossible de vérifier le jeton (stockage indisponible).",
@@ -131,5 +131,5 @@ export default Object.freeze({
   "event.runtimeRecovery": "La hausse des erreurs d’exécution Workers est terminée",
   "event.wafRecovery": "La hausse des blocages WAF est terminée",
   "event.buildStarted": "Une nouvelle compilation ou un nouveau déploiement Cloudflare a démarré",
-  "event.buildSuccess": "Le dernier déploiement Cloudflare s’est terminé avec succès"
+  "event.buildSuccess": "La dernière compilation ou le dernier déploiement Cloudflare a réussi"
 });

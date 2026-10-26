@@ -98,7 +98,7 @@ export default Object.freeze({
   "settings.title": "Ustawienia",
   "settings.connection": "Połączenie",
   "settings.account": "Identyfikator konta Cloudflare",
-  "settings.accountPlaceholder": "32-znakowy identyfikator konta",
+  "settings.accountPlaceholder": "Identyfikator konta: 32 znaki szesnastkowe",
   "settings.token": "Token API",
   "settings.tokenStored": "Token zapisany w systemie. Wpisz nowy token, aby go zastąpić.",
   "settings.tokenUnavailable": "Nie można sprawdzić tokenu (magazyn niedostępny).",
@@ -135,5 +135,5 @@ export default Object.freeze({
   "event.runtimeRecovery": "Wzrost liczby błędów wykonania Workers ustał",
   "event.wafRecovery": "Wzrost liczby blokad WAF ustał",
   "event.buildStarted": "Rozpoczęto nową kompilację lub wdrożenie Cloudflare",
-  "event.buildSuccess": "Ostatnie wdrożenie Cloudflare zakończyło się pomyślnie"
+  "event.buildSuccess": "Ostatnia próba kompilacji lub wdrożenia Cloudflare zakończyła się pomyślnie"
 });

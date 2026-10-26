@@ -90,7 +90,7 @@ export default Object.freeze({
   "settings.title": "Inställningar",
   "settings.connection": "Anslutning",
   "settings.account": "Cloudflare-konto-ID",
-  "settings.accountPlaceholder": "Konto-ID med 32 tecken",
+  "settings.accountPlaceholder": "Konto-ID med 32 hexadecimala tecken",
   "settings.token": "API-token",
   "settings.tokenStored": "Token sparad i systemets valv. Ange en ny token för att ersätta den.",
   "settings.tokenUnavailable": "Kan inte kontrollera sparad token (systemvalvet är inte tillgängligt).",
@@ -127,5 +127,5 @@ export default Object.freeze({
   "event.runtimeRecovery": "Ökningen av Workers-körningsfel har upphört",
   "event.wafRecovery": "Ökningen av WAF-blockeringar har upphört",
   "event.buildStarted": "En ny Cloudflare-byggning eller driftsättning har startat",
-  "event.buildSuccess": "Den senaste Cloudflare-driftsättningen lyckades"
+  "event.buildSuccess": "Den senaste Cloudflare-byggningen eller driftsättningen lyckades"
 });

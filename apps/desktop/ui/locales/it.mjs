@@ -94,7 +94,7 @@ export default Object.freeze({
   "settings.title": "Impostazioni",
   "settings.connection": "Connessione",
   "settings.account": "ID account Cloudflare",
-  "settings.accountPlaceholder": "ID account di 32 caratteri",
+  "settings.accountPlaceholder": "ID account di 32 caratteri esadecimali",
   "settings.token": "Token API",
   "settings.tokenStored": "Token salvato nel sistema. Inseriscine uno nuovo per sostituirlo.",
   "settings.tokenUnavailable": "Impossibile verificare il token (archivio non disponibile).",
@@ -131,5 +131,5 @@ export default Object.freeze({
   "event.runtimeRecovery": "Il picco di errori Workers è terminato",
   "event.wafRecovery": "Il picco di blocchi WAF è terminato",
   "event.buildStarted": "Avviata una nuova compilazione o distribuzione Cloudflare",
-  "event.buildSuccess": "L'ultima distribuzione Cloudflare è riuscita"
+  "event.buildSuccess": "L'ultima compilazione o distribuzione Cloudflare è riuscita"
 });

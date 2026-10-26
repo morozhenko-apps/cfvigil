@@ -106,7 +106,7 @@ export default Object.freeze({
   "settings.title": "الإعدادات",
   "settings.connection": "الاتصال",
   "settings.account": "معرّف حساب Cloudflare",
-  "settings.accountPlaceholder": "معرّف حساب مكوّن من 32 حرفًا",
+  "settings.accountPlaceholder": "معرّف حساب من 32 محرفًا بالنظام الست عشري",
   "settings.token": "رمز API",
   "settings.tokenStored": "الرمز محفوظ في النظام. أدخل رمزًا جديدًا لاستبداله.",
   "settings.tokenUnavailable": "تعذّر التحقق من الرمز المحفوظ (مخزن بيانات الاعتماد غير متاح).",
@@ -118,7 +118,7 @@ export default Object.freeze({
   "settings.tenMinutes": "10 دقائق",
   "settings.autostart": "تشغيل CFVigil عند تسجيل الدخول",
   "settings.checkingAutostart": "جارٍ التحقق من التشغيل التلقائي...",
-  "settings.tokenHelp": "استخدم رمز API للمستخدم لديه الأذونات Workers Scripts Read وWorkers CI Read وPages Read وAccount Analytics Read وZone Read وZone Analytics Read. تتيح الأذونات الثلاثة الأخيرة تنبيهات ارتفاع أخطاء Workers وعمليات حظر WAF. يُحفَظ الرمز في مخزن بيانات الاعتماد لنظام التشغيل.",
+  "settings.tokenHelp": "استخدم رمز API خاصًا بالمستخدم يمتلك الأذونات ⁨Workers Scripts Read⁩، ⁨Workers CI Read⁩، ⁨Pages Read⁩، ⁨Account Analytics Read⁩، ⁨Zone Read⁩، ⁨Zone Analytics Read⁩. تتيح الأذونات الثلاثة الأخيرة تنبيهات ارتفاع أخطاء Workers وعمليات حظر WAF. يُحفَظ الرمز في مخزن بيانات الاعتماد لنظام التشغيل.",
   "settings.cancel": "إلغاء",
   "settings.apply": "تطبيق",
   "settings.saving": "جارٍ الحفظ...",
@@ -143,5 +143,5 @@ export default Object.freeze({
   "event.runtimeRecovery": "انتهى ارتفاع أخطاء تشغيل Workers",
   "event.wafRecovery": "انتهى ارتفاع عمليات حظر WAF",
   "event.buildStarted": "بدأت عملية بناء أو نشر جديدة في Cloudflare",
-  "event.buildSuccess": "نجحت أحدث عملية نشر في Cloudflare"
+  "event.buildSuccess": "نجحت أحدث عملية بناء أو نشر في Cloudflare"
 });

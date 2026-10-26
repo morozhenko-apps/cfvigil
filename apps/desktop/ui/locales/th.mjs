@@ -86,7 +86,7 @@ export default Object.freeze({
   "settings.title": "การตั้งค่า",
   "settings.connection": "การเชื่อมต่อ",
   "settings.account": "ID บัญชี Cloudflare",
-  "settings.accountPlaceholder": "ID บัญชี 32 อักขระ",
+  "settings.accountPlaceholder": "ID บัญชี 32 อักขระฐานสิบหก",
   "settings.token": "โทเค็น API",
   "settings.tokenStored": "บันทึกโทเคนไว้ในระบบแล้ว ป้อนโทเคนใหม่เพื่อแทนที่",
   "settings.tokenUnavailable": "ตรวจสอบโทเคนไม่ได้ (คลังข้อมูลไม่พร้อมใช้งาน)",
@@ -123,5 +123,5 @@ export default Object.freeze({
   "event.runtimeRecovery": "ข้อผิดพลาดรันไทม์ Workers กลับสู่ปกติแล้ว",
   "event.wafRecovery": "การบล็อก WAF กลับสู่ปกติแล้ว",
   "event.buildStarted": "เริ่มการบิลด์หรือดีพลอย Cloudflare ใหม่แล้ว",
-  "event.buildSuccess": "การดีพลอย Cloudflare ล่าสุดสำเร็จ"
+  "event.buildSuccess": "การบิลด์หรือดีพลอย Cloudflare ล่าสุดสำเร็จ"
 });

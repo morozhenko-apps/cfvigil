@@ -86,7 +86,7 @@ export default Object.freeze({
   "settings.title": "設定",
   "settings.connection": "連線",
   "settings.account": "Cloudflare 帳戶 ID",
-  "settings.accountPlaceholder": "32 字元的帳戶 ID",
+  "settings.accountPlaceholder": "32 個十六進位字元的帳戶 ID",
   "settings.token": "API 權杖",
   "settings.tokenStored": "權杖已儲存在系統憑證庫。輸入新權杖即可取代。",
   "settings.tokenUnavailable": "無法檢查已儲存的權杖（憑證庫無法使用）。",
@@ -123,5 +123,5 @@ export default Object.freeze({
   "event.runtimeRecovery": "Workers 執行階段錯誤激增已結束",
   "event.wafRecovery": "WAF 封鎖激增已結束",
   "event.buildStarted": "新的 Cloudflare 建置或部署已開始",
-  "event.buildSuccess": "最新的 Cloudflare 部署成功"
+  "event.buildSuccess": "最新的 Cloudflare 建置或部署成功"
 });

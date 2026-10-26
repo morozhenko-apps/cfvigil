@@ -86,7 +86,7 @@ export default Object.freeze({
   "settings.title": "設定",
   "settings.connection": "接続",
   "settings.account": "Cloudflare アカウント ID",
-  "settings.accountPlaceholder": "32文字のアカウント ID",
+  "settings.accountPlaceholder": "16進数32文字のアカウント ID",
   "settings.token": "API トークン",
   "settings.tokenStored": "トークンはシステムに保存済みです。変更するには新しいトークンを入力してください。",
   "settings.tokenUnavailable": "保存されたトークンを確認できません（資格情報ストアが使用不可）。",
@@ -123,5 +123,5 @@ export default Object.freeze({
   "event.runtimeRecovery": "Workers の実行時エラー急増が解消しました",
   "event.wafRecovery": "WAF ブロックの急増が解消しました",
   "event.buildStarted": "新しい Cloudflare ビルドまたはデプロイが開始されました",
-  "event.buildSuccess": "最新の Cloudflare デプロイが成功しました"
+  "event.buildSuccess": "最新の Cloudflare ビルドまたはデプロイが成功しました"
 });

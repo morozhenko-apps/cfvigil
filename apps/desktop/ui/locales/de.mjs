@@ -88,10 +88,10 @@ export default Object.freeze({
   "settings.title": "Einstellungen",
   "settings.connection": "Verbindung",
   "settings.account": "Cloudflare-Konto-ID",
-  "settings.accountPlaceholder": "32-stellige Konto-ID",
+  "settings.accountPlaceholder": "Konto-ID mit 32 Hexadezimalzeichen",
   "settings.token": "API-Token",
   "settings.tokenStored": "Token im Systemspeicher gesichert. Zum Ersetzen einen neuen eingeben.",
-  "settings.tokenUnavailable": "Tokenstatus nicht verfügbar (Systemsperre gesperrt).",
+  "settings.tokenUnavailable": "Tokenstatus nicht verfügbar (Anmeldedatenspeicher gesperrt).",
   "settings.tokenPlaceholder": "Leer lassen, um das vorhandene Token zu behalten",
   "settings.interval": "Aktualisierungsintervall",
   "settings.oneMinute": "1 Minute",
@@ -127,5 +127,5 @@ export default Object.freeze({
   "event.runtimeRecovery": "Anstieg der Workers-Laufzeitfehler beendet",
   "event.wafRecovery": "Anstieg der WAF-Sperren beendet",
   "event.buildStarted": "Neuer Cloudflare-Build oder neues Deployment gestartet",
-  "event.buildSuccess": "Letztes Cloudflare-Deployment erfolgreich abgeschlossen"
+  "event.buildSuccess": "Letzter Cloudflare-Build oder letztes Deployment erfolgreich abgeschlossen"
 });

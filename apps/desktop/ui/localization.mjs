@@ -165,6 +165,9 @@ export function verboseRelativeTime(when, now = Date.now(), locale = currentLoca
 const legacyEvents = new Map(Object.entries(english)
   .filter(([key, value]) => key.startsWith("event.") && typeof value === "string")
   .map(([key, value]) => [value, key]));
+// Keep the immutable legacy journal bytes while fixing the display-only
+// event meaning: a completed Worker build is not proof of deployment.
+legacyEvents.set("Latest Cloudflare deployment succeeded", "event.buildSuccess");
 export function eventText(message, locale = currentLocale) {
   const key = legacyEvents.get(message);
   return key ? t(key, {}, locale) : String(message ?? "");

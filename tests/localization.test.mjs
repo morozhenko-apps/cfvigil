@@ -172,7 +172,7 @@ test("DOM localization uses textContent and explicit direction, never innerHTML"
     querySelectorAll: selector => selector === "[data-i18n]" ? [node] : []
   };
   localizeDocument(doc);
-  assert.deepEqual(values, ["Healthy"]);
+  assert.deepEqual(values, ["Successful"]);
   assert.equal(doc.documentElement.lang, "en");
   assert.equal(doc.documentElement.dir, "ltr");
 });

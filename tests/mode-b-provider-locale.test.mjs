@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {
   ACTIVE_LOCALES, PLANNED_LOCALES, directionFor, intlLocale,
-  diagnosticText, resourceDetail, incidentText, formatDate, plural, t
+  diagnosticText, resourceDetail, incidentText, eventText, formatDate, plural, t
 } from "../apps/desktop/ui/localization.mjs";
 import {
   classifyWorkerBuild, classifyPagesDeployment, counters
@@ -34,6 +34,93 @@ test("Mode B: audited locale states describe success, in-progress attempts and u
   assert.equal(t("card.deploying", {}, "ja"), "進行中");
   assert.equal(t("card.deploying", {}, "ko"), "진행 중");
   assert.equal(t("card.deploying", {}, "ar"), "قيد التنفيذ");
+});
+
+
+
+test("Given legacy deployed-success bytes When a Worker build passes Then the display does not claim deployment", () => {
+  const stored = "Latest Cloudflare deployment succeeded";
+  assert.equal(t("event.buildSuccess", {}, "en"),
+    "Latest Cloudflare build or deployment attempt succeeded");
+  assert.equal(eventText(stored, "en"),
+    "Latest Cloudflare build or deployment attempt succeeded");
+  assert.equal(incidentText("worker-a: " + stored, "ru"),
+    "worker-a: Последняя попытка сборки или развёртывания Cloudflare завершилась успешно");
+  for (const locale of ACTIVE_LOCALES) {
+    const rendered = eventText(stored, locale);
+    assert.ok(rendered.length > 5);
+    assert.equal(rendered, t("event.buildSuccess", {}, locale));
+  }
+  assert.equal(stored, "Latest Cloudflare deployment succeeded");
+});
+
+
+
+test("Given Cloudflare account input When user sees localized help Then all twenty specify hexadecimal digits not arbitrary characters", () => {
+  const expected = {
+  "en": "32-character hexadecimal Account ID",
+  "ru": "ID аккаунта: 32 шестнадцатеричных символа",
+  "es": "ID de cuenta de 32 caracteres hexadecimales",
+  "pt": "ID da conta: 32 caracteres hexadecimais",
+  "de": "Konto-ID mit 32 Hexadezimalzeichen",
+  "fr": "ID de compte de 32 caractères hexadécimaux",
+  "it": "ID account di 32 caratteri esadecimali",
+  "pl": "Identyfikator konta: 32 znaki szesnastkowe",
+  "hi": "32 हेक्साडेसिमल वर्णों वाला खाता ID",
+  "zh-Hant": "32 個十六進位字元的帳戶 ID",
+  "ja": "16進数32文字のアカウント ID",
+  "nl": "Account-ID met 32 hexadecimale tekens",
+  "sv": "Konto-ID med 32 hexadecimala tecken",
+  "tr": "32 onaltılık karakterli hesap kimliği",
+  "ko": "16진수 32자리 계정 ID",
+  "bn": "৩২টি হেক্সাডেসিমেল অক্ষরের অ্যাকাউন্ট ID",
+  "th": "ID บัญชี 32 อักขระฐานสิบหก",
+  "id": "ID akun 32 karakter heksadesimal",
+  "fil": "Account ID na may 32 hexadecimal na character",
+  "ar": "معرّف حساب من 32 محرفًا بالنظام الست عشري"
+};
+  assert.deepEqual(Object.keys(expected), ACTIVE_LOCALES);
+  for (const [locale,message] of Object.entries(expected)) {
+    assert.equal(t("settings.accountPlaceholder", {}, locale),message,locale);
+  }
+  assert.match(t("settings.tokenPlaceholder", {}, "tr"), /belirteci/);
+  assert.doesNotMatch(t("settings.tokenPlaceholder", {}, "tr"), /anahtarı/);
+});
+
+test("Given Arabic RTL settings When listing Cloudflare scopes Then each immutable identifier is directionally isolated", () => {
+  const help = t("settings.tokenHelp", {}, "ar");
+  assert.match(help, /^استخدم رمز API خاصًا بالمستخدم/);
+  for (const scope of ["Workers Scripts Read","Workers CI Read","Pages Read","Account Analytics Read","Zone Read","Zone Analytics Read"]) {
+    assert.ok(help.includes("\u2068" + scope + "\u2069"), scope);
+  }
+  assert.match(help, /Workers/);
+});
+
+test("Given latest attempt When success state renders Then English never claims uptime", () => {
+  assert.equal(t("card.healthy", {}, "en"), "Successful");
+  assert.equal(t("card.actionsLabel", {}, "en"), "Resource status");
+  assert.equal(t("card.deploying", {}, "en"), "Deploying");
+  assert.equal(t("card.statusUnknown", {}, "en"), "Unverified");
+});
+
+test("Given locked credential store When German token guidance renders Then it names credentials not system lock", () => {
+  assert.match(t("settings.tokenUnavailable", {}, "de"), /Anmeldedatenspeicher gesperrt/);
+  assert.doesNotMatch(t("settings.tokenUnavailable", {}, "de"), /Systemsperre/);
+});
+
+test("Given user API token When Turkish connection guidance renders Then it does not misname an API key", () => {
+  const actual = t("settings.tokenHelp", {}, "tr");
+  assert.match(actual, /kullanıcı API belirteci/);
+  assert.doesNotMatch(actual, /API anahtarı/);
+});
+
+test("Given persisted build events When localized to Russian Then the attempt wording is grammatical", () => {
+  assert.equal(t("event.buildFailure", {}, "ru"),
+    "Последняя попытка сборки или развёртывания Cloudflare завершилась ошибкой");
+  assert.equal(t("event.buildStarted", {}, "ru"),
+    "Запущена новая сборка или новое развёртывание Cloudflare");
+  assert.equal(incidentText("Latest Cloudflare build/deployment failed", "ru"),
+    "Последняя попытка сборки или развёртывания Cloudflare завершилась ошибкой");
 });
 
 test("Mode B: every activated locale supplies actual visible native descriptions, not English fallback", () => {

@@ -257,3 +257,169 @@ retain exact key/plural/parameter parity and immutable native status
 identifiers. This is a **substantive source-language QA pass**, not a
 native-speaker editorial approval, accessible font-layout screenshot
 or real-device language PASS. All locale status rows remain Draft.
+
+
+## 2026-10-26: contextual semantics review (beyond key parity)
+
+Review target: actual monitoring semantics from `docs/PRODUCT.md`,
+not English word matching. Green represents **the latest verified
+successful build/deployment attempt**, not application uptime;
+yellow is any in-progress *build or deployment*; grey means
+unverified, including previously seen resources. Workers runtime
+error spikes are separate from failed deployments. WAF zone-level
+blocked traffic is not an attack attribution.
+
+### Confirmed translation defects requiring correction
+
+- **en** `card.healthy` uses `Healthy`, which claims operational
+  health/uptime CFVigil does not measure. Change display text only to
+  `Successful`; keep internal `healthy` status ID stable.
+- **de** `settings.tokenUnavailable` ends with `Systemsperre
+  gesperrt` (a misleading system lock). Change to
+  `Anmeldedatenspeicher gesperrt` to describe an unavailable/locked
+  OS credential store. Preserve no-token exposure.
+- **tr** `settings.tokenHelp` describes a user API *key* as
+  `API anahtarı`; the application requires a user API **token**.
+  Use `kullanıcı API belirteci` and refer to `belirteç`
+  throughout that help message. Do not confuse scopes.
+- **ru** `event.buildFailure` uses plural verb with an alternative
+  singular `сборка или развёртывание`; reword as
+  `Последняя попытка сборки или развёртывания Cloudflare завершилась ошибкой`.
+- **ru** `event.buildStarted` inconsistently genders
+  `Началась новая сборка или развёртывание`. Reword as
+  `Запущена новая сборка или новое развёртывание Cloudflare`.
+
+These changes are locale-only display strings; existing persisted
+native event literals, Cloudflare statuses, tokens and event IDs MUST
+remain byte-for-byte stable. Add exact assertions for the corrected
+semantic cases, not a broad fallback to the English source.
+
+### Additional semantic contract requiring separate decision
+
+The English native event `Latest Cloudflare deployment succeeded`
+(`EVENT_BUILD_SUCCESS`) is potentially emitted after a Worker
+*build* succeeds even if the application did not verify a deployment.
+The current language catalogs translate the narrower "deployment"
+claim faithfully, but the underlying native event wording may be
+overconfident. Updating the persisted event literal without a
+backwards-compatibility mapping would break localization of historical
+events. **Do not change this serialized literal silently.** Inspect the
+complete event transition contract and choose a compatible
+presentation-only correction or explicit versioned event identity
+before considering it accepted.
+
+### Unresolved human/native semantic evidence
+
+Each activated locale was reviewed for critical status labels,
+Worker/Pages build/deploy distinctions, runtime error vs deployment
+failure, WAF block spike, token permission names and unverified
+responses. This source-review pass is **not equivalent** to a human
+native-speaker 114-string editorial certification in every language.
+CJK/Indic/Thai/Bengali glyphs, Arabic bidi, long German/Polish
+words, screen-reader labels and installed Windows/KDE layouts remain
+physical checks. Existing per-locale status stays DRAFT.
+
+
+### Approved-compatible source correction for build-success history semantics
+
+Confirmed from `incident_policy::describe_transition` and
+`select_worker_attempt`: native `EVENT_BUILD_SUCCESS` is emitted on
+`current.status == healthy` for a successfully stopped **Worker build**
+as well as a verified successful deployment. The persisted native literal
+historically says "Latest Cloudflare deployment succeeded", which can
+overclaim the deployment. This is a terminology/display correctness defect.
+
+Scoped compatible remediation (no persistent/public schema change):
+- Keep `native_messages::EVENT_BUILD_SUCCESS` **exactly unchanged** and
+  persist the same historical English value for new and old records.
+- Update the **display-only** English `event.buildSuccess` and 19 target
+  translations to say latest **build or deployment attempt** succeeded,
+  not deployed workload availability.
+- Introduce an explicit constant-literal legacy alias in
+  `localization.mjs` mapping the old persisted English string to the new
+  locale message key. Ensure `eventText` and `incidentText` still
+  recognize old history and work for all 20 locales without rewriting data.
+- Replace the overrestrictive test asserting that the English UI wording
+  must equal immutable native storage. Instead assert immutable source
+  literal, deliberate new display semantics and the backward mapping.
+- No Cloudflare API write, incident state or historical-message rewrite.
+
+This removes a misleading *presentation claim* while preserving native
+event identity. Native machine text fitting and human editorial review
+remain pending.
+
+
+### Arabic static permission names: RTL source correction
+
+The Arabic `settings.tokenHelp` is a sentence containing six *exact*
+Cloudflare permission names in Latin script. Its previous grammatical
+frame ("استخدم رمز API للمستخدم لديه الأذونات") was unnatural,
+and plain mixed-script runs may visually shuffle the names in RTL.
+Use grammatical "استخدم رمز API خاصًا بالمستخدم يمتلك الأذونات ..."
+and FSI/PDI isolates around each immutable permission name.
+Never translate/shorten or reorder the permission identifiers in a
+way that changes requested scope. WebView/native bidi acceptance is
+still physical and not inferred from the source.
+
+
+### Account ID validation versus translated Settings placeholders
+
+The actual Settings/Rust validation requires **exactly 32 ASCII
+hexadecimal characters**. The earlier RU/pt-PT source correction
+already explains this, but a full review found the remaining 18
+language placeholders describe merely "32 characters". That permits
+users to infer arbitrary characters are accepted, contrary to the
+native input contract. Correct `settings.accountPlaceholder` in
+`en,es,de,fr,it,pl,hi,zh-Hant,ja,nl,sv,tr,ko,bn,th,id,fil,ar`
+to explicitly say *hexadecimal/base-16* while preserving the exact
+number 32. RU and European Portuguese remain unchanged.
+Also replace Turkish `settings.tokenPlaceholder` "anahtarı"
+(API key) with "belirteci" (token) for consistency with the
+user-API-token requirement.
+
+Add regression evidence for all 20 placeholders that must encode
+32 and the hex requirement in locale-appropriate terms. Structural
+dictionary equality alone cannot catch this semantic error.
+
+## 2026-10-26: source semantic audit corrections and remaining editorial gate
+
+The second pass reviewed the **meaning** of visible states, incident
+transitions, account-id input, token/permission guidance and unknown/
+offline text across every activated locale. This is distinct from
+114-key structural parity. Concrete issues and source fixes:
+
+- `en` green label `Healthy` implied uptime/availability that CFVigil
+  never checks; rendered label is `Successful` (internal status unchanged).
+- `de` unavailable/locked keychain text incorrectly said
+  `Systemsperre`; corrected to `Anmeldedatenspeicher gesperrt`.
+- `tr` token guidance and keep-token placeholder incorrectly used API
+  `anahtar` (key); corrected to API `belirteç` (token).
+- `ru` build failure/start event grammar rewritten as actual build or
+  deployment attempt rather than mismatched nominal gender/number.
+- **All 20** `event.buildSuccess` display messages now distinguish a
+  successful Worker **build** from a successful Cloudflare deployment.
+  The old native journal literal and previously persisted English
+  messages are not changed; explicit legacy mapping supplies correct
+  translated display in all 20 locales, including existing history.
+- **18 of 20** account ID placeholders omitted the crucial
+  **hexadecimal** restriction. Now all 20 explicitly describe **32
+  base-16 characters**, matching native validation.
+- `ar` API-token help received grammatical repair and six individual
+  FSI/PDI isolates protecting exact Cloudflare permission names from
+  bidirectional reordering in RTL text.
+
+Per-locale source verdict: `en,ru,es,pt,de,fr,it,pl,hi,zh-Hant,ja,nl,sv,
+tr,ko,bn,th,id,fil,ar` each underwent a focused **contextual
+high-risk-term review** for the fields above. No locale is marked
+native-speaker Accepted. Full per-sentence 114-string editorial review,
+physical glyph metrics, screen-reader output and RTL/native Windows/KDE
+interaction are **NOT VERIFIED**; keep all statuses Draft.
+
+### English accessibility status group label
+
+The English `card.actionsLabel` still says `Resource health` while all
+19 localized counterparts already mean resource *status*. CFVigil does
+not perform uptime/health probes, so the accessible grouping label can
+mislead assistive-technology users. Change English to `Resource status`
+and pin the displayed meaning with a regression assertion. Do not
+change native/internal `healthy` status IDs or UI counter semantics.

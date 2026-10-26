@@ -87,12 +87,18 @@ test("legacy persisted incident strings stay byte-for-byte compatible with Engli
     EVENT_WAF_SPIKE:"event.wafSpike",
     EVENT_RUNTIME_RECOVERY:"event.runtimeRecovery",
     EVENT_WAF_RECOVERY:"event.wafRecovery",
-    EVENT_BUILD_STARTED:"event.buildStarted",
-    EVENT_BUILD_SUCCESS:"event.buildSuccess"
+    EVENT_BUILD_STARTED:"event.buildStarted"
   };
   for (const [nativeKey, translatedKey] of Object.entries(keys)) {
     assert.equal(declared.get(nativeKey), english[translatedKey]);
   }
+  // Native history event bytes stay unchanged, but translated UI copy no
+  // longer claims a successful Worker build was necessarily deployed.
+  assert.equal(declared.get("EVENT_BUILD_SUCCESS"), "Latest Cloudflare deployment succeeded");
+  assert.equal(english["event.buildSuccess"],
+    "Latest Cloudflare build or deployment attempt succeeded");
+  assert.match(read("apps/desktop/ui/localization.mjs"),
+    /legacyEvents\.set\("Latest Cloudflare deployment succeeded", "event\.buildSuccess"\)/);
   assert.match(read("apps/desktop/src-tauri/src/main.rs"), /fn classify_history\(message: &str\)/);
   assert.match(read("apps/desktop/src-tauri/src/main.rs"), /msg::EVENT_BUILD_FAILURE/);
   assert.match(native, /pub fn worker_spike_detail\(/);

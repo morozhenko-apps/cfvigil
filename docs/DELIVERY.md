@@ -1017,3 +1017,25 @@ deploying-only-vs-in-progress including builds. Corrected in
 `a4ee1cd`, pinned by explicit Node assertions. One **final** source
 Preflight is required on this revised content before triggering two
 unreleased candidate workflows from a single marker commit.
+
+## 2026-10-26: correction to source QA and historical-event semantics
+
+User clarified that 20-locale localization must be **semantically
+contextual**, and Mode B must follow the full project Mode B stages,
+not merely grow an arbitrary test count or reported coverage %. The
+QA work is isolated in `qa/mode-b-semantic-matrix-20261026` while
+another agent updates `dev` and will be integrated without rewriting
+the other's work. See `docs/qa/MODE_B_MATRIX.md` for every-classified
+Positive/N1–N12 product-artifact matrix and honest pending scenarios.
+
+Concrete semantics: uptime-implicating English counter; German keychain
+wording; Turkish key/token confusion; Russian event agreement; all-20
+success event overclaim, all-20 hexadecimal account guidance; Arabic
+permission-name LTR isolation. The native historical bytes stay
+immutable, with backwards-compatible display translation. Source/CI
+review has not certified every sentence or a native visual language
+audit. The previously built Linux/Windows candidate #40380870574 /
+#40380870719 at `549d292` **predates all these fixes** and cannot
+serve as the final semantic QA acceptance candidate. Build new matched
+packages after this QA branch is merged and green verification is
+recorded. No main/tag/R2 or final release authorized.
