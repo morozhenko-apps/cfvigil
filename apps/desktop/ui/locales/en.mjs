@@ -79,7 +79,7 @@ export default Object.freeze({
   "settings.title": "Settings",
   "settings.connection": "Connection",
   "settings.account": "Cloudflare Account ID",
-  "settings.accountPlaceholder": "32-character account ID",
+  "settings.accountPlaceholder": "32-character hexadecimal Account ID",
   "settings.token": "API Token",
   "settings.tokenStored": "Token saved in the system credential store. Enter a new token to replace it.",
   "settings.tokenUnavailable": "Stored token status unavailable (credential store locked).",
