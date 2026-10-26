@@ -246,3 +246,9 @@ RepoTicker-style localized About, native GTK/Tauri icon parity and exact
 Chrome/SmartScreen unsigned candidate documentation. Stable JS,
 localization, offline Python and locked Rust check/unit only. Native
 machine, production Cloudflare, R2 and main are never implied by PASS.
+
+2026-10-26: single rerun after preflight #40397157304 exposed
+three stale white-box JS assertions, repaired test-only in b88b0ee.
+Now verify the final Mode A smoke source, 118+ JS tests,
+locales/assets, offline Python, locked Rust check/test.
+No candidates until verified PASS, no production or owner-native claims.
