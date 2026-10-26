@@ -130,6 +130,7 @@ export default Object.freeze({
   "settings.autostartDetectedOff": "معطّل افتراضيًا. فعّله فقط إذا أردت تشغيل CFVigil تلقائيًا.",
   "settings.autostartUnavailable": "حالة التشغيل التلقائي غير متاحة؛ يمكن تعديل الإعدادات الأخرى.",
   "settings.storageWarning": "تم الاحتفاظ بالحالة المحلية التالفة في ملف .corrupt.* داخل مجلد إعدادات CFVigil. تحقّق من الاتصال والسجل.",
+  "about.close": "إغلاق",
   "about.title": "حول CFVigil",
   "about.name": "CFVigil",
   "about.version": "الإصدار {version} · مجاني ومفتوح المصدر",

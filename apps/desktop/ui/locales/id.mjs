@@ -110,6 +110,7 @@ export default Object.freeze({
   "settings.autostartDetectedOff": "Nonaktif secara bawaan. Aktifkan jika ingin CFVigil berjalan otomatis.",
   "settings.autostartUnavailable": "Status mulai otomatis tidak tersedia; pengaturan lain masih dapat diubah.",
   "settings.storageWarning": "Status lokal yang rusak telah disimpan sebagai berkas .corrupt.* di folder pengaturan CFVigil. Periksa koneksi dan riwayat.",
+  "about.close": "Tutup",
   "about.title": "Tentang CFVigil",
   "about.name": "CFVigil",
   "about.version": "Versi {version} · Gratis dan sumber terbuka",

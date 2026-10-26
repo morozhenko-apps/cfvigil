@@ -114,6 +114,7 @@ export default Object.freeze({
   "settings.autostartDetectedOff": "Naka-off bilang default. I-enable kung gusto mong awtomatikong magsimula ang CFVigil.",
   "settings.autostartUnavailable": "Hindi available ang estado ng auto-start; maaari pa ring baguhin ang ibang mga setting.",
   "settings.storageWarning": "Na-preserba ang nasirang lokal na data bilang .corrupt.* file sa folder ng mga setting ng CFVigil. Suriin ang koneksyon at history.",
+  "about.close": "Isara",
   "about.title": "Tungkol sa CFVigil",
   "about.name": "CFVigil",
   "about.version": "Bersyon {version} · Libre at open source",
