@@ -7,6 +7,8 @@ const spinner = document.getElementById("save-spinner");
 const token = document.getElementById("token");
 const tokenStatus = document.getElementById("token-status");
 const submit = document.querySelector('button[type="submit"]');
+// Never commit a default/empty draft before native persisted settings load.
+submit.disabled = true;
 let saving = false;
 let tokenPresent = false;
 function showTokenPresence(present) {
@@ -176,7 +178,11 @@ try {
   storedSettings = config;
   document.getElementById("account").value = config.account_id || "";
   document.getElementById("interval").value = String(config.refresh_seconds);
-} catch { message.textContent = t("settings.readError"); }
+  submit.disabled = false;
+} catch {
+  // The previous native state is unknown; applying defaults would corrupt it.
+  message.textContent = t("settings.readError");
+}
 
 try {
   autostart.checked = await invoke("get_autostart");
