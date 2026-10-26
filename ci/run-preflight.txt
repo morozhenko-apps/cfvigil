@@ -204,3 +204,11 @@ tests PASS, but expected the obsolete literal `entry.textContent = item`;
 safe rendering is now `entry.textContent = diagnosticText(item)`.
 Revalidate all 20 locale catalogs, Node stable suite, offline Python and
 Rust check/unit suites ONCE. Do not run Mode B, packages or releases.
+
+2026-10-26: One stable source gate for the follow-up 0.8 visible
+Workers/Pages/Analytics/WAF resource-detail localization batch. Validate
+114 baseline/parity/plural keys for each of 20 draft UI locales, known
+native diagnostic string mappings, safe textContent rendering, updated
+live language-change warnings (no API refresh), RU/pt-PT/other-locale
+negative/positive cases, pre-existing icon/JS/Python/Rust checks.
+No Mode B, native machine PASS, candidate package, main/tag/R2 release.
