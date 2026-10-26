@@ -228,3 +228,11 @@ stable Node, offline Python release tests, locked Rust compile/unit tests,
 source-native Windows geometry, icon, protected-release handoff paths.
 No prod Cloudflare API, no forced incidents, no Mode B installed E2E pass,
 no release, R2, main, tag or physical KDE/Windows acceptance.
+
+2026-10-26: FINAL source verification after the eight locale semantic
+label corrections (Italian/Spanish success; German/Thai unverified;
+Japanese/Korean/Traditional Chinese/Arabic all-attempt in-progress).
+First complete Mode B source gate #40379110546 passed JS 88/88,
+Python 10/10, Rust 61/61. Rerun one last full stable gate for the
+additional explicit state-meaning regression assertions. No native
+machine, Cloudflare live-account success, R2, main, tag or production.
