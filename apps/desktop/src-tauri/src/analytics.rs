@@ -264,4 +264,97 @@ mod tests {
         }]}}});
         assert!(parse_batch(&malformed, &workers).is_err());
     }
+
+    #[test]
+    fn given_graphql_account_and_script_names_when_building_query_then_bounds_and_injection_are_enforced() {
+        let account="a".repeat(32);
+        let valid=vec!["worker1".to_owned();8];
+        assert!(create_query(&account,&valid,"start","end","baseline").is_ok());
+        for names in [Vec::<String>::new(),vec!["a".into();9],
+            vec!["bad/path".into()],vec!["bad\\name".into()],
+            vec!["<script>".into()],vec!["".into()],
+            vec!["a".repeat(129)]] {
+            assert!(create_query(&account,&names,"start","end","baseline").is_err(),
+                "invalid names: {names:?}");
+        }
+        for bad in ["".to_owned(),"a".repeat(31),"a".repeat(33),"g".repeat(32)] {
+            assert!(create_query(&bad,&["safe-worker".into()],
+                "start","end","baseline").is_err(),"account: {bad}");
+        }
+        let one=create_query(&account,&["a".repeat(128)],"start","end","baseline").unwrap();
+        assert!(one.contains("scriptName:"));
+        assert!(one.contains("limit: 1"));
+    }
+
+    #[test]
+    fn given_recent_analytics_when_on_threshold_edges_then_every_volume_and_ratio_rule_is_applied() {
+        let zero=Metrics::default();
+        for (recent,baseline,expected) in [
+            (Metrics{requests:99.0,errors:30.0},zero,false),
+            (Metrics{requests:100.0,errors:9.0},zero,false),
+            (Metrics{requests:100.0,errors:10.0},zero,false),
+            (Metrics{requests:100.0,errors:19.0},zero,false),
+            (Metrics{requests:100.0,errors:20.0},zero,true),
+            (Metrics{requests:101.0,errors:20.0},zero,false),
+            (Metrics{requests:200.0,errors:40.0},zero,true),
+            (Metrics{requests:100.0,errors:30.0},
+                Metrics{requests:100.0,errors:10.0},true),
+            (Metrics{requests:100.0,errors:29.0},
+                Metrics{requests:100.0,errors:10.0},false),
+            (Metrics{requests:100.0,errors:10.0},
+                Metrics{requests:100.0,errors:0.0},true),
+            (Metrics{requests:100.0,errors:10.0},
+                Metrics{requests:100.0,errors:10.0},false),
+        ] {
+            assert_eq!(is_spike(recent,baseline),expected,
+                "recent={recent:?} baseline={baseline:?}");
+        }
+    }
+
+    #[test]
+    fn given_invalid_or_ambiguous_aggregate_types_when_parsing_then_provider_data_is_not_verified() {
+        let base=serde_json::json!({"data":{"viewer":{"accounts":[{
+            "r0":[{"sum":{"requests":100,"errors":20}}],
+            "b0":[{"sum":{"requests":200,"errors":0}}]
+        }]}}});
+        let names=["one".into()];
+        assert_eq!(parse_batch(&base,&names).unwrap()["one"].errors,20);
+        for bad in [
+            serde_json::json!({"data":{"viewer":{"accounts":[]}}}),
+            serde_json::json!({"data":{"viewer":{"accounts":[{"r0":null,"b0":[]}]}}}),
+            serde_json::json!({"data":{"viewer":{"accounts":[{
+                "r0":[{"sum":{"requests":"200","errors":20}}],"b0":[]
+            }]}}}),
+            serde_json::json!({"data":{"viewer":{"accounts":[{
+                "r0":[{"sum":{"requests":-1,"errors":0}}],"b0":[]
+            }]}}}),
+            serde_json::json!({"data":{"viewer":{"accounts":[{
+                "r0":[{"sum":{"requests":10,"errors":11}}],"b0":[]
+            }]}}}),
+            serde_json::json!({"errors":[{"message":"unauthorized"}]}),
+        ] {
+            assert!(parse_batch(&bad,&names).is_err(),"reject bad: {bad}");
+        }
+    }
+
+    #[test]
+    fn given_eight_worker_aliases_when_parsing_then_spike_identity_cannot_leak_to_neighbors() {
+        let names=(0..8).map(|i|format!("worker{i}")).collect::<Vec<_>>();
+        let mut account=serde_json::Map::new();
+        for i in 0..8 {
+            account.insert(format!("r{i}"),serde_json::json!([
+                {"sum":{"requests":200,"errors":if i==5 {60}else{0}}}
+            ]));
+            account.insert(format!("b{i}"),serde_json::json!([
+                {"sum":{"requests":400,"errors":0}}
+            ]));
+        }
+        let body=serde_json::json!({"data":{"viewer":{"accounts":[account]}}});
+        let spikes=parse_batch(&body,&names).unwrap();
+        assert_eq!(spikes.len(),1);
+        assert_eq!(spikes["worker5"].requests,200);
+        assert_eq!(spikes["worker5"].errors,60);
+        assert!((spikes["worker5"].ratio-0.3).abs()<f64::EPSILON);
+    }
+
 }

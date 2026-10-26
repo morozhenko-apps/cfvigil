@@ -329,4 +329,96 @@ mod tests {
         assert_eq!(zones.len(), 1);
         assert_eq!(zones[0].name, "our.net");
     }
+
+    #[test]
+    fn given_waf_volume_threshold_edges_when_evaluating_then_noise_and_sustained_blocks_are_not_spikes() {
+        for (recent,baseline,expected) in [
+            (99.0,0.0,false),
+            (100.0,0.0,true),
+            (99.0,60.0,false),
+            (100.0,60.0,true),
+            (166.0,100.0,false),
+            (167.0,100.0,true),
+            (999.0,600.0,false),
+            (1000.0,600.0,true),
+            (300.0,900.0,false),
+            (f64::NAN,0.0,false),
+            (f64::INFINITY,0.0,false),
+            (100.0,-1.0,false),
+        ] {
+            assert_eq!(waf_spike(recent,baseline),expected,
+                "recent={recent}, baseline={baseline}");
+        }
+    }
+
+    #[test]
+    fn given_zone_names_and_account_ids_when_validating_then_no_malicious_url_path_can_escape() {
+        let max="a".repeat(253);
+        let over="a".repeat(254);
+        for name in ["example.net","a","sub-domain.example",max.as_str()] {
+            assert!(valid_zone_name(name), "{name}");
+        }
+        for name in ["",".leading","double..dot","bad/path","fragment#",
+            "query?", "space name", "<script>","é",over.as_str()] {
+            assert!(!valid_zone_name(name),"{name}");
+        }
+        for id in ["a".repeat(32),"A".repeat(32)] {
+            assert!(valid_id(&id));
+        }
+        for id in ["".to_owned(),"a".repeat(31),"a".repeat(33),"z".repeat(32)] {
+            assert!(!valid_id(&id));
+        }
+    }
+
+    #[test]
+    fn given_waf_aggregation_response_when_partial_or_ambiguous_then_do_not_clear_prior_alerts() {
+        let accepted=serde_json::json!({"data":{"viewer":{"zones":[{
+            "recent":[{"count":100}],"baseline":[{"count":60}]
+        }]}}});
+        assert_eq!(parse_waf_counts(&accepted).unwrap(),(100.0,60.0));
+        let empty=serde_json::json!({"data":{"viewer":{"zones":[{
+            "recent":[],"baseline":[]
+        }]}}});
+        assert_eq!(parse_waf_counts(&empty).unwrap(),(0.0,0.0));
+        for bad in [
+            serde_json::json!({}),
+            serde_json::json!({"errors":[{"message":"private"}]}),
+            serde_json::json!({"data":{"viewer":{"zones":[]}}}),
+            serde_json::json!({"data":{"viewer":{"zones":[{
+                "recent":[{"count":100}],"baseline":null
+            }]}}}),
+            serde_json::json!({"data":{"viewer":{"zones":[{
+                "recent":[{"count":"100"}],"baseline":[]
+            }]}}}),
+            serde_json::json!({"data":{"viewer":{"zones":[{
+                "recent":[{"count":-1}],"baseline":[]
+            }]}}}),
+            serde_json::json!({"data":{"viewer":{"zones":[{
+                "recent":[{"count":100},{"count":100}],"baseline":[]
+            }]}}}),
+        ] {
+            assert!(parse_waf_counts(&bad).is_err(),"invalid {bad}");
+        }
+    }
+
+    #[test]
+    fn given_foreign_scoped_zones_when_parsing_then_only_matching_account_and_safe_names_pass() {
+        let own="a".repeat(32);
+        let entries=serde_json::json!({"success":true,"result":[
+            {"id":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","name":"mine.example",
+             "account":{"id":own}},
+            {"id":"cccccccccccccccccccccccccccccccc","name":"foreign.example",
+             "account":{"id":"dddddddddddddddddddddddddddddddd"}},
+            {"id":"bad/path","name":"mine.example","account":{"id":own}},
+            {"id":"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","name":"bad/path",
+             "account":{"id":own}}
+        ]});
+        let zones=parse_zones(&entries,&own).unwrap();
+        assert_eq!(zones.len(),1);
+        assert_eq!(zones[0].name,"mine.example");
+        assert_eq!(zones[0].id,"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+        assert!(parse_zones(&serde_json::json!({"success":false,"result":[]}),&own).is_err());
+        assert!(parse_zones(&serde_json::json!({"success":true,"result":"not array"}),&own).is_err());
+    }
+
 }
