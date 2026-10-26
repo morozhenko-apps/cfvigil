@@ -1039,3 +1039,71 @@ audit. The previously built Linux/Windows candidate #40380870574 /
 serve as the final semantic QA acceptance candidate. Build new matched
 packages after this QA branch is merged and green verification is
 recorded. No main/tag/R2 or final release authorized.
+
+
+## 2026-10-26: Mode A, owner-installed Linux/Windows defect remediation
+
+Owner checked **both installed platforms** and reported cross-platform
+functional defects. Primary mode **A (functional/architectural fixes)**,
+not a new coverage campaign. Apply each observed issue to both platforms,
+including ones mentioned under only one OS.
+
+### Product decisions and invariants
+
+1. [ ] **Fast startup and remembered resource roster:** avoid serial
+   per-script/provider detail calls; execute bounded concurrent read-only
+   Cloudflare detail batches while preserving the one global API budget
+   and HTTP 429 backoff. Cache the last successful Worker/Pages roster in
+   the existing private atomic JSON persistence subsystem with the exact
+   Cloudflare account scope. On restart display the remembered roster
+   **immediately as grey/unverified only**, while refreshing in the
+   background. Do not persist/replay live verified statuses as healthy.
+   A language change must never issue any Cloudflare API request.
+   Quarantine bad/oversize data; never reuse another account's catalog.
+2. [ ] **Settings transaction:** all edit controls remain local drafts.
+   Apply is the sole write point, ignores unchanged fields (including
+   token, autostart, polling interval and language), awaits confirmed
+   persistence, then closes Settings on success. Cancel/window close
+   discards drafts and restores latest confirmed values. Language changes
+   become visible in all WebViews and native tray immediately **after**
+   successful Apply, without resetting independent connection settings.
+   A save error keeps Settings visible with the draft for correction.
+   Avoid speculative rollback of successful provider writes.
+3. [ ] **Native tray updates:** on Linux use RepoTicker's KSNI handle
+   `update` mechanism rather than assuming a dynamically rebuilt menu
+   will be advertised to the status notifier. On Windows update the
+   Tauri menu only after committed locale.
+4. [ ] **Scrollable card:** redesign scrollbar placement and pointer
+   dispatch so rows and scroll track/thumb own their interactions, not
+   the native drag gesture. Retain drag on intentional empty background
+   only. Keep overflow and ellipsis menu completely separated. Verify
+   keyboard, wheel, track and thumb semantics for both platforms.
+5. [ ] **Branding and About:** reproduce RepoTicker's actual centered
+   icon/title/version/author/site/license layout, with all display
+   strings from the twenty enabled catalogs. Ensure the same branded
+   app icon is declared on About/History/Settings native windows.
+   Investigate Tauri/Linux launcher package icon name and KDE
+   desktop overrides. Do not claim uninstall will fix a KDE icon cache.
+6. [ ] **Unsigned Windows warning:** keep Windows NSIS explicitly
+   unsigned and published only through trusted GitHub/R2. Document
+   verifiable SHA256 and Windows security verification; recommend
+   code signing and signing reputation for production, not disabling
+   Chrome Safe Browsing/Defender or using a broad antivirus exclusion.
+7. [ ] **Regression evidence:** add targeted cross-platform source/contract
+   tests for roster cache isolation, unknown status, batch concurrency,
+   no-op Apply, token-vs-language independence, localized menus, all-locale
+   About, scrollbar/drag segregation, browser warning guidance and native
+   branding. Run one final stable Preflight after all code; candidate
+   Linux/Windows builds only from one identical commit after passing.
+   Don't claim installed fixes passed before the owner's physical retest.
+
+Risks: stale visual content mistaken for healthy; overloading Cloudflare
+API after parallelization; untrusted cached dashboard URL; half-applied
+Settings on OS-keychain/autostart failures; scroll/drag pointer capture
+regression; KDE icon overrides and unsigned download browser reputation.
+
+Rollback: revert scoped code/test commits; old `settings.json`,
+`language.json`, private credential vault, journal and history formats
+remain compatible. New resource roster cache may be ignored/removed
+without modifying user settings or history. No production Cloudflare
+mutation, R2 publish, `main`, release or self-hosted runner changes.
