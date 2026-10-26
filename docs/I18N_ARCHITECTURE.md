@@ -301,3 +301,25 @@ CI marker remains to be requested once for the complete batch. No stable
 Rust, Python, desktop reinstall or Windows/KDE smoke is claimed yet.
 Remaining native parse-specific messages and physical/editorial checks
 are explicitly outside this source milestone.
+
+
+### First Preflight failure and focused correction
+
+Explicit Preflight #40374098821 at `d3b83bf` completed FAILURE:
+JavaScript syntax, 20-locale structural/i18n checks, and icon checks PASS.
+JS tests found exactly two stale source-test assertions (other stable
+JavaScript cases passed); Python/Rust steps were skipped by the job.
+
+- Existing unknown-diagnostic test still classified `Workers: unexpected
+  Cloudflare response` as intentionally opaque. It now has an explicitly
+  translated exact native warning suffix. Preserve the unknown-message
+  security test using `Workers: unrecognized Cloudflare response`.
+- Existing renderer source test still expected `payload ?
+  diagnosticText(payload)` inline. The new implementation stores the raw
+  `lastSyncError` for correct recomputation on language changes. Assert the
+  new rendering path instead.
+
+Both tests were corrected in source commit `5802fa0` without modifying
+the native/UI implementation or weakening unknown-message/HTML safety.
+The final full stable gate still requires a fresh explicit run; no success
+is inferred from the earlier failures.
