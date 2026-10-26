@@ -427,3 +427,49 @@ refresh that does not hold a credential lock during network traffic.
 **Source implementation != PASS:** require a NEW unsigned Windows
 candidate installed and inspected for every listed problem before any
 Mode B transition.
+
+
+## 2026-10-26: owner-ordered final binary handoff protocol (new candidates)
+
+The owner explicitly requested final **source Mode B verification first**, then
+unreleased Linux and Windows packages for direct acceptance, then a separate
+approval to publish 1.0.0. This alters the test/build order but never turns
+fixture simulations into observed native or live account PASS.
+
+Release candidate safety:
+- Both package workflows must trigger from a **single Git commit** changing
+  only the two candidate markers, so exact source, key catalogs, Rust code,
+  Node tests and documentation match on Linux and Windows.
+- Record both Actions run IDs, the single candidate commit and SHA256
+  sidecars; do not present the earlier temporary installers.
+- Windows NSIS is unsigned: do not disable antivirus or SmartScreen globally.
+  Builds are intentionally unreleased, GitHub-hosted, and retained one day.
+- No Cloudflare API token is transmitted in screenshots, terminal commands,
+  GitHub CI, exported logs or assistant responses.
+
+### Focused native acceptance matrix for owner
+
+| Scenario | Ubuntu KDE | Windows 11 | Evidence |
+| --- | --- | --- | --- |
+| Fresh install and launcher icon | Check DEB `.desktop`, KDE menu/pin and shield | Start Menu and shield | Actual installed icon, app version |
+| Tray/card | Visible, compact 5-cell strip, upward resource drawer, search, left-click/hide, autohide | Same, no first-move drift, no bevel/console | Screen observation after repeated moves |
+| Cloudflare read | Existing Workers/Pages entries, correct latest attempt, read-only menu link | Same with one known resource | Compare with Cloudflare Dashboard |
+| Full language cycle | Select 20 locales, especially RU/pt-PT/DE/PL/JA/TH/BN/AR | Same, Windows native menus/window titles | No clipped glyphs, Arabic RTL/LTR isolation |
+| Live language changes | Warnings, History, tray and current sync text update | Same | No forced network poll; IDs and status unchanged |
+| Credentials and Settings | Apply/Cancel, masked saved token, no plaintext, OS keyring | Credential Manager, Apply spinner, Cancel | Reopen Settings; do not reveal token |
+| Durability | Full Exit/relaunch: account, language, history and card placement | Same | User state persists without repeated notifications |
+| Offline and recovery | Disconnect briefly; stale state grey, restore connectivity | Same | No false green, no unbounded retries |
+| Accessibility | Keyboard focus and Escape, screen-reader labels, overflow | Same, also high-DPI if available | Record clipping/focus failures |
+| Distribution | Verify DEB/AppImage SHA256; install/upgrade/remove without deleting unrelated state | NSIS SHA256; install/upgrade/uninstall semantics | Per-package PASS/FAIL; no production publish |
+
+Actual dynamic build failures, genuine Workers error spikes and WAF block spikes
+may occur naturally. Do NOT deliberately break production deployments,
+generate attack traffic or change Cloudflare security rules to force colors.
+If they do not occur, mark those transitions NOT OBSERVED, retain deterministic
+fixture coverage as separate evidence, and explicitly decide whether the
+residual risk is acceptable before a future release approval.
+
+Native gate is **OPEN** until the owner reports observed results. After a
+PASS, document any open known limitations and request explicit approval for
+main fast-forward, tag and protected R2 publication. Nothing in this
+checklist silently authorizes deploying or publishing.
