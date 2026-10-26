@@ -112,7 +112,7 @@ test("known Cloudflare diagnostics localize without altering provider, status, o
     "Cloudflare HTTP 400 (code 8000024) (check custom permission)",
     "Pages: Cloudflare HTTP 999 (code 8000024)",
     "Pages: Cloudflare HTTP 403 (code secret)",
-    "Workers: unexpected Cloudflare response",
+    "Workers: unrecognized Cloudflare response",
     "Other: Cloudflare network request failed"
   ]) {
     assert.equal(diagnosticText(message, "ru"), message);

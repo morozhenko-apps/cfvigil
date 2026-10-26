@@ -58,7 +58,7 @@ test("translated diagnostics correspond to stable native literals", () => {
   }
   const app = read("apps/desktop/ui/app.mjs");
   assert.match(app, /entry\.textContent = diagnosticText\(item\)/);
-  assert.match(app, /payload \? diagnosticText\(payload\)/);
+  assert.match(app, /lastSyncError \? diagnosticText\(lastSyncError\)/);
   assert.match(read("apps/desktop/ui/settings.mjs"), /message\.textContent = diagnosticText\(String\(error\)\)/);
   assert.doesNotMatch(ui, /t\(resource\./);
 });
