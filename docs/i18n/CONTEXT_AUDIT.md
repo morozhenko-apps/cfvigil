@@ -347,3 +347,16 @@ Scoped compatible remediation (no persistent/public schema change):
 This removes a misleading *presentation claim* while preserving native
 event identity. Native machine text fitting and human editorial review
 remain pending.
+
+
+### Arabic static permission names: RTL source correction
+
+The Arabic `settings.tokenHelp` is a sentence containing six *exact*
+Cloudflare permission names in Latin script. Its previous grammatical
+frame ("استخدم رمز API للمستخدم لديه الأذونات") was unnatural,
+and plain mixed-script runs may visually shuffle the names in RTL.
+Use grammatical "استخدم رمز API خاصًا بالمستخدم يمتلك الأذونات ..."
+and FSI/PDI isolates around each immutable permission name.
+Never translate/shorten or reorder the permission identifiers in a
+way that changes requested scope. WebView/native bidi acceptance is
+still physical and not inferred from the source.
