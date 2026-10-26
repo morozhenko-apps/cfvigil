@@ -152,3 +152,54 @@ This supersedes the previous pre-implementation status note for the
 **source-path** problem only. The protected environment, public R2 readback,
 actual APT signing, live publishing and subsequent artifact deletion have
 NOT been executed or accepted. Keep production publication disabled.
+
+
+## 2026-10-26: Chrome/Defender warning on unsigned Windows smoke builds
+
+Owner observed a Chrome threat/download warning against the intentionally
+**unsigned** Windows NSIS candidate. A warning is NOT evidence that the
+installer is safe, nor proof that it contains malware. Do not state
+"false positive" until file provenance, integrity and scanner evidence
+have been checked. Chrome's per-download override is not a permanent
+application allowlist. Never instruct users to globally disable Safe
+Browsing, SmartScreen, Defender or add blanket browser/downloads
+directory exemptions.
+
+**Owner diagnostic path:**
+1. Read the exact Chrome warning category (uncommon / suspicious /
+   dangerous / malware) in Downloads and record it without clicking
+   through. Obtain the candidate only from the trusted GitHub Actions
+   run, not a third-party mirror.
+2. Verify the exact SHA-256 against the accompanying CI sidecar; on
+   Windows: `Get-FileHash .\\CFVigil*.exe -Algorithm SHA256`,
+   compare with the `.exe.sha256` file. Verify intentional
+   `Get-AuthenticodeSignature` result `NotSigned` and scan with
+   Microsoft Defender. A valid checksum proves artifact fidelity, not
+   malware freedom.
+3. If the downloaded NSIS is independently verified and Chrome
+   identifies only an *uncommon/unfamiliar* executable, its Downloads
+   warning menu may offer an individual keep decision depending on
+   browser version/policy. Do not bypass a detection classified as
+   active malware or a corporate block without security review.
+4. If Defender quarantines a verified expected binary, use **Windows
+   Security → Virus & threat protection → Protection history → the
+   exact detection → Actions → Allow on device** only after
+   independent verification; otherwise leave in quarantine. The
+   exception can later be revoked under Allowed threats. Do not grant
+   folder-wide exclusions or switch off real-time protection.
+5. For distribution, replace unsigned NSIS with **identity-verified
+   Authenticode signing** and build long-term publisher reputation.
+   Signing does not instantly guarantee SmartScreen acceptance; even
+   newly signed files may warn. Microsoft Store is an optional signed
+   distribution channel. Code signing credentials and workflow require
+   separate owner approval and must stay outside source control.
+
+Google Chrome help: https://support.google.com/chrome/answer/6261569
+Microsoft Defender Protection History:
+https://support.microsoft.com/en-us/windows/security/windows-security/protection-history-in-the-windows-security-app
+Microsoft SmartScreen reputation guidance:
+https://learn.microsoft.com/windows/apps/package-and-deploy/smartscreen-reputation
+
+No exception has been added, no malware scan or Chrome/Windows
+security decision was remotely performed, and no production signing
+configuration was modified.

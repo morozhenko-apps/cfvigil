@@ -164,3 +164,34 @@ icon-theme cache or desktop entry is responsible is **unverified**.
 Do not reset application identifiers, delete user launchers, or assume
 cache is the root cause. Inspect the actual installed .desktop Icon=
 entry, hicolor themed paths and user-level overrides on Alcotester.
+
+
+## 2026-10-26: owner still sees old KDE launcher and generic About/History icon
+
+The existing icon source, normalized Linux/Windows packaged icons and
+native window Tauri `set_icon` are separate from **KDE's desktop-entry
+icon resolution**. App uninstall/reinstall is not a proven fix and may
+preserve an old user-pinned launcher. Do not reset application IDs or
+destroy settings; source now additionally applies the committed icon as
+an explicit GTK native-window pixbuf on Linux, in addition to the existing
+Tauri icon/favicons. Windows uses the existing Tauri native icon + ICO.
+
+On the owner's installed machine, inspect exact package identity first:
+
+```bash
+dpkg-query -W -f='${Package} ${Version}\n' cf-vigil
+dpkg -L cf-vigil | grep -E '/applications/.*[.]desktop$|/icons/hicolor/'
+for file in $(dpkg -L cf-vigil | grep -E '/applications/.*[.]desktop$'); do
+  grep -E '^(Name|Exec|Icon|StartupWMClass)=' "$file"
+done
+find "$HOME/.local/share/applications" -maxdepth 1 -type f -iname '*vigil*' -print
+kbuildsycoca6
+```
+
+Compare the *actual* resolved `Icon=` in the installed desktop file,
+the hicolor image and any same-name per-user overrides. Unpin/re-pin
+a previously pinned KDE launcher **only** if an old entry was confirmed.
+A new DEB may be installed with `sudo apt install ./package.deb`
+without `apt purge`. On real KDE and Windows, verify the new icon in
+About/History/task switcher, not just the WebView's HTML favicon.
+Native acceptance remains owner-controlled.
