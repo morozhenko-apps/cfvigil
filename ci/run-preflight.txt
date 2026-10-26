@@ -185,3 +185,8 @@ Portuguese successful/unverified state and no-account guidance, hexadecimal
 Account ID hints, interpolation/plurals, unchanged provider/network/incident
 logic. Run stable JS/Python/Rust Preflight only. No candidate package, Mode B,
 main, release, R2 publication, Cloudflare mutations or self-hosted runners.
+
+2026-10-26: Re-run only stable Preflight after aligning the existing
+pt-PT accessibility regression expectation with reviewed `Não verificado`
+source. The previous CI failed on stale literal `Por verificar`, not on
+Windows runtime or provider code. No Windows build, main, Mode B or release.
