@@ -303,3 +303,92 @@ One stable final suite **after** coverage implementation and mutation
 review. A green source gate is distinct from owner's native KDE/Windows
 acceptance. Mode B is not COMPLETE while any applicable ? and unproven
 runtime scenario remain.
+
+
+## 2026-10-26: Stage 9 first substantive deterministic coverage tranche
+
+The owner asked **not to run a separate check after the three minor
+UI changes**; the same instruction is honored during incremental
+Stage 9 commits. These tests are committed as source, **not yet
+executed**. A single full stable suite belongs to Stage 11, after
+the remaining planned Stage 9 and Stage 10 work.
+
+New test modules:
+
+- `tests/mode-b-settings-transaction.test.mjs`: 14 deterministic
+  Given/When/Then cases with table-driven account, locale, interval,
+  token, autostart and unavailable-state combinations; no mocks of
+  the actual `planSettingsApply` domain function.
+- `tests/mode-b-about-history-icon.test.mjs`: 8 native-source/UI
+  contracts including About no-Minimize, Close/Escape, description
+  removal, 20 translated labels, KDE themed History icon and fixed
+  safe navigation targets. These are **not** physical native E2E tests.
+
+Existing Rust domain modules expanded (new test *functions*; most
+contain multiple exact boundary fixtures):
+
+| Domain file | New test functions | Primary tested risks |
+| --- | ---: | --- |
+| `resource_cache.rs` | 8 | N1, N2, N6, N7, N10, account crossing |
+| `api_budget.rs` | 4 | N2, N3, N5, N7, retry limits |
+| `incident_policy.rs` | 5 | P, N4, N5, N6, notification identity |
+| `storage.rs` | 5 | N2, N6, N7, N12, rollback |
+| `analytics.rs` | 4 | P, N1, N2, N6, N7, spike boundary |
+| `security.rs` | 4 | P, N1, N2, N6, N7, zone isolation |
+| `polling_policy.rs` | 2 | N2, N4, N5, infinite input safety |
+| `incident_store.rs` | 4 | N2, N4, N6, cross-account and eviction |
+
+Source additions total **58 new test functions** (22 JS +
+36 Rust; excludes the existing suites). These are code inventory
+counts, **NOT pass counts**. Category membership overlaps and should
+not be double counted to inflate a global total. Every parameterized
+case represents an independent input and has an assertion. The Rust
+concurrency tests use scoped threads or watch revision signals,
+without clock sleeps or public Cloudflare API calls.
+
+### Stage 10: mutation-to-assertion mapping for this tranche
+
+| Code mutation/defect | Specific tests intended to kill | Status |
+| --- | --- | --- |
+| `MAX_CACHED >=` inverted or 512 replaced by 511 | `given_0_1_512_513_entries...` | Source authored, not executed |
+| Account ID scope comparison bypassed | `given_account_switch_and_cached_history...` | Source authored, not executed |
+| Cache reused a persisted foreign URL or prior status | `given_hostile_saved_urls...`; `cached_success_failure...` | Source authored, not executed |
+| Malformed key/name accepted into cache | `given_invalid_kinds_and_keys...`; name/hex fixtures | Source authored, not executed |
+| Locale-only Apply rewrites token or OS autostart | `Locale-only Apply`, `autostart` JS tables | Source authored, not executed |
+| No-op Apply bypassed and saves again | `Given all unchanged Settings...` | Source authored, not executed |
+| Remove About Close, restore native minimize, description | `mode-b-about-history-icon` first four cases | Source authored, not executed |
+| History no longer matches `Icon=cfvigil-desktop` | `Given installed DEB theme icon...` | Source authored, not executed |
+| Shared API budget admits request 121 | `given_parallel_detail_requests...` | Source authored, not executed |
+| Retry-After cap or minimum changed | `given_retry_after_boundary_variants...` | Source authored, not executed |
+| Unknown analytics accidentally marked recovery | `given_repeated_runtime_spikes...`; GraphQL malformed fixtures | Source authored, not executed |
+| Reverse failure→queued precedence | `given_each_latest_attempt_transition...` | Source authored, not executed |
+| WAF threshold 100 or slope comparison changed | `given_waf_volume_threshold_edges...` | Source authored, not executed |
+| Atomic write replaces old state before bounds check | `given_oversized_replacement...` | Source authored, not executed |
+| Retry policy overflows or busy polls | `given_every_retry_backoff_boundary...` | Source authored, not executed |
+| Drop account identity or notification eviction | `given_account_missing_changed...`, `given_each_notification_window_boundary...` | Source authored, not executed |
+
+These mappings are intended mutation kills, **not results of an
+executed mutation runner**. Changing an assertion until red code passes
+would violate P0. If a test reveals a real design defect, address the
+production root cause rather than weaken tests.
+
+### Stage 3/4/8 still open for complete regulated Mode B
+
+The repo contains other public flows with unresolved applicable matrix
+cells: injected REST/GraphQL response transport and pagination;
+Settings Apply under actual failed keyring/OS-autostart writes; separate
+verified vs unknown WAF zones; file-system rename/disk-full seams;
+Wayland and Windows actual pointer scrollbar and icon acceptance;
+signed release environment, R2 readback and verified cleanup.
+A source-only test of the existence of a URL, GTK call or workflow
+cannot close those real integration/native scenarios. They remain
+OPEN rather than declaring Mode B completion.
+
+### Stage 11 execution boundary
+
+No new `ci/run-preflight.txt` trigger, candidate package marker,
+`main`, tag or release was modified in this testing tranche.
+Final stable (Node, Python, locked Rust check/test and locale/asset
+contracts) plus separate known-flaky group is reserved for completion
+of Stages 9–10. Previously recorded stable PASS at `edfcc2a`
+predates all the new tests and cannot be cited as their execution.
