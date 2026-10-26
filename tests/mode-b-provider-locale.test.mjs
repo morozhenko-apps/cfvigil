@@ -54,6 +54,16 @@ test("Given legacy deployed-success bytes When a Worker build passes Then the di
   assert.equal(stored, "Latest Cloudflare deployment succeeded");
 });
 
+
+test("Given Arabic RTL settings When listing Cloudflare scopes Then each immutable identifier is directionally isolated", () => {
+  const help = t("settings.tokenHelp", {}, "ar");
+  assert.match(help, /^استخدم رمز API خاصًا بالمستخدم/);
+  for (const scope of ["Workers Scripts Read","Workers CI Read","Pages Read","Account Analytics Read","Zone Read","Zone Analytics Read"]) {
+    assert.ok(help.includes("\u2068" + scope + "\u2069"), scope);
+  }
+  assert.match(help, /Workers/);
+});
+
 test("Given latest attempt When success state renders Then English never claims uptime", () => {
   assert.equal(t("card.healthy", {}, "en"), "Successful");
   assert.equal(t("card.deploying", {}, "en"), "Deploying");

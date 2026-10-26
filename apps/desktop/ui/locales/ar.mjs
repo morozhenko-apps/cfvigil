@@ -118,7 +118,7 @@ export default Object.freeze({
   "settings.tenMinutes": "10 دقائق",
   "settings.autostart": "تشغيل CFVigil عند تسجيل الدخول",
   "settings.checkingAutostart": "جارٍ التحقق من التشغيل التلقائي...",
-  "settings.tokenHelp": "استخدم رمز API للمستخدم لديه الأذونات Workers Scripts Read وWorkers CI Read وPages Read وAccount Analytics Read وZone Read وZone Analytics Read. تتيح الأذونات الثلاثة الأخيرة تنبيهات ارتفاع أخطاء Workers وعمليات حظر WAF. يُحفَظ الرمز في مخزن بيانات الاعتماد لنظام التشغيل.",
+  "settings.tokenHelp": "استخدم رمز API خاصًا بالمستخدم يمتلك الأذونات ⁨Workers Scripts Read⁩، ⁨Workers CI Read⁩، ⁨Pages Read⁩، ⁨Account Analytics Read⁩، ⁨Zone Read⁩، ⁨Zone Analytics Read⁩. تتيح الأذونات الثلاثة الأخيرة تنبيهات ارتفاع أخطاء Workers وعمليات حظر WAF. يُحفَظ الرمز في مخزن بيانات الاعتماد لنظام التشغيل.",
   "settings.cancel": "إلغاء",
   "settings.apply": "تطبيق",
   "settings.saving": "جارٍ الحفظ...",
