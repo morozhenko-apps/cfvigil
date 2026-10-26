@@ -408,3 +408,96 @@ This is a real functional prerequisite discovered in Stage 9, not
 a test assertion relaxed to accommodate a broken implementation.
 
 No native or full stable suite has been executed after the changes.
+
+
+## 2026-10-26: Stage 9 transport-backed integration, disk fault and mutation tranche
+
+Mode remains **B (Testing)**. This adds deterministic testability seams,
+not new application features or configuration. No external API calls,
+application credentials, self-hosted runners, protected release or R2
+mutation. No stable/flaky suite has been executed yet in this tranche.
+
+### Real HTTP negative-path integration (new)
+
+| Source and tests | Exact SUT exercised | Positive and negative evidence to obtain |
+| --- | --- | --- |
+| `cloudflare_http_tests.rs` | Actual `Cloudflare::get`, `list_workers`, `list_paginated`, `discover`, worker/Pages latest-state decisions and shared `ApiBudget`, over loopback GET | 2-page catalog; pending build supersedes deployed version; independent Workers 403 and Pages success; both catalogs unavailable; second page empty; Pages detail 429; Builds scope 403; Pages detail HTTP 400 not mislabeled missing scope; pagination >50; fifth detail request blocked after first-group 429 |
+| `analytics_http_tests.rs` | Actual `query_spikes_at` using reqwest POST/GraphQL alias and batch parsing | Nine workers in two batches, first spike verified while second batch 403; incomplete JSON rejects entire affected batch; first-batch 429 prevents subsequent request; empty and 257-worker catalogs do not request external data |
+| `security_http_tests.rs` | Actual `detect_at`, account-scoped zones REST and per-zone GraphQL POST, shared budget | Three zones: real spike, one 500/unverified, one normal/verified; foreign account and bad zone URL not queried; zone 429 blocks following queries; invalid account and 31-zone bound fail before unsafe GraphQL |
+| `test_http.rs` | Rust test-only 127.0.0.1 HTTP fixture, JSON body and status parser | GET/POST captured without bearer tokens, bounded input, fail if unsafe unknown route. This is **not a mock of the detection algorithms** |
+
+The Cloudflare production base URL stays a compiled fixed constant.
+`Cloudflare::fixture` exists under `#[cfg(test)]` only; private
+`query_spikes_at` and `detect_at` are invoked in production solely
+through their existing public functions passing the fixed Cloudflare
+URL. No public API, user-configurable endpoint or credential
+boundary changes.
+
+This replaces **source-only verification** of several REST/GraphQL
+boundaries with test cases executing the real network client and
+provider logic against a local fixture. Still NOT covered: physical
+Cloudflare account scope, real API schema drift/permissions and
+WebView OS notifications; keep those cells OPEN.
+
+### Persistent catalog and filesystem fault integration
+
+- `resource_cache.rs`: two new tests persist through actual
+  `storage::write_atomic` and `read_or_default`, check private
+  known resource names come back **grey/unknown** for the correct
+  account, verify foreign account empty, and verify corrupted JSON
+  is quarantined intact rather than silently rendered.
+- `storage.rs`: a private `write_atomic_with_rename` seam retains
+  the production `fs::rename` operation; two fault tests inject
+  `PermissionDenied`/other rename errors **after a temp file has
+  been written and flushed**. Assert previous state byte-for-byte
+  preserved, temporary file removed and private filesystem error
+  details replaced by stable `STORAGE_PERSIST`. Existing
+  `storage-contract.test.mjs` was updated to check the new actual
+  atomic boundary and fault tests rather than its obsolete inline
+  implementation regex.
+
+Remaining storage gaps: impossible to simulate full disk exhaustion
+and every OS-specific fsync failure using this narrow seam; these
+must remain N12 OPEN unless a reliable disposable fault-injection
+environment can be used.
+
+### Stage 10: executable targeted JS mutation checks
+
+`tests/mode-b-mutation-checks.test.mjs` defines 18 **in-memory**
+source mutations across exported pure Settings, Worker/Pages status,
+resource search/counters, and native snapshot normalization.
+Each altered implementation is loaded separately through a data
+URL and must fail a **domain expectation**, not simply differ in
+code text. Targets include 5 independent Settings-change decisions,
+token suppression, whitespace normalization, autostart, queued
+attempt precedence, Pages success/skipped semantics, invalid statuses,
+search trimming, readiness and partial warning sanitization.
+
+Status of all mutants: **AUTHORED, NOT EXECUTED**, so there is
+no earned mutation kill percentage or 18/18 pass claim yet.
+This does not mutate Rust; Rust mutation outcomes remain unverified
+until explicitly executed under a safe isolated toolchain. Source
+test coverage numbers and mutation kill claims are separate evidence.
+
+### Read-only public download Worker
+
+Four new Node integration-contract cases exercise the production
+`fetch` handler with fake R2 reads: unsupported POST/PUT/PATCH/
+DELETE/OPTIONS never touch R2; traversal, encoded URLs and mismatched
+versions are 404 without storage access; immutable release versus
+mutable APT caching, content-type, ETag and HEAD/body semantics;
+missing objects 404 on both GET/HEAD. No live R2 route or bytes touched.
+
+### Execution and completion status
+
+These additions are source commits on `dev`; **not run** and not
+CI-verified. Stage 11 remains a single stable gate after coverage
+implementation and bounded Stage 10 review. The repository has no
+separately declared known-flaky group; report that as "none registered",
+not "flaky-free". Previously green Preflight #40398156902 predates
+this branch and is not evidence for new tests.
+
+Remaining owner/native and protected-release gates: KDE/Windows real
+installed UI, actual Cloudflare API response drift, keychain failure
+and concurrency under real OS conditions, protected R2 public GET
+readback and signing. Never turn these to PASS from fixture output.
