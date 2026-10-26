@@ -136,5 +136,5 @@ export default Object.freeze({
   "event.runtimeRecovery": "Рост ошибок Workers прекратился",
   "event.wafRecovery": "Рост блокировок WAF прекратился",
   "event.buildStarted": "Запущена новая сборка или новое развёртывание Cloudflare",
-  "event.buildSuccess": "Последнее развёртывание Cloudflare завершилось успешно"
+  "event.buildSuccess": "Последняя попытка сборки или развёртывания Cloudflare завершилась успешно"
 });

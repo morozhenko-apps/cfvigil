@@ -118,5 +118,5 @@ export default Object.freeze({
   "event.runtimeRecovery": "Workers runtime error spike cleared",
   "event.wafRecovery": "WAF block spike cleared",
   "event.buildStarted": "New Cloudflare build/deployment started",
-  "event.buildSuccess": "Latest Cloudflare deployment succeeded"
+  "event.buildSuccess": "Latest Cloudflare build or deployment attempt succeeded"
 });
