@@ -236,3 +236,13 @@ First complete Mode B source gate #40379110546 passed JS 88/88,
 Python 10/10, Rust 61/61. Rerun one last full stable gate for the
 additional explicit state-meaning regression assertions. No native
 machine, Cloudflare live-account success, R2, main, tag or production.
+
+2026-10-26: owner-observed cross-platform repair batch, Mode A final stable gate.
+Verify account-scoped grey startup roster (no cached false green), bounded
+four-at-a-time read-only provider details, existing 429 quota and incident
+dedup, committed-only language, changed-only Settings Apply/Cancel and
+close, KDE KSNI menu refresh, mouse-scroll/ellipsis drag separation,
+RepoTicker-style localized About, native GTK/Tauri icon parity and exact
+Chrome/SmartScreen unsigned candidate documentation. Stable JS,
+localization, offline Python and locked Rust check/unit only. Native
+machine, production Cloudflare, R2 and main are never implied by PASS.
