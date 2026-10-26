@@ -105,4 +105,70 @@ mod tests {
         missing.observe_retry_after_for_test(Some("n/a"));
         assert_eq!(missing.retry_after_seconds(), 300);
     }
+    #[test]
+    fn given_parallel_detail_requests_when_passing_shared_budget_then_at_most_120_are_admitted() {
+        use std::sync::Arc;
+        let budget = Arc::new(ApiBudget::new());
+        let allowed = Arc::new(AtomicUsize::new(0));
+        std::thread::scope(|scope| {
+            for _ in 0..16 {
+                let budget = Arc::clone(&budget);
+                let allowed = Arc::clone(&allowed);
+                scope.spawn(move || {
+                    for _ in 0..16 {
+                        if budget.check().is_ok() {
+                            allowed.fetch_add(1, Ordering::AcqRel);
+                        }
+                    }
+                });
+            }
+        });
+        assert_eq!(allowed.load(Ordering::Acquire), MAX_CALLS_PER_POLL);
+        assert!(budget.exhausted());
+        assert!(budget.check().is_err());
+    }
+
+    #[test]
+    fn given_repeated_and_parallel_429_headers_when_seen_then_longest_bounded_delay_wins() {
+        use std::sync::Arc;
+        let budget = Arc::new(ApiBudget::new());
+        std::thread::scope(|scope| {
+            for input in ["60", "440", "1801", "1000", "120", "invalid"] {
+                let clone = Arc::clone(&budget);
+                scope.spawn(move || clone.observe_retry_after_for_test(Some(input)));
+            }
+        });
+        assert_eq!(budget.retry_after_seconds(),1800);
+        assert!(budget.exhausted());
+        assert!(budget.check().is_err());
+    }
+
+    #[test]
+    fn given_retry_after_boundary_variants_when_parsing_then_no_unbounded_or_negative_delay() {
+        for (raw, result) in [
+            ("",None),("-0",None),("-60",None),("NaN",None),
+            ("inf",None),("1.5",None),("300.0",None),
+            (" 60 ",Some(60)),("59",Some(60)),("60",Some(60)),
+            ("61",Some(61)),("1799",Some(1799)),
+            ("1800",Some(1800)),("1801",Some(1800)),
+            ("18446744073709551615",Some(1800)),
+            ("18446744073709551616",None),
+            ("999999999999999999999999999999999999",None),
+        ] {
+            assert_eq!(parse_retry_after(raw),result,"{raw:?}");
+        }
+    }
+
+    #[test]
+    fn given_no_rate_limit_when_requests_are_under_cap_then_retry_delay_is_zero() {
+        let budget = ApiBudget::new();
+        for i in 0..MAX_CALLS_PER_POLL {
+            assert!(!budget.exhausted(),"before admitted request {i}");
+            assert!(budget.check().is_ok(),"request {i}");
+            assert_eq!(budget.retry_after_seconds(),0);
+        }
+        assert!(budget.exhausted());
+        assert!(budget.check().is_err());
+    }
+
 }
