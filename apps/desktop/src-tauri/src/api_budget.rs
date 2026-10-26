@@ -69,6 +69,22 @@ mod tests {
     use super::*;
 
     #[test]
+    fn mode_b_rate_limit_values_are_bounded_and_fail_closed() {
+        for (header, expected) in [
+            (Some("0"),60), (Some("1"),60), (Some("60"),60),
+            (Some("1800"),1800), (Some("1801"),1800),
+            (Some("-1"),300), (Some("9999999999999999999999999999"),300),
+            (Some("1;token=secret"),300), (None,300)
+        ] {
+            let budget = ApiBudget::new();
+            budget.observe_retry_after_for_test(header);
+            assert_eq!(budget.retry_after_seconds(), expected, "{header:?}");
+            assert!(budget.check().is_err());
+            assert!(budget.exhausted());
+        }
+    }
+
+    #[test]
     fn finite_global_budget_prevents_unbounded_requests() {
         let budget = ApiBudget::new();
         for _ in 0..MAX_CALLS_PER_POLL { assert!(budget.check().is_ok()); }

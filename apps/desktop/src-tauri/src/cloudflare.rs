@@ -463,6 +463,41 @@ mod tests {
     use serde_json::json;
 
     #[test]
+    fn mode_b_provider_errors_never_confuse_bad_requests_with_scopes_or_leak_text() {
+        let unsafe_error = br#"{"errors":[{"message":"private URL and account information","code":1015}]}"#;
+        assert_eq!(cloudflare_failure(reqwest::StatusCode::TOO_MANY_REQUESTS, unsafe_error),
+            "Cloudflare HTTP 429 (code 1015)");
+        assert_eq!(cloudflare_failure(reqwest::StatusCode::BAD_REQUEST,
+            br#"{"errors":[{"code":"8000024","message":"secret"}]}"#), "Cloudflare HTTP 400");
+        assert_eq!(scoped_provider_warning("Pages", "Cloudflare HTTP 400 (code 8000024)",
+            "Cloudflare Pages Read"), "Pages: Cloudflare HTTP 400 (code 8000024)");
+        assert_eq!(scoped_provider_warning("Pages", "Cloudflare HTTP 429 (code 1015)",
+            "Cloudflare Pages Read"), "Pages: Cloudflare HTTP 429 (code 1015)");
+        assert_eq!(scoped_provider_warning("Workers Builds", "Cloudflare HTTP 403",
+            "Workers CI Read"), "Workers Builds: Cloudflare HTTP 403 (check Workers CI Read)");
+    }
+
+    #[test]
+    fn mode_b_latest_attempts_use_absolute_times_and_uncertainty_not_response_order() {
+        let unordered = json!([
+            {"id":"later-clock-earlier-utc","created_on":"2026-10-26T12:30:00+03:00"},
+            {"id":"earlier-clock-later-utc","created_on":"2026-10-26T10:00:00Z"},
+            {"id":"invalid","created_on":"not-an-instant"}
+        ]);
+        let chosen = latest_pages_deployment(&unordered).unwrap();
+        assert_eq!(str_field(chosen, "id"), "earlier-clock-later-utc");
+        let latest_build = json!({"build_uuid":"a", "created_on":"2026-10-26T10:01:00Z",
+            "status":"queued", "build_outcome":"fail"});
+        let old_live = json!({"id":"b", "created_on":"2026-10-26T10:00:00Z"});
+        assert_eq!(select_worker_attempt(Some(&latest_build), Some(&old_live), true).status,
+            "deploying");
+        assert_eq!(select_worker_attempt(Some(&latest_build), Some(&old_live), false).status,
+            "unknown");
+        assert_eq!(select_worker_attempt(None, Some(&old_live), false).status,
+            "unknown");
+    }
+
+    #[test]
     fn cloudflare_error_messages_expose_only_numeric_codes_not_private_details() {
         let body = br#"{"errors":[{"code":7001,"message":"account 123: secret detail"}]}"#;
         assert_eq!(

@@ -250,6 +250,47 @@ mod tests {
     use super::*;
 
     #[test]
+    fn mode_b_waf_aggregation_rejects_partial_duplicate_and_impossible_counts() {
+        let missing_baseline = json!({"data":{"viewer":{"zones":[{
+            "recent":[{"count":150}]
+        }]}}});
+        assert!(parse_waf_counts(&missing_baseline).is_err());
+        let duplicate = json!({"data":{"viewer":{"zones":[{
+            "recent":[{"count":150},{"count":180}],
+            "baseline":[{"count":20}]
+        }]}}});
+        assert!(parse_waf_counts(&duplicate).is_err());
+        let negative = json!({"data":{"viewer":{"zones":[{
+            "recent":[{"count":-4.0}],
+            "baseline":[{"count":20}]
+        }]}}});
+        assert!(parse_waf_counts(&negative).is_err());
+        let empty = json!({"data":{"viewer":{"zones":[{
+            "recent":[], "baseline":[]
+        }]}}});
+        assert_eq!(parse_waf_counts(&empty).unwrap(), (0.0,0.0));
+        assert!(!waf_spike(100.0, 1000.0));
+        assert!(waf_spike(150.0, 20.0));
+    }
+
+    #[test]
+    fn mode_b_account_isolation_rejects_foreign_and_invalid_zones() {
+        let own = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        let raw = json!({"success":true,"result":[
+            {"id":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "name":"safe.example",
+             "account":{"id":own}},
+            {"id":"cccccccccccccccccccccccccccccccc", "name":"foreign.example",
+             "account":{"id":"dddddddddddddddddddddddddddddddd"}},
+            {"id":"bad/redirect", "name":"safe.example", "account":{"id":own}},
+            {"id":"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "name":"bad/path", "account":{"id":own}}
+        ]});
+        let zones = parse_zones(&raw, own).unwrap();
+        assert_eq!(zones.len(), 1);
+        assert_eq!(zones[0].name, "safe.example");
+        assert!(parse_zones(&json!({"success":false,"result":[]}), own).is_err());
+    }
+
+    #[test]
     fn reject_noise_and_sustained_waf_volume() {
         assert!(!waf_spike(10.0, 0.0));
         assert!(!waf_spike(120.0, 360.0));

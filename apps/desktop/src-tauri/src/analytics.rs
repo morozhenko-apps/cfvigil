@@ -172,6 +172,43 @@ mod tests {
     use serde_json::json;
 
     #[test]
+    fn mode_b_malformed_partial_or_ambiguous_graphql_never_certifies_worker_recovery() {
+        let names = vec!["verified-worker".to_owned()];
+        let valid = json!({"data":{"viewer":{"accounts":[{
+            "r0":[{"sum":{"requests":200,"errors":50}}],
+            "b0":[{"sum":{"requests":1000,"errors":10}}]
+        }]}}});
+        let spikes = parse_batch(&valid, &names).unwrap();
+        assert_eq!(spikes.get("verified-worker").unwrap().errors, 50);
+        let partial = json!({"data":{"viewer":{"accounts":[{
+            "r0":[{"sum":{"requests":200,"errors":50}}]
+        }]}}});
+        assert!(parse_batch(&partial, &names).is_err());
+        let ambiguous = json!({"data":{"viewer":{"accounts":[{
+            "r0":[{"sum":{"requests":200,"errors":50}}],
+            "b0":[{"sum":{"requests":1000,"errors":10}},
+                  {"sum":{"requests":1000,"errors":10}}]
+        }]}}});
+        assert!(parse_batch(&ambiguous, &names).is_err());
+        let impossible = json!({"data":{"viewer":{"accounts":[{
+            "r0":[{"sum":{"requests":50,"errors":51}}], "b0":[]
+        }]}}});
+        assert!(parse_batch(&impossible, &names).is_err());
+        assert!(parse_batch(&json!({"errors":[{"message":"private diagnostic"}]}),
+            &names).is_err());
+    }
+
+    #[test]
+    fn mode_b_anomaly_thresholds_require_volume_ratio_and_history() {
+        assert!(!is_spike(Metrics {requests:99.0,errors:50.0},Metrics::default()));
+        assert!(!is_spike(Metrics {requests:100.0,errors:9.0},Metrics::default()));
+        assert!(!is_spike(Metrics {requests:100.0,errors:19.0},Metrics::default()));
+        assert!(is_spike(Metrics {requests:100.0,errors:20.0},Metrics::default()));
+        assert!(!is_spike(Metrics {requests:1000.0,errors:100.0},
+            Metrics {requests:1000.0,errors:90.0}));
+    }
+
+    #[test]
     fn rejects_low_volume_and_normal_error_rates() {
         assert!(!is_spike(Metrics {requests: 50.0, errors: 20.0}, Metrics::default()));
         assert!(!is_spike(Metrics {requests: 1000.0, errors: 5.0}, Metrics::default()));
