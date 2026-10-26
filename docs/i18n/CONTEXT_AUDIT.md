@@ -165,3 +165,20 @@ RU/pt-PT and the other locales remain editorial drafts, not accepted locales.
 Current validation: new source-level and native-literal contract cases are
 committed; the final explicit Preflight is pending. No machine, API, release,
 R2, `main`, or broad Mode B gate is marked complete here.
+
+## 2026-10-26: visible resource/Analytics/WAF details translated in source
+
+Thirteen additional exact-match display IDs were introduced to each
+activated dictionary, producing 114 IDs per locale (original 91, earlier
+10 diagnostic IDs, 13 new ones). The scope covers currently visible
+Workers/Pages build/deployment details, stale catalog reasons, unknown
+Analytics/WAF anomaly state, and invalid/unexpected provider warnings.
+Internal parser errors swallowed behind these unverified states are
+NOT claimed translated. Live language switching recomputes these messages
+without network polling or editing saved event records.
+
+Only **catalog/source implementation** is complete at this checkpoint.
+The per-locale table above remains entirely in DRAFT/Pending for human
+semantics, native WebView glyph/font/clipping, Arabic RTL, accessibility,
+KDE/Windows physical inspection and offline/incident transitions.
+The stable source gate is pending; no native/editorial PASS is inferred.

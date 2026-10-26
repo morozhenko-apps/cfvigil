@@ -250,21 +250,21 @@ presentation path would create unused catalogs and a false completeness claim.
 
 Plan and invariants:
 
-1. [ ] Introduce a small, exact-literal display catalog for the native
+1. [x] Introduce a small, exact-literal display catalog for the native
    resource details seen in the drawer: latest Worker build/deployment,
    latest Pages deployment, builds unavailable, missing/unverified latest
    deployment, malformed/unavailable Pages response, stale resource catalog,
    and unverified Workers Analytics / WAF. Include the known generic invalid/
    unexpected Cloudflare provider-response warnings, preserving prefixes.
-2. [ ] Extend each of the exact 20 existing draft dictionaries with the same
+2. [x] Extend each of the exact 20 existing draft dictionaries with the same
    baseline IDs and interpolations. Keep Cloudflare names, numeric status
    codes, URLs and resource identifiers unchanged; Arabic isolates
    directional identifiers. Unknown text must remain opaque, never HTML.
-3. [ ] Ensure the live language-change event refreshes the actual visible
+3. [x] Ensure the live language-change event refreshes the actual visible
    provider warnings and outstanding sync error without Cloudflare polling,
    changing incidents, or treating unknown as success. Keep the five-cell
    compact layout and Tauri native API untouched.
-4. [ ] Add focused positive/negative source regression tests for RU/pt-PT,
+4. [x] Add focused positive/negative source regression tests for RU/pt-PT,
    all-locale parity, preservation of untrusted text and no HTML rendering.
    Run precisely one explicit stable Preflight after the completed batch.
 5. [ ] Record actual checks, deficiencies and the still-open real KDE/Windows,
@@ -274,3 +274,30 @@ No native API, scope, serialized state, status classification, event journal,
 Cloudflare querying, HTTP permission handling, publication, `main` or release
 change is authorized. Rollback: reverse only the standalone UI/locales/tests
 commit(s); no schema or provider migration is needed.
+
+### Scoped implementation checkpoint (awaiting final stable source gate)
+
+All 20 draft catalogs now contain 13 additional exact-match native
+resource-detail IDs (source commits `969bdf1`, `b88bda6`, `e429d9f`,
+`25c1e80`): latest Worker build/deployment and Pages deployment,
+missing/unverified deployment attempts, malformed/unavailable Pages result,
+unverified stale resource catalog, preserved Workers error spike, and
+preserved WAF alert. Known invalid/unexpected Cloudflare response tails
+are localized under existing bounded provider-prefix handling.
+The source catalogs now have 114 message IDs per locale (91 initial,
+10 previous diagnostics, 13 new). These translations remain editorial
+DRAFTS pending on-device text/RTL/font review.
+
+Pure WebView diagnostic mapping and runtime refresh were integrated with
+focused RU/pt-PT/other-locale native-contract tests (`25e8767`).
+Existing native English literals, persisted event bytes, request budget,
+Cloudflare read-only access, poller, status and recovery rules are unchanged.
+The live locale event recomputes provider warnings and outstanding sync
+errors without an API call. Unknown/provider-specific messages stay
+uninterpreted and rendered through `textContent`. Error HTTP status/code
+and exact Cloudflare permission names are still preserved.
+
+CI marker remains to be requested once for the complete batch. No stable
+Rust, Python, desktop reinstall or Windows/KDE smoke is claimed yet.
+Remaining native parse-specific messages and physical/editorial checks
+are explicitly outside this source milestone.

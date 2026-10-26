@@ -913,3 +913,15 @@ localized path (`7649604`); no production code or test semantics were
 weakened. Rerun requested once by `aef1a49` (#40333108575, queued at this
 checkpoint). Python and Rust steps were skipped in the failed first run.
 Full gate, native install, editorial locale acceptance and Mode B are OPEN.
+
+## 2026-10-26: follow-up localization of visible resource anomalies
+
+Following SUCCESS of stable Preflight #40333108575 for the prior core
+Cloudflare diagnostics, Mode A continued with one display-only tranche:
+13 exact native resource/Workers Analytics/WAF descriptions across all
+20 draft dictionaries. The actual statuses and prior incident uncertainty
+are unchanged; unknown states stay grey, not interpreted as recovery.
+Card locale switching now refreshes existing provider and sync error text
+without a fresh provider read. Rust, network and persistence untouched.
+Source/tests committed to `dev`; final stable gate and real owner-native
+machine inspection are still required. No main, package, R2, tag or Mode B.
