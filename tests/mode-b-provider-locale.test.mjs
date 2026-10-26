@@ -98,6 +98,7 @@ test("Given Arabic RTL settings When listing Cloudflare scopes Then each immutab
 
 test("Given latest attempt When success state renders Then English never claims uptime", () => {
   assert.equal(t("card.healthy", {}, "en"), "Successful");
+  assert.equal(t("card.actionsLabel", {}, "en"), "Resource status");
   assert.equal(t("card.deploying", {}, "en"), "Deploying");
   assert.equal(t("card.statusUnknown", {}, "en"), "Unverified");
 });

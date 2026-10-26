@@ -5,7 +5,7 @@ export default Object.freeze({
   "card.listLabel": "Monitored Cloudflare resources",
   "card.searchPlaceholder": "Search resources...",
   "card.searchLabel": "Search by resource name",
-  "card.actionsLabel": "Resource health",
+  "card.actionsLabel": "Resource status",
   "card.healthy": "Successful",
   "card.deploying": "Deploying",
   "card.issues": "Issues",
