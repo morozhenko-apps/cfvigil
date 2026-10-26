@@ -114,6 +114,7 @@ export default Object.freeze({
   "settings.autostartDetectedOff": "Varsayılan olarak kapalıdır. CFVigil'in otomatik başlamasını istiyorsanız açın.",
   "settings.autostartUnavailable": "Otomatik başlatma durumu alınamadı; diğer ayarlar düzenlenebilir.",
   "settings.storageWarning": "Bozuk yerel durum, CFVigil ayarlar klasöründe .corrupt.* dosyası olarak korundu. Bağlantıyı ve geçmişi kontrol edin.",
+  "about.close": "Kapat",
   "about.title": "CFVigil hakkında",
   "about.name": "CFVigil",
   "about.version": "Sürüm {version} · Ücretsiz ve açık kaynak",

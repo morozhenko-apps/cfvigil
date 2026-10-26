@@ -110,6 +110,7 @@ export default Object.freeze({
   "settings.autostartDetectedOff": "既定では無効です。自動起動する場合のみ有効にしてください。",
   "settings.autostartUnavailable": "自動起動の状態を取得できません。他の設定は変更できます。",
   "settings.storageWarning": "破損したローカルデータは CFVigil 設定フォルダーの .corrupt.* ファイルに保管しました。接続と履歴を確認してください。",
+  "about.close": "閉じる",
   "about.title": "CFVigil について",
   "about.name": "CFVigil",
   "about.version": "バージョン {version} · 無料のオープンソース",

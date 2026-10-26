@@ -114,6 +114,7 @@ export default Object.freeze({
   "settings.autostartDetectedOff": "Inaktiverat som standard. Aktivera för att starta CFVigil automatiskt.",
   "settings.autostartUnavailable": "Autostartstatus är inte tillgänglig; övriga inställningar kan fortfarande ändras.",
   "settings.storageWarning": "Skadad lokal status sparades som en .corrupt.*-fil i CFVigils inställningsmapp. Kontrollera anslutningen och historiken.",
+  "about.close": "Stäng",
   "about.title": "Om CFVigil",
   "about.name": "CFVigil",
   "about.version": "Version {version} · Gratis och öppen källkod",
