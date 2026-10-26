@@ -90,7 +90,7 @@ export default Object.freeze({
   "settings.title": "Inställningar",
   "settings.connection": "Anslutning",
   "settings.account": "Cloudflare-konto-ID",
-  "settings.accountPlaceholder": "Konto-ID med 32 tecken",
+  "settings.accountPlaceholder": "Konto-ID med 32 hexadecimala tecken",
   "settings.token": "API-token",
   "settings.tokenStored": "Token sparad i systemets valv. Ange en ny token för att ersätta den.",
   "settings.tokenUnavailable": "Kan inte kontrollera sparad token (systemvalvet är inte tillgängligt).",

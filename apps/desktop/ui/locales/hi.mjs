@@ -90,7 +90,7 @@ export default Object.freeze({
   "settings.title": "सेटिंग्स",
   "settings.connection": "कनेक्शन",
   "settings.account": "Cloudflare खाता ID",
-  "settings.accountPlaceholder": "32 वर्णों वाला खाता ID",
+  "settings.accountPlaceholder": "32 हेक्साडेसिमल वर्णों वाला खाता ID",
   "settings.token": "API टोकन",
   "settings.tokenStored": "टोकन सिस्टम के सुरक्षित स्टोर में सहेजा गया है। बदलने के लिए नया टोकन डालें।",
   "settings.tokenUnavailable": "टोकन की जाँच नहीं हो सकी (सुरक्षित स्टोर अनुपलब्ध)।",

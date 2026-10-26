@@ -90,7 +90,7 @@ export default Object.freeze({
   "settings.title": "Instellingen",
   "settings.connection": "Verbinding",
   "settings.account": "Cloudflare-account-ID",
-  "settings.accountPlaceholder": "Account-ID van 32 tekens",
+  "settings.accountPlaceholder": "Account-ID met 32 hexadecimale tekens",
   "settings.token": "API-token",
   "settings.tokenStored": "Token opgeslagen in de systeemkluis. Voer een nieuw token in om het te vervangen.",
   "settings.tokenUnavailable": "Opgeslagen token niet te controleren (systeemkluis niet beschikbaar).",
