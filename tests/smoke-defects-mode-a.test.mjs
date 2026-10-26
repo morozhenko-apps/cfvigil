@@ -111,8 +111,10 @@ test("About mirrors RepoTicker layout, uses native version, safe fixed links and
   const native=read("apps/desktop/src-tauri/src/main.rs");
   assert.match(markup,/class="about"/);
   assert.match(markup,/src="\.\/icon\.png"/);
-  for(const key of ["about.name","about.copyright","about.description","about.license","about.source"])
+  for(const key of ["about.name","about.copyright","about.license","about.source"])
     assert.ok(markup.includes('data-i18n="'+key+'"'),key);
+  assert.ok(!markup.includes('data-i18n="about.description"'),
+    "owner removed the About description; retain only visible content");
   assert.match(source,/invoke\("get_app_version"\)/);
   assert.match(source,/initializeLanguage/);
   assert.match(native,/fn open_about_website\(/);
