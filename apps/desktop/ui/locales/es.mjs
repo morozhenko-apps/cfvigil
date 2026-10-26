@@ -5,7 +5,7 @@ export default Object.freeze({
   "card.searchPlaceholder": "Buscar recursos...",
   "card.searchLabel": "Buscar por nombre de recurso",
   "card.actionsLabel": "Estado de los recursos",
-  "card.healthy": "Correctos",
+  "card.healthy": "Exitosos",
   "card.deploying": "En curso",
   "card.issues": "Problemas",
   "card.statusUnknown": "Sin verificar",

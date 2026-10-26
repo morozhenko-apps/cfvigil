@@ -24,6 +24,18 @@ const visibleNativeDetails = [
   "Workers analytics unavailable; previous spike unverified"
 ];
 
+
+test("Mode B: audited locale states describe success, in-progress attempts and unverified history", () => {
+  assert.equal(t("card.healthy", {}, "es"), "Exitosos");
+  assert.equal(t("card.healthy", {}, "it"), "Riusciti");
+  assert.equal(t("card.statusUnknown", {}, "de"), "Nicht verifiziert");
+  assert.equal(t("card.statusUnknown", {}, "th"), "ยังไม่ยืนยัน");
+  assert.equal(t("card.deploying", {}, "zh-Hant"), "進行中");
+  assert.equal(t("card.deploying", {}, "ja"), "進行中");
+  assert.equal(t("card.deploying", {}, "ko"), "진행 중");
+  assert.equal(t("card.deploying", {}, "ar"), "قيد التنفيذ");
+});
+
 test("Mode B: every activated locale supplies actual visible native descriptions, not English fallback", () => {
   assert.deepEqual(ACTIVE_LOCALES, PLANNED_LOCALES);
   assert.equal(ACTIVE_LOCALES.length, 20);

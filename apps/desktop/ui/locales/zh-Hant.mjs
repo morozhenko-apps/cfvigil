@@ -6,7 +6,7 @@ export default Object.freeze({
   "card.searchLabel": "依資源名稱搜尋",
   "card.actionsLabel": "資源狀態",
   "card.healthy": "成功",
-  "card.deploying": "部署中",
+  "card.deploying": "進行中",
   "card.issues": "問題",
   "card.statusUnknown": "尚未驗證",
   "card.resources": "資源",

@@ -8,7 +8,7 @@ export default Object.freeze({
   "card.healthy": "สำเร็จ",
   "card.deploying": "กำลังดำเนินการ",
   "card.issues": "ปัญหา",
-  "card.statusUnknown": "ยังไม่ได้ตรวจสอบ",
+  "card.statusUnknown": "ยังไม่ยืนยัน",
   "card.resources": "ทรัพยากร",
   "card.hide": "ซ่อน",
   "card.toggleTitle": "แสดงหรือซ่อนรายการทรัพยากร",

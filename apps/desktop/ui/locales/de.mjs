@@ -8,7 +8,7 @@ export default Object.freeze({
   "card.healthy": "Erfolgreich",
   "card.deploying": "Läuft",
   "card.issues": "Probleme",
-  "card.statusUnknown": "Nicht geprüft",
+  "card.statusUnknown": "Nicht verifiziert",
   "card.resources": "Ressourcen",
   "card.hide": "Ausblenden",
   "card.toggleTitle": "Ressourcenliste ein- oder ausblenden",

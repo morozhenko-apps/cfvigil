@@ -6,7 +6,7 @@ export default Object.freeze({
   "card.searchLabel": "البحث باسم المورد",
   "card.actionsLabel": "حالة الموارد",
   "card.healthy": "ناجح",
-  "card.deploying": "قيد النشر",
+  "card.deploying": "قيد التنفيذ",
   "card.issues": "مشكلات",
   "card.statusUnknown": "غير متحقق منه",
   "card.resources": "الموارد",
