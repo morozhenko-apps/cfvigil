@@ -315,7 +315,7 @@ Worker/Pages build/deploy distinctions, runtime error vs deployment
 failure, WAF block spike, token permission names and unverified
 responses. This source-review pass is **not equivalent** to a human
 native-speaker 114-string editorial certification in every language.
-CJK/Indic/Thai/Bengali glyphs, Arabic bidi, long German/Polish/Greek
+CJK/Indic/Thai/Bengali glyphs, Arabic bidi, long German/Polish
 words, screen-reader labels and installed Windows/KDE layouts remain
 physical checks. Existing per-locale status stays DRAFT.
 
@@ -380,3 +380,37 @@ user-API-token requirement.
 Add regression evidence for all 20 placeholders that must encode
 32 and the hex requirement in locale-appropriate terms. Structural
 dictionary equality alone cannot catch this semantic error.
+
+## 2026-10-26: source semantic audit corrections and remaining editorial gate
+
+The second pass reviewed the **meaning** of visible states, incident
+transitions, account-id input, token/permission guidance and unknown/
+offline text across every activated locale. This is distinct from
+114-key structural parity. Concrete issues and source fixes:
+
+- `en` green label `Healthy` implied uptime/availability that CFVigil
+  never checks; rendered label is `Successful` (internal status unchanged).
+- `de` unavailable/locked keychain text incorrectly said
+  `Systemsperre`; corrected to `Anmeldedatenspeicher gesperrt`.
+- `tr` token guidance and keep-token placeholder incorrectly used API
+  `anahtar` (key); corrected to API `belirteç` (token).
+- `ru` build failure/start event grammar rewritten as actual build or
+  deployment attempt rather than mismatched nominal gender/number.
+- **All 20** `event.buildSuccess` display messages now distinguish a
+  successful Worker **build** from a successful Cloudflare deployment.
+  The old native journal literal and previously persisted English
+  messages are not changed; explicit legacy mapping supplies correct
+  translated display in all 20 locales, including existing history.
+- **18 of 20** account ID placeholders omitted the crucial
+  **hexadecimal** restriction. Now all 20 explicitly describe **32
+  base-16 characters**, matching native validation.
+- `ar` API-token help received grammatical repair and six individual
+  FSI/PDI isolates protecting exact Cloudflare permission names from
+  bidirectional reordering in RTL text.
+
+Per-locale source verdict: `en,ru,es,pt,de,fr,it,pl,hi,zh-Hant,ja,nl,sv,
+tr,ko,bn,th,id,fil,ar` each underwent a focused **contextual
+high-risk-term review** for the fields above. No locale is marked
+native-speaker Accepted. Full per-sentence 114-string editorial review,
+physical glyph metrics, screen-reader output and RTL/native Windows/KDE
+interaction are **NOT VERIFIED**; keep all statuses Draft.

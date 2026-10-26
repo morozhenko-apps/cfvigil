@@ -169,3 +169,24 @@ necessary for native/live acceptance.
 Completion questions (all public methods; all branches; rules;
 invariants; boundaries; applicable N1–N12; interactions) are **NO /
 NOT PROVEN** until linked evidence exists. Mode B remains IN PROGRESS.
+
+## Source coverage tranche added on QA branch 2026-10-26
+
+New `tests/mode-b-branch-matrix.test.mjs` exercises table-driven Worker
+and Pages state branches, unknown/hostile counter values, resource and
+history case-fold search, keyboard boundaries, untrusted partial
+snapshots, absolute UTC-offset time across DST, CLDR plural variants,
+and queued native drag failures/duplicate sessions without sleeps.
+The existing `tests/mode-b-provider-locale.test.mjs` now asserts
+the *semantic* latest-success build/deployment wording in every
+activated locale, immutable English journal bytes, 32 hexadecimal
+Account ID placeholders in all 20 languages, German keychain
+diagnostic meaning, Turkish API-token meaning, Russian incident grammar
+and Arabic isolated scope identifiers. Production UI status IDs,
+network, storage and event serialization remain unchanged.
+
+These suites protect concrete high-risk branches, **not the entire
+21-row matrix**. Missing HTTP transport-injected integration, actual
+read/write fault injection and native KDE/Windows E2E are still not
+proven. Do not mark Mode B complete based on these tests or on CI
+success alone.
