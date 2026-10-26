@@ -119,6 +119,7 @@ export default Object.freeze({
   "settings.autostartDetectedOff": "Desativado por predefinição. Ative-o para iniciar o CFVigil automaticamente.",
   "settings.autostartUnavailable": "O estado do início automático está indisponível; as restantes definições podem ser alteradas.",
   "settings.storageWarning": "O estado local danificado foi preservado num ficheiro .corrupt.* na pasta de definições do CFVigil. Verifique a ligação e o histórico.",
+  "about.close": "Fechar",
   "about.title": "Sobre o CFVigil",
   "about.name": "CFVigil",
   "about.version": "Versão {version} · Gratuito e de código aberto",
