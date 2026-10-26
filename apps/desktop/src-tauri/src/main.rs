@@ -1306,3 +1306,142 @@ mod security_tests {
         assert!(!trusted_dashboard_url(""));
     }
 }
+
+
+#[cfg(test)]
+mod settings_effect_tests {
+    use super::*;
+    use std::cell::Cell;
+
+    fn prior() -> Config {
+        Config { account_id: "a".repeat(32), refresh_seconds: 180 }
+    }
+
+    #[test]
+    fn locale_only_and_interval_only_changes_do_not_touch_os_keyring() {
+        let existing = prior();
+        for requested in [
+            existing.account_id.clone(),
+            String::new()
+        ] {
+            if requested.is_empty() { continue; }
+            assert!(matches!(
+                credential_action(&existing, &requested, None),
+                CredentialAction::None
+            ));
+        }
+        assert!(!needs_refresh(&existing, &existing, false));
+        assert!(needs_refresh(&existing, &Config {
+            account_id: existing.account_id.clone(), refresh_seconds: 60
+        }, false),"interval change refreshes without keyring read");
+    }
+
+    #[test]
+    fn changing_account_without_new_token_requires_existing_keyring_check_first() {
+        let old = prior();
+        assert!(matches!(
+            credential_action(&old, &"b".repeat(32), None),
+            CredentialAction::VerifyExisting
+        ));
+        assert!(matches!(
+            credential_action(&old, "", None),
+            CredentialAction::None
+        ));
+        assert!(needs_refresh(&old, &Config {
+            account_id: "b".repeat(32), refresh_seconds: old.refresh_seconds
+        }, false));
+    }
+
+    #[test]
+    fn explicit_token_replacement_is_selected_exactly_once_even_when_account_unchanged() {
+        let old=prior();
+        for account in [old.account_id.clone(), "b".repeat(32)] {
+            match credential_action(&old, &account, Some("secret-not-logged".into())) {
+                CredentialAction::Replace(value) => {
+                    assert_eq!(value,"secret-not-logged");
+                }
+                _ => panic!("explicit replacement cannot be omitted"),
+            }
+        }
+        assert!(needs_refresh(&old, &old, true));
+        assert!(matches!(credential_action(&old, &old.account_id, None),
+            CredentialAction::None));
+    }
+
+    #[test]
+    fn no_autostart_change_does_not_even_query_os_registration() {
+        let reads=Cell::new(0u32);
+        let writes=Cell::new(0u32);
+        let result=apply_autostart(None,
+            || { reads.set(reads.get()+1); Err("read unavailable".into()) },
+            |_| { writes.set(writes.get()+1); Err("unexpected write".into()) });
+        assert!(result.is_ok());
+        assert_eq!(reads.get(),0);
+        assert_eq!(writes.get(),0);
+    }
+
+    #[test]
+    fn unchanged_autostart_flag_is_idempotent_and_never_reapplied() {
+        for desired in [true,false] {
+            let changes=Cell::new(0u32);
+            let result=apply_autostart(Some(desired),
+                || Ok(desired),
+                |_| { changes.set(changes.get()+1); Ok(()) });
+            assert_eq!(result,Ok(()));
+            assert_eq!(changes.get(),0);
+        }
+    }
+
+    #[test]
+    fn enabled_and_disabled_registration_are_applied_only_when_needed() {
+        for (existing,desired) in [(false,true),(true,false)] {
+            let changes=Cell::new(0u32);
+            let changed_to=Cell::new(None);
+            let result=apply_autostart(Some(desired),
+                || Ok(existing),
+                |value| {
+                    changes.set(changes.get()+1);
+                    changed_to.set(Some(value));
+                    Ok(())
+                });
+            assert!(result.is_ok());
+            assert_eq!(changes.get(),1);
+            assert_eq!(changed_to.get(),Some(desired));
+        }
+    }
+
+    #[test]
+    fn autostart_read_denial_prevents_os_mutation_and_preserves_error() {
+        let mutations=Cell::new(0u32);
+        let error="OS autostart read denied";
+        let result=apply_autostart(Some(true),
+            || Err(error.into()),
+            |_| { mutations.set(mutations.get()+1); Ok(()) });
+        assert_eq!(result,Err(error.into()));
+        assert_eq!(mutations.get(),0);
+    }
+
+    #[test]
+    fn autostart_write_denial_is_reported_without_second_write_attempt() {
+        let writes=Cell::new(0u32);
+        let error="OS autostart update denied";
+        let result=apply_autostart(Some(false),
+            || Ok(true),
+            |_| { writes.set(writes.get()+1); Err(error.into()) });
+        assert_eq!(result,Err(error.into()));
+        assert_eq!(writes.get(),1);
+    }
+
+    #[test]
+    fn settings_locale_changes_do_not_trigger_cloudflare_polling() {
+        let old=prior();
+        let locale_only=old.clone();
+        assert!(!needs_refresh(&old,&locale_only,false));
+        assert!(matches!(
+            credential_action(&old,&locale_only.account_id,None),
+            CredentialAction::None
+        ));
+        let token_replaced=needs_refresh(&old,&locale_only,true);
+        assert!(token_replaced);
+    }
+}
