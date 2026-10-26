@@ -187,16 +187,16 @@ Status: IN PROGRESS. This is the next scoped 0.8 source milestone. The existing
 20 activated draft locales, Tauri IPC messages, Cloudflare read-only behavior,
 saved incident messages and package gates remain authoritative.
 
-1. [ ] Add explicit, exact-match presentation translations for the frequently
+1. [x] Add explicit, exact-match presentation translations for the frequently
    surfaced Cloudflare network/JSON/credential/partial/stale/pending/rate-limit/
    discovery failures. Retain the original native English constants, status IDs,
    account/token state, event identities and polling cadence.
-2. [ ] Format **only** bounded numeric `Cloudflare HTTP NNN (code N)` diagnostic
+2. [x] Format **only** bounded numeric `Cloudflare HTTP NNN (code N)` diagnostic
    variants and their known Workers/Pages provider prefixes. Translate the
    display-only `code` / `check scope` labels in all 20 existing UI catalogs;
    never translate the numeric codes or the exact Cloudflare permission names.
    Treat unknown or future error text as opaque, never as a translation key.
-3. [ ] Route card provider warnings, sync messages, resource details and
+3. [x] Route card provider warnings, sync messages, resource details and
    Settings command errors through one pure formatter. Preserve textContent
    rendering and live locale switching; do not reinterpret 400 as a 403
    permissions failure, hide warnings, or synthesize successful states.

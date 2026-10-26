@@ -144,3 +144,24 @@ provider diagnostics, polished translations for the remaining strings,
 new incident transitions, and reviewer sign-off remain pending.
 Do not change the audit table to Accepted on the basis of this source
 review or a green Preflight.
+
+## 2026-10-26: bounded Cloudflare diagnostic text localization (source)
+
+Ten **draft** diagnostic message IDs are now present in each of the 20
+full-key catalogs. The UI translates known native network/JSON/credentials,
+partial/stale/pending, rate-limit and catalog-discovery strings; numeric
+`Cloudflare HTTP` codes preserve their exact digits and recognized provider
+prefixes, while permission hints keep Cloudflare's exact scope labels.
+Unknown messages are deliberately preserved verbatim rather than guessed.
+
+This is a **source-only partial diagnostic milestone**, not complete native
+diagnostic localization. Analytics/WAF-specific Rust diagnostics, unrecognized
+backend errors, platform-native dialogs, NSIS installer strings and physical
+readability/RTL/semantics remain outside this source batch and require separate
+work or device acceptance. No native/provider contract, persisted event wording,
+rate limit, status computation or Cloudflare permissions were changed.
+RU/pt-PT and the other locales remain editorial drafts, not accepted locales.
+
+Current validation: new source-level and native-literal contract cases are
+committed; the final explicit Preflight is pending. No machine, API, release,
+R2, `main`, or broad Mode B gate is marked complete here.
