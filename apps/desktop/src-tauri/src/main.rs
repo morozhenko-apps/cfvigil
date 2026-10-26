@@ -1530,3 +1530,127 @@ mod settings_effect_tests {
     }
 
 }
+
+
+#[cfg(test)]
+mod mode_b_partial_state_tests {
+    use super::*;
+    use std::sync::{Arc, Barrier};
+    use std::thread;
+
+    fn resource(kind: &str, name: &str, state: &str, attempt: &str) -> Resource {
+        Resource {
+            key: format!("{kind}:{name}"), name: name.into(), kind: kind.into(),
+            status: state.into(), changed_at: "2026-10-26T12:00:00Z".into(),
+            attempt_id: attempt.into(),
+            detail: "previous verified attempt".into(),
+            url: "https://dash.cloudflare.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".into()
+        }
+    }
+
+    #[test]
+    fn independent_workers_pages_catalog_flags_preserve_only_unverified_old_rows() {
+        let previous=[
+            resource("worker","w","failed","b1"),
+            resource("pages","p","healthy","d1"),
+        ];
+        for (workers_ok,pages_ok,expected_old) in [
+            (true,true,Vec::<&str>::new()),
+            (false,true,vec!["worker:w"]),
+            (true,false,vec!["pages:p"]),
+            (false,false,vec!["worker:w","pages:p"])
+        ] {
+            let mut now=Vec::new();
+            preserve_unverified_catalogs(&mut now,&previous,workers_ok,pages_ok);
+            let keys=now.iter().map(|r|r.key.as_str()).collect::<Vec<_>>();
+            assert_eq!(keys,expected_old,"workers={workers_ok} pages={pages_ok}");
+            for r in &now {
+                assert_eq!(r.status,"unknown");
+                assert_eq!(r.detail,msg::DATA_CATALOG_UNAVAILABLE);
+            }
+            assert_eq!(now.len(),expected_old.len());
+        }
+    }
+
+    #[test]
+    fn verified_pages_and_worker_attempts_are_never_overwritten_by_old_catalog_data() {
+        let old=[
+            resource("worker","w","failed","old-b1"),
+            resource("pages","p","failed","old-d1")
+        ];
+        let verified=[
+            resource("worker","w","deploying","new-b2"),
+            resource("pages","p","healthy","new-d2")
+        ];
+        for workers_ok in [false,true] {
+            for pages_ok in [false,true] {
+                let mut now=verified.to_vec();
+                preserve_unverified_catalogs(&mut now,&old,workers_ok,pages_ok);
+                assert_eq!(now,verified,"do not duplicate or revert current rows");
+            }
+        }
+    }
+
+    #[test]
+    fn partial_waf_response_never_mislabels_unverified_zone_as_recovered() {
+        let old=[
+            resource("zone","alpha","failed","waf-block-spike"),
+            resource("zone","beta","failed","waf-block-spike"),
+            resource("zone","gamma","failed","waf-block-spike"),
+            resource("worker","other","failed","runtime-error-spike")
+        ];
+        let verified=HashSet::from(["zone:alpha".to_string(),"zone:gamma".to_string()]);
+        let retained=preserved_waf(&old,&verified);
+        assert_eq!(retained.len(),1);
+        assert_eq!(retained[0].key,"zone:beta");
+        assert_eq!(retained[0].status,"unknown");
+        assert_eq!(retained[0].attempt_id,"waf-block-spike");
+        assert_eq!(retained[0].detail,msg::DATA_WAF_UNAVAILABLE);
+        assert_eq!(preserved_waf(&old,&HashSet::new()).len(),3);
+        assert!(preserved_waf(&old,&HashSet::from([
+            "zone:alpha".into(),"zone:beta".into(),"zone:gamma".into()
+        ])).is_empty());
+    }
+
+    #[test]
+    fn all_stale_provider_replies_are_discarded_after_concurrent_settings_revision() {
+        let revision=Arc::new(AtomicU64::new(6));
+        let acquired=revision.load(Ordering::Acquire);
+        let barrier=Arc::new(Barrier::new(2));
+        let writer=Arc::clone(&revision);
+        let ready=Arc::clone(&barrier);
+        let join=thread::spawn(move || {
+            ready.wait();
+            writer.fetch_add(1,Ordering::AcqRel);
+            writer.load(Ordering::Acquire)
+        });
+        barrier.wait();
+        let next=join.join().unwrap();
+        assert_eq!(next,7);
+        assert!(superseded_revision(&revision,acquired),
+            "old-account Cloudflare response cannot be published");
+        assert!(!superseded_revision(&revision,7),
+            "the subsequent current-account response remains eligible");
+        revision.fetch_add(1,Ordering::AcqRel);
+        assert!(superseded_revision(&revision,7));
+    }
+
+    #[test]
+    fn locale_only_change_and_noop_never_increment_provider_revision() {
+        let config=Config {account_id:"a".repeat(32),refresh_seconds:180};
+        let revision=AtomicU64::new(100);
+        let before=revision.load(Ordering::Acquire);
+        for replaced in [false] {
+            if needs_refresh(&config,&config,replaced) {
+                revision.fetch_add(1,Ordering::AcqRel);
+            }
+        }
+        assert_eq!(revision.load(Ordering::Acquire),before);
+        assert!(!superseded_revision(&revision,before));
+        let newer=Config {account_id:config.account_id.clone(),refresh_seconds:300};
+        if needs_refresh(&config,&newer,false) {
+            revision.fetch_add(1,Ordering::AcqRel);
+        }
+        assert!(superseded_revision(&revision,before));
+    }
+}
