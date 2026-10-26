@@ -306,7 +306,7 @@ fn superseded_revision(revision: &AtomicU64, captured: u64) -> bool {
     revision.load(Ordering::Acquire) != captured
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(PartialEq, Eq)]
 enum CredentialAction {
     None,
     VerifyExisting,
