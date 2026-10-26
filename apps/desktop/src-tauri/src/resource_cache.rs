@@ -118,7 +118,12 @@ mod tests {
         cache.resources.push(make("worker","alpha","failed"));
         assert_eq!(cache.show_stale(&account).len(), 1);
         cache.resources[0].key = "worker:forged".into();
-        assert!(cache.show_stale(&account).is_empty());
+        // The forged item is rejected; the independently valid duplicate
+        // remains safe and is still shown only as grey.
+        let remaining = cache.show_stale(&account);
+        assert_eq!(remaining.len(), 1);
+        assert_eq!(remaining[0].key, "worker:alpha");
+        assert_eq!(remaining[0].status, "unknown");
     }
 
     #[test]
