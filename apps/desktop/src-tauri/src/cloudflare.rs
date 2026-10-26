@@ -325,9 +325,10 @@ impl Cloudflare {
         let base = format!("/accounts/{account}");
         // The two catalog endpoints are independent: a failing Pages scope
         // must not conceal verified Workers, and vice versa.
+        let pages_path = format!("{base}/pages/projects");
         let (workers, pages) = tokio::join!(
             self.list_workers(token, &base, budget),
-            self.list_paginated(token, &format!("{base}/pages/projects"), budget)
+            self.list_paginated(token, &pages_path, budget)
         );
         let workers_complete = workers.is_ok();
         let pages_complete = pages.is_ok();
