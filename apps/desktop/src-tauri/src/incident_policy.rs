@@ -174,4 +174,101 @@ mod tests {
         let b = make("unknown", "new-id", "No build data");
         assert_eq!(describe_transition(&a, &b), None);
     }
+    #[test]
+    fn given_each_latest_attempt_transition_when_classifying_then_only_verified_events_are_emitted() {
+        let scenarios = [
+            ("healthy", "old", "deploying", "new", Some(msg::EVENT_BUILD_STARTED)),
+            ("failed", "old", "deploying", "new", Some(msg::EVENT_BUILD_STARTED)),
+            ("deploying", "old", "failed", "old", Some(msg::EVENT_BUILD_FAILURE)),
+            ("deploying", "old", "healthy", "old", Some(msg::EVENT_BUILD_SUCCESS)),
+            ("failed", "old", "failed", "new", Some(msg::EVENT_BUILD_FAILURE)),
+            ("healthy", "old", "healthy", "new", Some(msg::EVENT_BUILD_SUCCESS)),
+            ("healthy", "old", "unknown", "new", None),
+            ("failed", "old", "unknown", "new", None),
+            ("unknown", "", "unknown", "new", None),
+            ("deploying", "one", "deploying", "one", None),
+            ("failed", "one", "failed", "one", None),
+        ];
+        for (before, first_id, after, next_id, expected) in scenarios {
+            let old = make(before, first_id, "Latest verified attempt");
+            let next = make(after, next_id, "Latest verified attempt");
+            assert_eq!(describe_transition(&old,&next),expected,
+                "{before}:{first_id} -> {after}:{next_id}");
+        }
+    }
+
+    #[test]
+    fn given_all_event_messages_when_deciding_notification_then_only_new_failed_alerts_are_notifiable() {
+        for status in ["healthy","deploying","failed","unknown"] {
+            let row = make(status,"build-1","Cloudflare build");
+            for (message, category_allowed) in [
+                (msg::EVENT_BUILD_FAILURE,true),
+                (msg::EVENT_RUNTIME_SPIKE,true),
+                (msg::EVENT_WAF_SPIKE,true),
+                (msg::EVENT_BUILD_STARTED,false),
+                (msg::EVENT_BUILD_SUCCESS,false),
+                (msg::EVENT_RUNTIME_RECOVERY,false),
+                (msg::EVENT_WAF_RECOVERY,false),
+                ("unexpected message",false),
+            ] {
+                let expected = status == "failed" && category_allowed;
+                assert_eq!(should_notify(&row,message),expected,
+                    "{status} / {message}");
+            }
+        }
+    }
+
+    #[test]
+    fn given_repeated_runtime_spikes_and_unknown_analytics_when_traversing_states_then_no_false_recovery() {
+        let stable = make("healthy","build-1","Build verified");
+        let spike = make("failed","runtime-error-spike","Workers errors spiking: 20");
+        let stale = make("unknown","runtime-error-spike","Workers analytics unavailable");
+        let retry = make("failed","runtime-error-spike","Workers errors spiking: 40");
+        let recovered = make("healthy","build-2","Build verified");
+        assert_eq!(describe_transition(&stable,&spike),Some(msg::EVENT_RUNTIME_SPIKE));
+        assert_eq!(describe_transition(&spike,&stale),None);
+        assert_eq!(describe_transition(&stale,&retry),None);
+        assert_eq!(describe_transition(&retry,&recovered),Some(msg::EVENT_RUNTIME_RECOVERY));
+        assert_eq!(describe_transition(&stale,&recovered),Some(msg::EVENT_RUNTIME_RECOVERY));
+        assert!(notification_identity(&stale,msg::EVENT_RUNTIME_SPIKE).is_none());
+    }
+
+    #[test]
+    fn given_zone_level_waf_alert_when_old_zone_unverified_then_it_is_not_a_second_new_incident() {
+        let mut initial = make("unknown","","No WAF confirmation");
+        initial.kind = "zone".into();
+        initial.key = "zone:aabbcc".into();
+        let mut waf = initial.clone();
+        waf.status = "failed".into();
+        waf.attempt_id = "waf-block-spike".into();
+        waf.detail = "WAF blocks spiking: 10".into();
+        assert_eq!(describe_transition(&initial,&waf),Some(msg::EVENT_WAF_SPIKE));
+        assert_eq!(initial_security_event(&waf),Some(msg::EVENT_WAF_SPIKE));
+        let mut unverified = waf.clone();
+        unverified.status = "unknown".into();
+        assert_eq!(describe_transition(&waf,&unverified),None);
+        assert_eq!(describe_transition(&unverified,&waf),None);
+        assert_eq!(notification_identity(&waf,msg::EVENT_WAF_SPIKE),
+            Some("zone:aabbcc:waf-spike".to_owned()));
+    }
+
+    #[test]
+    fn given_different_failed_attempt_ids_when_identifying_notifications_then_each_new_attempt_is_distinct() {
+        let old = make("failed","uuid-1","Worker build failed");
+        let newer = make("failed","uuid-2","Worker build failed");
+        assert_ne!(
+            notification_identity(&old,msg::EVENT_BUILD_FAILURE),
+            notification_identity(&newer,msg::EVENT_BUILD_FAILURE)
+        );
+        assert_eq!(
+            notification_identity(&old,msg::EVENT_BUILD_FAILURE),
+            Some("worker:example:failed:uuid-1".into())
+        );
+        let unchanged = make("failed","uuid-1","Worker build failed");
+        assert_eq!(
+            notification_identity(&old,msg::EVENT_BUILD_FAILURE),
+            notification_identity(&unchanged,msg::EVENT_BUILD_FAILURE)
+        );
+    }
+
 }
