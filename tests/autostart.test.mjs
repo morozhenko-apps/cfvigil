@@ -11,7 +11,8 @@ const caps = get("apps/desktop/src-tauri/capabilities/default.json");
 
 test("launch at login is opt-in, native only, and survives missing OS state", () => {
   assert.match(html, /id="autostart" type="checkbox" disabled/);
-  assert.match(ui, /autostartLoaded \? autostart\.checked : null/);
+  assert.match(ui, /autostart: autostartLoaded \? storedAutostart : null/);
+  assert.match(ui, /planSettingsApply\(/);
   assert.match(ui, /autostart\.disabled = true/);
   assert.match(main, /fn get_autostart\(app: AppHandle\)/);
   assert.match(main, /fn update_autostart\(app: &AppHandle, requested: Option<bool>\)/);

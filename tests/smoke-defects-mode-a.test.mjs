@@ -89,7 +89,7 @@ test("Cloudflare bounded fanout never adds a second poller or read-write mutatio
 test("Native tray locale switches explicitly refresh KDE KSNI and Windows Tauri",()=>{
   const tray=read("apps/desktop/src-tauri/src/linux_tray.rs");
   assert.match(tray,/pub fn set_language\(/);
-  assert.match(tray,/handle\.update\(move \|tray\|/);
+  assert.match(tray,/handler\.update\(move \|tray\|/);
   const native=read("apps/desktop/src-tauri/src/main.rs");
   assert.match(native,/linux_tray::set_language\(app, locale\)/);
   assert.match(native,/tray\.set_menu\(Some\(menu\)\)/);

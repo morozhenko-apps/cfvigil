@@ -16,7 +16,9 @@ test("all three local JSON records use the same atomic write and checked restore
   }
   assert.doesNotMatch(native,/\.and_then\(\|bytes\| serde_json::from_slice\(&bytes\)\.ok\(\)\)/);
   assert.match(native,/events\.truncate\(500\)/);
-  assert.match(native,/settings\.quarantined \|\| stored\.quarantined \|\| history\.quarantined/);
+  assert.match(native,/settings\.quarantined \|\| stored\.quarantined\s*\|\| history\.quarantined/);
+  assert.match(native,/\|\| catalog\.quarantined/);
+  assert.match(native,/resource-catalog\.json/);
 });
 
 test("recovery never overwrites damaged JSON before backing it up", () => {
