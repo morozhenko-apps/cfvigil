@@ -61,6 +61,9 @@ No empty matrix cells.
 | WebView card/status/search/focus (`app.mjs; status.mjs; resource-navigation.mjs`) | unit/UI | ✔ | ✔ | ? | ? | ? | ? | ✔ | ? | ? | ✔ | ✔ | ✖ | ? |
 | Settings editor Apply/Cancel (`settings.mjs`) | integration/native UI | ✔ | ? | ? | ? | ? | ? | ? | ? | ? | ✔ | ✔ | ✖ | ? |
 | History presentation/search (`history.mjs; history-model.mjs`) | unit/UI | ✔ | ✔ | ? | ? | ? | ? | ✔ | ? | ✔ | ? | ? | ✖ | ? |
+| Private cached catalog / startup hydration (`resource_cache.rs; main.rs`) | unit/integration | ✔ | ? | ✔ | ? | ? | ? | ✔ | ✔ | ? | ? | ✔ | ✖ | ✔ |
+| Changed-only Settings transaction (`settings-transaction.mjs; settings.mjs`) | unit/integration | ✔ | ? | ? | ? | ✔ | ? | ? | ✔ | ✔ | ✔ | ✔ | ✖ | ? |
+| Frameless About + native History icon (`about.*; main.rs; tauri.conf.json`) | UI/native | ? | ? | ✖ | ✖ | ? | ? | ? | ✔ | ✔ | ✔ | ? | ✖ | ✖ |
 | KDE Wayland/X11 tray/drag (`linux_surface.rs; linux_tray.rs; native-drag.mjs`) | native/E2E | ✔ | ? | ? | ? | ? | ? | ? | ? | ? | ✔ | ? | ✖ | ? |
 | Windows window anchor/tray (`windows_card.rs`) | unit/native | ✔ | ? | ? | ? | ? | ? | ? | ? | ? | ✔ | ? | ✖ | ? |
 | Autostart opt-in lifecycle (`main.rs; autostart.test.mjs`) | integration/native | ✔ | ? | ? | ? | ? | ? | ? | ? | ? | ✔ | ? | ✖ | ? |
@@ -190,3 +193,113 @@ These suites protect concrete high-risk branches, **not the entire
 read/write fault injection and native KDE/Windows E2E are still not
 proven. Do not mark Mode B complete based on these tests or on CI
 success alone.
+
+## 2026-10-26: Mode B resumed after physical client feedback and three scoped UI fixes
+
+**Stage 1 / implementation inventory refresh.** The executable production
+surface consists of 16 Rust desktop modules, 12 non-locale JS modules,
+20 locale catalogs, GitHub Actions packaging, release/R2 tooling and
+the read-only download Worker. Node built-in tests + Rust unit tests +
+offline Python release tests are the stable group; no registered flaky
+group. Repository CI is intentionally marker-gated; this documentation
+and subsequent Mode B test additions **must not start a preflight yet**.
+
+**Stage 2 / business invariants retained.** A successful *build* is not
+proof of deployed uptime. Cached Worker/Pages rows are always unverified,
+can never cross account boundaries, cannot introduce a fake incident,
+and any cached URL must be rebuilt from validated names. Changed-only
+settings commits never reapply an unchanged OS keychain token/autostart
+or trigger a Cloudflare poll on a pure locale change. The native KDE
+history window must request the same installed themed icon as the
+package. Frameless About has an accessible Close action and no Minimize;
+Cancel/Close does not alter settings. No tests or code change may relax
+these guarantees.
+
+**Stage 3 / additional explicit testable artifacts and risk:**
+
+| File / public functions or flows | Business risk | Level | Planned additional deterministic cases |
+| --- | --- | --- | ---: |
+| `resource_cache.rs`: `safe_name`, `safe_account`, `accepted`, `stale_row`, `from_discovery`, `show_stale` | Cross-account leak, false-green, hostile URL, oversized cache | Rust unit | 18 |
+| `settings-transaction.mjs`: `planSettingsApply` | Unwanted keychain/autostart writes, silent config loss | JS unit | 17 |
+| `main.rs`: startup `resource-catalog.json`, account switch, `needs_refresh`, `commit_language`, `show_window`, `install_window_icons` | Stale incidents, duplicate polling, cached identity, old History icon | contract/integration/native | 11 |
+| `about.html`, `about.mjs`, `about.css`, `tauri.conf.json` | Unclosable frameless dialog, wrong locale, unwanted Minimize | static contract/native smoke | 9 |
+| `localization.mjs` and all twenty catalogs | Missing Close translation and changing legacy event bytes | JS unit | 8 |
+| `cloudflare.rs` bounded `tokio::join!` four-request batching and `ApiBudget::check` | Storming Cloudflare, order mutation, 429 while concurrent | Rust integration seam + unit | 15 |
+| `storage.rs` `read_or_default`, `write_atomic` and quarantine | Lost prior data after permission/disk corruption | Rust integration | 9 |
+| `incident_policy.rs`: `describe_transition`, `notification_identity` | False alarm, duplicated recovery or missed WAF spike | Rust unit | 12 |
+
+These new rows **augment**, rather than replace, the original 21-item
+inventory. Overall planned additional count above = 99. Counts are
+estimates of *unique logical scenarios*, not assertions of executed
+tests; parameterized cases count as independent scenarios. Other
+original inventory rows and pending scenarios remain in scope.
+
+**Stage 4 / branch-map refinements (all must be linked to tests):**
+
+- Cache name: empty; ASCII length 1, 128, 129; punctuation path/control/
+  Unicode; valid hyphen/underscore; mismatched key or kind; account
+  0, 31, 32, 33, non-hex; duplicate first/last; catalog length
+  0, 1, 512, 513; cross-account; serializing corrupted/legacy JSON;
+  trusted URL reconstruction; stale unknown for healthy/failed/deploying.
+- Apply draft: same vs changed account; token unchanged/whitespace/new;
+  interval same/changed/invalid; supported locale changed/unchanged;
+  autostart true/false/null/unavailable; concurrent locale events;
+  Cancel vs Apply vs Close; successful save vs keyring/save failure;
+  zero Cloudflare calls on locale-only edit. Data changes only on OK.
+- Native windows: About decorations false and exactly one accessible
+  Close button; Escape action; description absent; 20 localized Close
+  strings; History themed KDE hicolor name plus Tauri icon, and icon
+  reasserted at show, Windows native ICO (physical checks remain open).
+- Provider: four parallel calls share bounded budget; 401/403/429/5xx
+  or invalid response for individual Worker/Pages leaves that resource
+  unverified; independent failures; no concurrent mutation or replay
+  of previous credential results.
+
+**Stage 5 / Positive + N1–N12 decisions.** The added rows above use
+the same ✔/?/✖ syntax as the original table. N11 remains ✖ for the
+entire free application (no purchase flow). N2, N3 and N12 are ✖
+for pure About markup; text/layout are not API requests or disk writes.
+The corresponding OS/icon integration failures must be tested under N9
+and N7, not invented as file-write tests.
+
+**Stage 6 / interaction rows to validate:**
+
+| Inputs and states | Required result | Level |
+| --- | --- | --- |
+| First startup after upgrade + empty cache + offline | Empty or journal-only unverified; no green | Rust unit + native |
+| Subsequent startup + 512 cached entries + corrupt extra | Strict fail-closed size; no untrusted render | Rust unit |
+| 2 accounts with same resource names | No cross-account cache or incidents | Rust unit/integration |
+| Locale change with locked keychain + unchanged other settings | Locale commits without reading token; no new poll | JS + native |
+| Native tray menu locale changed + About already open | Updated menu and About strings; no native restart | JS source + native |
+| Scroll thumb pointer drag + row action | Scroll works without window movement | native E2E |
+| Successful prior Workers build + new queued Pages deployment | Yellow latest, never stale green | Rust/API fixture |
+| Chrome unsigned browser block + hash mismatch | Abort acceptance; no blanket AV exclusion | distribution procedure |
+
+**Stage 7 / test pyramid and estimation.** Favor pure deterministic
+Rust/JS units and bounded contract fakes, followed by a small number of
+cross-platform native UI smoke scenarios. No "100% lines" target
+substitutes for reaching every executable business branch.
+
+**Stage 8 / coverage map for newly added functions:**
+
+| Source | Branches or transitions | Existing proven | Missing before new Mode B tranche |
+| --- | --- | --- | --- |
+| `resource_cache.rs` | six functions and bounds/account/name/kind/duplicate/URLs | Three Rust tests | boundary tables, malformed JSON persistence integration |
+| `settings-transaction.mjs` | same/changed 5 independent fields | Four focused JS source contracts | coercion/partial/unavailable + combinations |
+| `about.mjs` | version success/failure, Close/Escape, website/source failure | Only source contracts | localized Close and lifecycle |
+| `main.rs` icon/show | GTK/Tauri success/unavailable; same desktop theme | earlier source-only | Wayland/KDE and Windows taskbar physical |
+| `cloudflare.rs` batched reads | worker/page slots 0–4, partial REST failure, 429 | prior provider fixtures | fake HTTP transport and rate limit across concurrency |
+| `storage.rs` | absent/valid/corrupt/oversize/symlink/permissions | stable Rust tests | deterministic fault injection (disk full/rename failure) |
+
+**Stage 9 and 10 are next**: implement exact, parameterized scenarios
+with explicit negative assertions and mutation kills (boundary > vs >=,
+account comparison, checked key, unknown vs green, no-op vs write,
+source icon name, accessible Close). Never mock the domain logic.
+Integration requiring a real HTTP seam/OS remains clearly documented
+as open; tests cannot pretend it passed.
+
+**Stage 11 / 12:** no CI rerun between cosmetic fixes and test writing.
+One stable final suite **after** coverage implementation and mutation
+review. A green source gate is distinct from owner's native KDE/Windows
+acceptance. Mode B is not COMPLETE while any applicable ? and unproven
+runtime scenario remain.
