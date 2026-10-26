@@ -197,3 +197,10 @@ catalogs, safe exact-match numeric HTTP 400/403 and scope formatting,
 native error string contracts, resource/card/Settings presentation,
 existing JavaScript/Python/Rust tests and icon checks. No Mode B,
 owner-machine acceptance claim, package, main, tag, release or R2 upload.
+
+2026-10-26: Correct exactly one stale source-assertion in
+tests/polling.test.mjs. First Preflight #40332875940 had 81/82 Node
+tests PASS, but expected the obsolete literal `entry.textContent = item`;
+safe rendering is now `entry.textContent = diagnosticText(item)`.
+Revalidate all 20 locale catalogs, Node stable suite, offline Python and
+Rust check/unit suites ONCE. Do not run Mode B, packages or releases.
