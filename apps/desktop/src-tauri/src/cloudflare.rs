@@ -295,12 +295,40 @@ impl Cloudflare {
         Ok(output)
     }
 
+
+    // Four in-flight reads per provider are enough to remove per-resource
+    // serial latency without creating an unbounded Cloudflare request burst.
+    // All calls still pass through the shared global ApiBudget.
+    async fn worker_deployment(
+        &self, token: &str, base: &str, row: Option<&(String, String, Value)>,
+        budget: &ApiBudget,
+    ) -> Option<Result<(Value, usize), String>> {
+        let (name, _, _) = row?;
+        Some(self.get(token,
+            &format!("{base}/workers/scripts/{name}/deployments?page=1&per_page=1"),
+            budget).await)
+    }
+
+    async fn pages_deployment(
+        &self, token: &str, base: &str, project: Option<&Value>,
+        budget: &ApiBudget,
+    ) -> Option<Result<(Value, usize), String>> {
+        let project = project?;
+        let name = str_field(project, "name");
+        if !valid_name(name) { return None; }
+        Some(self.get(token,
+            &format!("{base}/pages/projects/{name}/deployments"),
+            budget).await)
+    }
+
     pub async fn discover(&self, account: &str, token: &str, budget: &ApiBudget) -> Result<Discovery, String> {
         let base = format!("/accounts/{account}");
         // The two catalog endpoints are independent: a failing Pages scope
         // must not conceal verified Workers, and vice versa.
-        let workers = self.list_workers(token, &base, budget).await;
-        let pages = self.list_paginated(token, &format!("{base}/pages/projects"), budget).await;
+        let (workers, pages) = tokio::join!(
+            self.list_workers(token, &base, budget),
+            self.list_paginated(token, &format!("{base}/pages/projects"), budget)
+        );
         let workers_complete = workers.is_ok();
         let pages_complete = pages.is_ok();
         if !workers_complete && !pages_complete {
@@ -361,56 +389,65 @@ impl Cloudflare {
                     }
                 }
             }
-            for (name, tag, _) in script_list {
-                let build = latest.get(&tag).or_else(|| latest.get(&name));
-                let active_result = self.get(
-                    token,
-                    &format!("{base}/workers/scripts/{name}/deployments?page=1&per_page=1"),
-                    budget,
-                ).await;
-                let active = active_result.as_ref().ok()
-                    .and_then(|(result, _)| result.get("deployments"))
-                    .and_then(Value::as_array);
-                let deployment_known = active_result.is_ok() && active.is_some();
-                let builds_known = checked_tags.contains(&tag);
-                if !deployment_known || !builds_known {
-                    complete = false;
-                    if !deployment_known && !warnings.iter().any(|w| w.starts_with("Worker deployments:")) {
-                        let reason = active_result.as_ref().err().map(String::as_str)
-                            .unwrap_or("unexpected Cloudflare response");
-                        warnings.push(format!("Worker deployments: {reason}"));
+            for group in script_list.chunks(4) {
+                let (a,b,c,d) = tokio::join!(
+                    self.worker_deployment(token, &base, group.first(), budget),
+                    self.worker_deployment(token, &base, group.get(1), budget),
+                    self.worker_deployment(token, &base, group.get(2), budget),
+                    self.worker_deployment(token, &base, group.get(3), budget)
+                );
+                for ((name, tag, _), active_result) in group.iter()
+                    .zip([a,b,c,d].into_iter().flatten()) {
+                    let build = latest.get(tag).or_else(|| latest.get(name));
+                    let active = active_result.as_ref().ok()
+                        .and_then(|(result, _)| result.get("deployments"))
+                        .and_then(Value::as_array);
+                    let deployment_known = active_result.is_ok() && active.is_some();
+                    let builds_known = checked_tags.contains(tag);
+                    if !deployment_known || !builds_known {
+                        complete = false;
+                        if !deployment_known && !warnings.iter().any(|w| w.starts_with("Worker deployments:")) {
+                            let reason = active_result.as_ref().err().map(String::as_str)
+                                .unwrap_or("unexpected Cloudflare response");
+                            warnings.push(format!("Worker deployments: {reason}"));
+                        }
                     }
+                    let choice = if !deployment_known {
+                        select_worker_attempt(None, None, false)
+                    } else {
+                        select_worker_attempt(build, active.and_then(|rows| rows.first()), builds_known)
+                    };
+                    let mut url = format!("https://dash.cloudflare.com/{account}/workers/services/view/{name}/production");
+                    if choice.detail == msg::DETAIL_WORKERS_BUILD && valid_uuid(&choice.attempt_id) {
+                        url.push_str(&format!("/builds/{}", choice.attempt_id));
+                    }
+                    resources.push(Resource {
+                        key: format!("worker:{name}"),
+                        name: name.clone(),
+                        kind: "worker".into(),
+                        status: choice.status.into(),
+                        changed_at: choice.changed_at,
+                        attempt_id: choice.attempt_id,
+                        url,
+                        detail: choice.detail.into(),
+                    });
                 }
-                let choice = if !deployment_known {
-                    select_worker_attempt(None, None, false)
-                } else {
-                    select_worker_attempt(build, active.and_then(|rows| rows.first()), builds_known)
-                };
-                let mut url = format!("https://dash.cloudflare.com/{account}/workers/services/view/{name}/production");
-                if choice.detail == msg::DETAIL_WORKERS_BUILD && valid_uuid(&choice.attempt_id) {
-                    url.push_str(&format!("/builds/{}", choice.attempt_id));
-                }
-                resources.push(Resource {
-                    key: format!("worker:{name}"),
-                    name: name.clone(),
-                    kind: "worker".into(),
-                    status: choice.status.into(),
-                    changed_at: choice.changed_at,
-                    attempt_id: choice.attempt_id,
-                    url,
-                    detail: choice.detail.into(),
-                });
             }
         }
 
         if let Ok(projects) = pages {
-            for project in projects {
-                let name = str_field(&project, "name");
-                if !valid_name(name) { continue; }
-                let name = name.to_owned();
-                let result = self
-                    .get(token, &format!("{base}/pages/projects/{name}/deployments"), budget)
-                    .await;
+            for group in projects.chunks(4) {
+                let (a,b,c,d) = tokio::join!(
+                    self.pages_deployment(token, &base, group.first(), budget),
+                    self.pages_deployment(token, &base, group.get(1), budget),
+                    self.pages_deployment(token, &base, group.get(2), budget),
+                    self.pages_deployment(token, &base, group.get(3), budget)
+                );
+                for (project, result) in group.iter().zip([a,b,c,d].into_iter()) {
+                    let name = str_field(project, "name");
+                    if !valid_name(name) { continue; }
+                    let name = name.to_owned();
+                    let Some(result) = result else { continue; };
                 // Own the strings before the REST result is dropped. Holding
                 // &str into a JSON Value from this match caused Rust E0597.
                 let (state, attempt, timestamp, detail) = match result {
@@ -439,16 +476,19 @@ impl Cloudflare {
                 };
                 let mut url = format!("https://dash.cloudflare.com/{account}/pages/view/{name}");
                 if valid_uuid(&attempt) { url.push_str(&format!("/{attempt}")); }
-                resources.push(Resource {
-                    key: format!("pages:{name}"),
-                    name: name.clone(),
-                    kind: "pages".into(),
-                    status: state,
-                    changed_at: timestamp,
-                    attempt_id: attempt,
-                    url,
-                    detail,
-                });
+                    let mut url = format!("https://dash.cloudflare.com/{account}/pages/view/{name}");
+                    if valid_uuid(&attempt) { url.push_str(&format!("/{attempt}")); }
+                    resources.push(Resource {
+                        key: format!("pages:{name}"),
+                        name: name.clone(),
+                        kind: "pages".into(),
+                        status: state,
+                        changed_at: timestamp,
+                        attempt_id: attempt,
+                        url,
+                        detail,
+                    });
+                }
             }
         }
         resources.sort_by(|a, b| a.name.to_ascii_lowercase().cmp(&b.name.to_ascii_lowercase())
