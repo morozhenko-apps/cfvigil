@@ -302,6 +302,10 @@ fn needs_refresh(old: &Config, next: &Config, token_replaced: bool) -> bool {
         || old.refresh_seconds != next.refresh_seconds
 }
 
+fn superseded_revision(revision: &AtomicU64, captured: u64) -> bool {
+    revision.load(Ordering::Acquire) != captured
+}
+
 #[derive(Debug, PartialEq, Eq)]
 enum CredentialAction {
     None,
@@ -755,7 +759,7 @@ async fn refresh_once(app: AppHandle, budget: &ApiBudget) -> bool {
         Ok(discovery) => discovery,
         Err(message) => {
             let _guard = state.refresh_lock.lock().await;
-            if state.config_revision.load(Ordering::Acquire) != revision {
+            if superseded_revision(&state.config_revision, revision) {
                 return true; // The new settings already scheduled a fresh poll.
             }
             report_sync_failure(&app, &state, &message);
@@ -837,7 +841,7 @@ async fn refresh_once(app: AppHandle, budget: &ApiBudget) -> bool {
     };
     resources.sort_by(|a,b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
     let _credential_guard = state.refresh_lock.lock().await;
-    if state.config_revision.load(Ordering::Acquire) != revision {
+    if superseded_revision(&state.config_revision, revision) {
         // A concurrent Apply won: never publish old-account rows, incidents,
         // notifications or journal snapshots.
         return true;
