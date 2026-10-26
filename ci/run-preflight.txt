@@ -252,3 +252,9 @@ three stale white-box JS assertions, repaired test-only in b88b0ee.
 Now verify the final Mode A smoke source, 118+ JS tests,
 locales/assets, offline Python, locked Rust check/test.
 No candidates until verified PASS, no production or owner-native claims.
+
+2026-10-26: final rerun after E0716 Pages path temporary lifetime
+fixed at c09e879, and unsafe-cache forged/valid duplicate test at
+12b21fe. Previous #40397520607 passed JS/Python but Rust compile
+failed; require full locked Rust check + unit tests and preflight success.
+No private runner, production API or release publication.
