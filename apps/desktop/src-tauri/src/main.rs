@@ -302,6 +302,23 @@ fn needs_refresh(old: &Config, next: &Config, token_replaced: bool) -> bool {
         || old.refresh_seconds != next.refresh_seconds
 }
 
+#[derive(Debug, PartialEq, Eq)]
+enum CredentialAction {
+    None,
+    VerifyExisting,
+    Replace(String),
+}
+
+fn credential_action(previous: &Config, account_id: &str, token: Option<String>)
+    -> CredentialAction {
+    match token {
+        Some(value) => CredentialAction::Replace(value),
+        None if !account_id.is_empty() && previous.account_id != account_id =>
+            CredentialAction::VerifyExisting,
+        None => CredentialAction::None,
+    }
+}
+
 // No start-at-login entry is installed unless the user explicitly opts in.
 // Read the real platform registration, not a potentially stale JSON flag.
 #[tauri::command]
@@ -310,14 +327,29 @@ fn get_autostart(app: AppHandle) -> Result<bool, String> {
         .map_err(|_| msg::ERROR_AUTOSTART_CHECK.into())
 }
 
-fn update_autostart(app: &AppHandle, requested: Option<bool>) -> Result<(), String> {
+// This controls *both* real OS autostart behavior and deterministic
+// failure injection. An unchanged state must never invoke native APIs.
+fn apply_autostart(
+    requested: Option<bool>,
+    read: impl FnOnce() -> Result<bool, String>,
+    change: impl FnOnce(bool) -> Result<(), String>,
+) -> Result<(), String> {
     let Some(enabled) = requested else { return Ok(()) };
-    let manager = app.autolaunch();
-    let current = manager.is_enabled()
-        .map_err(|_| msg::ERROR_AUTOSTART_READ)?;
+    let current = read()?;
     if current == enabled { return Ok(()) }
-    let result = if enabled { manager.enable() } else { manager.disable() };
-    result.map_err(|_| msg::ERROR_AUTOSTART_UPDATE.into())
+    change(enabled)
+}
+
+fn update_autostart(app: &AppHandle, requested: Option<bool>) -> Result<(), String> {
+    apply_autostart(
+        requested,
+        || app.autolaunch().is_enabled().map_err(|_| msg::ERROR_AUTOSTART_READ.into()),
+        |enabled| {
+            let manager = app.autolaunch();
+            let result = if enabled { manager.enable() } else { manager.disable() };
+            result.map_err(|_| msg::ERROR_AUTOSTART_UPDATE.into())
+        },
+    )
 }
 
 #[tauri::command]
@@ -383,15 +415,20 @@ async fn save_settings(
     let _refresh_guard = state.refresh_lock.lock().await;
     let token_replaced = token.is_some();
     let previous = state.config.lock().unwrap().clone();
-    if let Some(token) = token {
-        tauri::async_runtime::spawn_blocking(move || {
-            token_entry()?.set_password(&token).map_err(|_| msg::ERROR_TOKEN_WRITE.to_string())
-        }).await.map_err(|_| msg::ERROR_CREDENTIAL_SERVICE)??;
-    } else if !account_id.is_empty() && previous.account_id != account_id {
-        // Language-only or interval-only Apply must not reopen a healthy
-        // credential store or fail because an unchanged vault is locked.
-        tauri::async_runtime::spawn_blocking(load_token)
-            .await.map_err(|_| msg::ERROR_CREDENTIAL_SERVICE)??;
+    // Fail credentials before writing JSON, refreshing the provider, or
+    // committing a locale. A pure locale edit never touches OS keyring.
+    match credential_action(&previous, &account_id, token) {
+        CredentialAction::Replace(token) => {
+            tauri::async_runtime::spawn_blocking(move || {
+                token_entry()?.set_password(&token)
+                    .map_err(|_| msg::ERROR_TOKEN_WRITE.to_string())
+            }).await.map_err(|_| msg::ERROR_CREDENTIAL_SERVICE)??;
+        }
+        CredentialAction::VerifyExisting => {
+            tauri::async_runtime::spawn_blocking(load_token)
+                .await.map_err(|_| msg::ERROR_CREDENTIAL_SERVICE)??;
+        }
+        CredentialAction::None => {}
     }
     let next = Config { account_id, refresh_seconds };
     let should_refresh = needs_refresh(&previous, &next, token_replaced);
