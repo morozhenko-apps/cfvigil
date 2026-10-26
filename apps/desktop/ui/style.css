@@ -72,3 +72,28 @@ input:not([type="checkbox"]), textarea, [contenteditable="true"] {
 .provider-warning{flex:none;max-height:74px;overflow-y:auto;padding:6px 9px;
   font-size:11px;line-height:1.4;background:#fff1d6;color:#533b15;
   border-bottom:1px solid #e5c68e;overflow-wrap:anywhere}
+
+
+/* Real clickable scroll track, separated from the row action ellipsis.
+   The native drag handler excludes #drawer, so thumb/track and row text
+   own their pointer input on both WebKitGTK and Windows WebView2. */
+.rows{
+  scrollbar-gutter:stable;
+  padding-inline-end:7px;
+  overscroll-behavior:contain;
+  scrollbar-width:auto;
+  scrollbar-color:#98a9b8 #dfe5eb;
+  cursor:default;
+}
+.rows::-webkit-scrollbar{width:13px;height:13px}
+.rows::-webkit-scrollbar-track{
+  background:#dfe5eb;border-radius:8px
+}
+.rows::-webkit-scrollbar-thumb{
+  background:#98a9b8;border:3px solid #dfe5eb;border-radius:8px;
+  min-height:28px;
+}
+.rows::-webkit-scrollbar-thumb:hover{background:#607d94}
+.rows::-webkit-scrollbar-thumb:active{background:#426e90}
+.rows .more{position:relative;z-index:1}
+#drawer,#search-row{cursor:default}
