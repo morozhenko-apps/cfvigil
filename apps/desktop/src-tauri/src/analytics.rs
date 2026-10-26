@@ -142,9 +142,11 @@ async fn query_spikes_at(
     let recent_end = now - ChronoDuration::minutes(5);
     let recent_start = recent_end - ChronoDuration::minutes(10);
     let baseline_start = recent_start - ChronoDuration::minutes(30);
-    let http = Client::builder().redirect(Policy::none())
-        .timeout(Duration::from_secs(20)).user_agent("CFVigil/0.1.0")
-        .build().map_err(|_| msg::ANALYTICS_CLIENT_INIT)?;
+    let client = Client::builder().redirect(Policy::none())
+        .timeout(Duration::from_secs(20)).user_agent("CFVigil/0.1.0");
+    #[cfg(test)]
+    let client = client.no_proxy(); // Loopback tests must never use a host proxy.
+    let http = client.build().map_err(|_| msg::ANALYTICS_CLIENT_INIT)?;
     let mut scan = MetricsScan { spikes: HashMap::new(), unverified: HashSet::new() };
     for batch in names.chunks(MAX_BATCH) {
         let query = create_query(account, batch, &recent_start.to_rfc3339(),
