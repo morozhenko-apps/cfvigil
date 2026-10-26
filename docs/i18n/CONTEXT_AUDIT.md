@@ -182,3 +182,52 @@ The per-locale table above remains entirely in DRAFT/Pending for human
 semantics, native WebView glyph/font/clipping, Arabic RTL, accessibility,
 KDE/Windows physical inspection and offline/incident transitions.
 The stable source gate is pending; no native/editorial PASS is inferred.
+
+
+## 2026-10-26: Mode B source-only 20-locale lexical and contract review
+
+Owner-requested stage 1, preceding final provider/Mode B source tests and
+binary handoff. The direct source audit checked each of the 20 standalone
+catalog modules against English by scanning 112 directly declarative string
+entries and checking their parameter names; the two plural entries have
+already passed the separate complete 114-key structural/CLDR source gate
+#40374585359. Every language has the complete direct-string key set with
+zero missing entries and zero direct-string parameter mismatches. This is
+a repository-based audit, **not a native speaker or native-device signoff**.
+
+| Locale | Direct string keys present | Missing / placeholders | English-identical strings | Source-level observation |
+| --- | ---: | ---: | ---: | --- |
+| en | 112 | 0 / 0 | baseline | Reference terminology; not native machine accepted |
+| ru | 112 | 0 / 0 | 2 | Earlier deploy/build and unknown distinction corrected |
+| es | 112 | 0 / 0 | 2 | No exact-value source fallback detected |
+| pt | 112 | 0 / 0 | 2 | European Portuguese; earlier success/unknown distinction corrected |
+| de | 112 | 0 / 0 | 3 | Native width and compound clipping pending |
+| fr | 112 | 0 / 0 | 8 | Shared minute/incident/code terminology; contextual review pending |
+| it | 112 | 0 / 0 | 3 | Technical terms retain developer context |
+| pl | 112 | 0 / 0 | 2 | CLDR plural cases validated separately; native width pending |
+| hi | 112 | 0 / 0 | 2 | Devanagari font rendering pending |
+| zh-Hant | 112 | 0 / 0 | 2 | Traditional Chinese glyph/terminology review pending |
+| ja | 112 | 0 / 0 | 4 | Apache/legal terms retained; font rendering pending |
+| nl | 112 | 0 / 0 | 4 | Code/technical terms retained; contextual review pending |
+| sv | 112 | 0 / 0 | 2 | Monitoring language review pending |
+| tr | 112 | 0 / 0 | 2 | Natural inflection/casing review pending |
+| ko | 112 | 0 / 0 | 2 | Hangul font/layout pending |
+| bn | 112 | 0 / 0 | 2 | Bengali glyph/number behavior pending |
+| th | 112 | 0 / 0 | 2 | Thai line break and fonts pending |
+| id | 112 | 0 / 0 | 2 | Monitoring language review pending |
+| fil | 112 | 0 / 0 | 4 | Conventional technical English also occurs; editorial review pending |
+| ar | 112 | 0 / 0 | 2 | RTL, LTR scope/identifier isolation and native punctuation pending |
+
+Identical literal examples include the immutable application name `CFVigil`
+and the Cloudflare action name. Isolated terms (e.g., French 'Incidents',
+time units and 'code', Japanese legal Apache name, or Filipino technical
+'Account') are *not* proof of untranslated fallback or accepted semantics.
+No label was rewritten merely to reduce an equality count.
+
+Scope gap still OPEN: lower-level native Rust error constants in
+`native_messages.rs` are not uniformly mapped through localized
+presentation, especially startup/keyring/config failures, opaque provider
+parser details and installer-native strings. Only exact, user-visible
+bounded messages are currently mapped. Comprehensive editorial semantic
+assessment and native font/RTL/accessibility evidence require installed
+KDE/Windows candidates. This audit must NOT set any language to Accepted.
