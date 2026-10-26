@@ -1162,3 +1162,18 @@ without weakening runtime/business assertions. Rust check and unit
 tests were **not reached** by the failed run; no Rust success is
 claimed. One deliberate final marker rerun is required before
 generating new owner candidates.
+
+
+### Second stable gate: Rust borrow error in bounded parallel discovery
+
+Preflight #40397520607 at `07e4ca7`: JavaScript, 20-locale
+source checks, icon, and offline Python passed. Rust check **FAILED**
+with `E0716` at `cloudflare.rs:330`: the
+`format!("{base}/pages/projects")` temporary was borrowed by the
+future stored in `tokio::join!` after the temporary was dropped.
+Code commit `c09e879` binds `pages_path` with sufficient lifetime
+before building concurrent futures. Separately the cache-specific
+Rust test asserted that a valid duplicate should disappear after the
+unrelated forged row is rejected; corrected in test-only `12b21fe`.
+Neither the Rust check nor the Rust test stage was successfully completed
+by the failed workflow. Only a fresh exact-SHA gate may validate these.
