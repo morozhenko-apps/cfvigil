@@ -730,3 +730,7 @@ mod tests {
         assert!(!valid_name(""));
     }
 }
+
+#[cfg(test)]
+#[path = "cloudflare_http_tests.rs"]
+mod http_tests;
