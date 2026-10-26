@@ -185,6 +185,7 @@ fn select_worker_attempt(
 
 pub struct Cloudflare {
     http: Client,
+    api_root: String,
 }
 
 pub struct Discovery {
@@ -205,14 +206,25 @@ impl Cloudflare {
             .user_agent("CFVigil/0.1.0")
             .build()
             .map_err(|_| msg::CF_BUILDER_INIT.to_string())?;
-        Ok(Self { http })
+        Ok(Self { http, api_root: API.to_owned() })
+    }
+
+
+    // Integration fixtures use a loopback-only server and the REAL get(),
+    // list_paginated(), discovery and global request budget. The override is
+    // unavailable to production builds and never accepts a user-supplied URL.
+    #[cfg(test)]
+    fn fixture(api_root: String) -> Self {
+        let http = Client::builder().redirect(Policy::none()).no_proxy()
+            .timeout(Duration::from_secs(5)).build().unwrap();
+        Self { http, api_root }
     }
 
     async fn get(&self, token: &str, path: &str, budget: &ApiBudget) -> Result<(Value, usize), String> {
         budget.check()?;
         let mut response = self
             .http
-            .get(format!("{API}{path}"))
+            .get(format!("{}{path}", self.api_root))
             .bearer_auth(token)
             .send()
             .await
