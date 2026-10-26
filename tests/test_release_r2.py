@@ -144,5 +144,90 @@ class PublicationFixture(unittest.TestCase):
                             "invalid", "", "")
 
 
+
+class UploadSafetyTests(unittest.TestCase):
+    """Exercise the actual R2 upload logic with offline S3 byte-contract fakes."""
+
+    class NotFound(Exception):
+        response = {"ResponseMetadata": {"HTTPStatusCode":404}}
+
+    class Forbidden(Exception):
+        response = {"ResponseMetadata": {"HTTPStatusCode":403}}
+
+    class Body:
+        def __init__(self, value):
+            self.value = value
+        def iter_chunks(self, chunk_size):
+            for i in range(0, len(self.value), chunk_size):
+                yield self.value[i:i + chunk_size]
+
+    class FakeS3:
+        def __init__(self):
+            self.objects = {}
+            self.writes = []
+            self.deny_head = False
+        def head_object(self, Bucket, Key):
+            if self.deny_head:
+                raise UploadSafetyTests.Forbidden()
+            if Key not in self.objects:
+                raise UploadSafetyTests.NotFound()
+            return {"Metadata":self.objects[Key][1]}
+        def upload_file(self, filename, Bucket, Key, ExtraArgs):
+            self.writes.append((Bucket, Key, ExtraArgs))
+            self.objects[Key] = (Path(filename).read_bytes(), ExtraArgs["Metadata"])
+        def get_object(self, Bucket, Key):
+            return {"Body":UploadSafetyTests.Body(self.objects[Key][0])}
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.file = Path(self.temp.name) / "CFVigil-0.1.0-linux-x64.AppImage"
+        self.file.write_bytes(b"isolated validated binary")
+        self.client = self.FakeS3()
+        self.key = "releases/v0.1.0/linux/" + self.file.name
+        self.object_key = release.PREFIX + self.key
+
+    def test_missing_file_is_uploaded_to_isolated_bucket_and_sha_verified(self):
+        release.upload(self.client, self.key, self.file, True)
+        self.assertEqual(len(self.client.writes),1)
+        bucket, key, options = self.client.writes[0]
+        self.assertEqual((bucket,key),("cfvigil-dist",self.object_key))
+        self.assertEqual(options["Metadata"]["sha256"],release.digest(self.file))
+        self.assertIn("immutable",options["CacheControl"])
+        self.assertEqual(self.client.objects[self.object_key][0],self.file.read_bytes())
+
+    def test_immutable_identical_blob_is_reused_without_upload(self):
+        self.client.objects[self.object_key] = (
+            self.file.read_bytes(),{"sha256":release.digest(self.file)}
+        )
+        release.upload(self.client,self.key,self.file,True)
+        self.assertEqual(self.client.writes,[])
+
+    def test_immutable_conflict_rejects_without_overwriting_existing_bytes(self):
+        self.client.objects[self.object_key] = (b"other data",{"sha256":"f"*64})
+        with self.assertRaisesRegex(ValueError,"Refusing to overwrite immutable"):
+            release.upload(self.client,self.key,self.file,True)
+        self.assertEqual(self.client.writes,[])
+        self.assertEqual(self.client.objects[self.object_key][0],b"other data")
+
+    def test_mutable_index_updates_with_no_store_cache_control(self):
+        self.client.objects[self.object_key] = (b"old index",{"sha256":"f"*64})
+        release.upload(self.client,self.key,self.file,False)
+        self.assertEqual(self.client.writes[0][2]["CacheControl"],"no-store")
+        self.assertEqual(self.client.objects[self.object_key][0],self.file.read_bytes())
+
+    def test_private_readback_mismatch_fails_before_public_proof(self):
+        self.client.objects[self.object_key] = (b"corrupted",{"sha256":release.digest(self.file)})
+        with self.assertRaisesRegex(ValueError,"Private R2 readback failed"):
+            release.upload(self.client,self.key,self.file,True)
+        self.assertEqual(self.client.writes,[])
+
+    def test_forbidden_head_does_not_turn_into_an_unverified_upload(self):
+        self.client.deny_head = True
+        with self.assertRaises(self.Forbidden):
+            release.upload(self.client,self.key,self.file,True)
+        self.assertEqual(self.client.writes,[])
+
+
 if __name__ == "__main__":
     unittest.main()
