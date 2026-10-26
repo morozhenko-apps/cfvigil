@@ -179,3 +179,39 @@ errors and installer surfaces may still contain English. Source structural
 checks passed; full CI/native machine acceptance must be assessed separately.
 Owner-requested checkpoint `docs/NATIVE_MACHINE_GATE.md` strictly precedes
 comprehensive stable/flaky/Mode B test expansion.
+
+
+## 2026-10-26: Mode A, bounded Cloudflare diagnostics presentation
+
+Status: IN PROGRESS. This is the next scoped 0.8 source milestone. The existing
+20 activated draft locales, Tauri IPC messages, Cloudflare read-only behavior,
+saved incident messages and package gates remain authoritative.
+
+1. [ ] Add explicit, exact-match presentation translations for the frequently
+   surfaced Cloudflare network/JSON/credential/partial/stale/pending/rate-limit/
+   discovery failures. Retain the original native English constants, status IDs,
+   account/token state, event identities and polling cadence.
+2. [ ] Format **only** bounded numeric `Cloudflare HTTP NNN (code N)` diagnostic
+   variants and their known Workers/Pages provider prefixes. Translate the
+   display-only `code` / `check scope` labels in all 20 existing UI catalogs;
+   never translate the numeric codes or the exact Cloudflare permission names.
+   Treat unknown or future error text as opaque, never as a translation key.
+3. [ ] Route card provider warnings, sync messages, resource details and
+   Settings command errors through one pure formatter. Preserve textContent
+   rendering and live locale switching; do not reinterpret 400 as a 403
+   permissions failure, hide warnings, or synthesize successful states.
+4. [ ] Add deterministic positive/negative regression cases for RU/pt-PT,
+   other activated locales, numeric HTTP 400/403 distinctions and unknown
+   text; validate catalog parity and native constants. Run one final stable
+   verification gate with the explicit `ci/run-preflight.txt` marker.
+5. [ ] Preserve the native KDE/Windows acceptance checklist. This source
+   milestone does **not** close broader provider/analytics/WAF diagnostic
+   translation, localization editorial review, the KDE launcher icon,
+   incident/offline/language device acceptance, or 0.9 Mode B.
+
+Risks: unsafe free-text interpolation, silently treating HTTP 400 as missing
+Pages Read, false translated success, or changing historical messages. The
+formatter works solely on exact known native diagnostics and a strict numeric
+HTTP grammar, leaves other text unchanged and only emits plain strings.
+Rollback: independently reverse the one presentation/catalog/test commit;
+there is no persistent schema or public Cloudflare contract migration.
