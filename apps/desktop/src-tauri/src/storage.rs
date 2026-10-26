@@ -239,4 +239,78 @@ mod tests {
         assert!(write_atomic(&path, &vec!["tampered"], MAX_JSON_BYTES).is_err());
         assert_eq!(fs::read(&secret).unwrap(), b"[\"protected\"]");
     }
+    #[test]
+    fn given_exact_json_length_when_writing_then_limit_comparison_is_inclusive() {
+        let dir = TestDir::new();
+        let path = dir.file();
+        let payload = Vec::<String>::new();
+        let length = serde_json::to_vec_pretty(&payload).unwrap().len() as u64;
+        assert_eq!(length,2);
+        assert!(write_atomic(&path,&payload,length).is_ok());
+        assert_eq!(read_or_default::<Vec<String>>(&path,length).unwrap().value,payload);
+        assert!(write_atomic(&path,&payload,length - 1).is_err());
+        assert_eq!(fs::read(&path).unwrap(),b"[]");
+    }
+
+    #[test]
+    fn given_oversized_replacement_when_writing_then_previous_good_state_is_not_lost() {
+        let dir=TestDir::new();
+        let path=dir.file();
+        write_atomic(&path,&vec!["old"],MAX_JSON_BYTES).unwrap();
+        let before=fs::read(&path).unwrap();
+        let too_big = vec!["x".repeat(200)];
+        assert!(write_atomic(&path,&too_big,20).is_err());
+        assert_eq!(fs::read(&path).unwrap(),before);
+        assert_eq!(fs::read_dir(&dir.0).unwrap().count(),1);
+    }
+
+    #[test]
+    fn given_missing_parent_directory_when_writing_then_failure_does_not_leave_temp_or_fake_success() {
+        let dir=TestDir::new();
+        let missing=dir.0.join("absent");
+        let path=missing.join("events.json");
+        assert!(write_atomic(&path,&vec!["x"],MAX_JSON_BYTES).is_err());
+        assert!(!path.exists());
+        assert!(!missing.exists());
+    }
+
+    #[test]
+    fn given_truncated_json_when_recovering_then_a_real_backup_precedes_new_state() {
+        let dir=TestDir::new();
+        let path=dir.file();
+        fs::write(&path,b"{\"entries\":[").unwrap();
+        let result: Loaded<Vec<String>>=read_or_default(&path,MAX_JSON_BYTES).unwrap();
+        assert!(result.quarantined);
+        assert!(result.value.is_empty());
+        assert!(!path.exists());
+        let backups:Vec<_>=fs::read_dir(&dir.0).unwrap()
+          .map(|item|item.unwrap().path())
+          .filter(|p|p.file_name().unwrap().to_string_lossy().contains(".corrupt."))
+          .collect();
+        assert_eq!(backups.len(),1);
+        assert_eq!(fs::read(&backups[0]).unwrap(),b"{\"entries\":[");
+        write_atomic(&path,&vec!["fresh"],MAX_JSON_BYTES).unwrap();
+        assert_eq!(fs::read(&backups[0]).unwrap(),b"{\"entries\":[");
+    }
+
+    #[test]
+    fn given_multiple_independent_invalid_files_when_quarantining_then_each_backup_is_preserved() {
+        let dir=TestDir::new();
+        let path=dir.file();
+        for attempt in 0..3 {
+            let corrupt=format!("not-json-{attempt}");
+            fs::write(&path,corrupt.as_bytes()).unwrap();
+            let result:Loaded<Vec<String>>=read_or_default(&path,MAX_JSON_BYTES).unwrap();
+            assert!(result.quarantined);
+            assert!(!path.exists());
+        }
+        let backups:Vec<_>=fs::read_dir(&dir.0).unwrap()
+          .map(|item|item.unwrap().path()).collect();
+        assert_eq!(backups.len(),3);
+        let mut contents=backups.iter()
+          .map(|path|fs::read_to_string(path).unwrap()).collect::<Vec<_>>();
+        contents.sort();
+        assert_eq!(contents,vec!["not-json-0","not-json-1","not-json-2"]);
+    }
+
 }
