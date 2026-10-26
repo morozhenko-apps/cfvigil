@@ -131,5 +131,5 @@ export default Object.freeze({
   "event.runtimeRecovery": "Il picco di errori Workers è terminato",
   "event.wafRecovery": "Il picco di blocchi WAF è terminato",
   "event.buildStarted": "Avviata una nuova compilazione o distribuzione Cloudflare",
-  "event.buildSuccess": "L'ultima distribuzione Cloudflare è riuscita"
+  "event.buildSuccess": "L'ultima compilazione o distribuzione Cloudflare è riuscita"
 });

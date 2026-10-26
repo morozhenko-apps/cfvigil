@@ -127,5 +127,5 @@ export default Object.freeze({
   "event.runtimeRecovery": "Ökningen av Workers-körningsfel har upphört",
   "event.wafRecovery": "Ökningen av WAF-blockeringar har upphört",
   "event.buildStarted": "En ny Cloudflare-byggning eller driftsättning har startat",
-  "event.buildSuccess": "Den senaste Cloudflare-driftsättningen lyckades"
+  "event.buildSuccess": "Den senaste Cloudflare-byggningen eller driftsättningen lyckades"
 });

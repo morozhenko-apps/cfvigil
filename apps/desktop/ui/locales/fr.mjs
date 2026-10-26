@@ -131,5 +131,5 @@ export default Object.freeze({
   "event.runtimeRecovery": "La hausse des erreurs d’exécution Workers est terminée",
   "event.wafRecovery": "La hausse des blocages WAF est terminée",
   "event.buildStarted": "Une nouvelle compilation ou un nouveau déploiement Cloudflare a démarré",
-  "event.buildSuccess": "Le dernier déploiement Cloudflare s’est terminé avec succès"
+  "event.buildSuccess": "La dernière compilation ou le dernier déploiement Cloudflare a réussi"
 });

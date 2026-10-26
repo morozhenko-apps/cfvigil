@@ -127,5 +127,5 @@ export default Object.freeze({
   "event.runtimeRecovery": "Toename van Workers-runtimefouten is voorbij",
   "event.wafRecovery": "Toename van WAF-blokkeringen is voorbij",
   "event.buildStarted": "Nieuwe Cloudflare-build of deployment gestart",
-  "event.buildSuccess": "Nieuwste Cloudflare-deployment is geslaagd"
+  "event.buildSuccess": "De nieuwste Cloudflare-build of deployment is geslaagd"
 });
