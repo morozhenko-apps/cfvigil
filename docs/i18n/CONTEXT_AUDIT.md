@@ -231,3 +231,29 @@ parser details and installer-native strings. Only exact, user-visible
 bounded messages are currently mapped. Comprehensive editorial semantic
 assessment and native font/RTL/accessibility evidence require installed
 KDE/Windows candidates. This audit must NOT set any language to Accepted.
+
+## 2026-10-26: source-level state semantics corrections after full audit
+
+Reviewed state-label semantics against the one actual monitoring model:
+green means a verified **successful latest attempt** (not merely finished),
+yellow covers **new running or queued builds AND deployments**, and grey
+means **unverified** (including a previously checked resource whose current
+status cannot be verified). Eight previously valid but imprecise draft
+labels were corrected, source `a4ee1cd`:
+
+| Locale | Key | Earlier issue | Updated value |
+| --- | --- | --- | --- |
+| es | `card.healthy` | `Correctos` too generic for successful attempts | `Exitosos` |
+| it | `card.healthy` | `Completati` also includes failed completions | `Riusciti` |
+| de | `card.statusUnknown` | `Nicht geprüft` suggests never inspected | `Nicht verifiziert` |
+| th | `card.statusUnknown` | `ยังไม่ได้ตรวจสอบ` suggests never inspected | `ยังไม่ยืนยัน` |
+| zh-Hant | `card.deploying` | `部署中` only refers to deployment | `進行中` |
+| ja | `card.deploying` | `デプロイ中` only refers to deployment | `進行中` |
+| ko | `card.deploying` | `배포 진행 중` only refers to deployment | `진행 중` |
+| ar | `card.deploying` | `قيد النشر` only refers to deployment | `قيد التنفيذ` |
+
+Source regression assertions pin those exact states. All 20 locales
+retain exact key/plural/parameter parity and immutable native status
+identifiers. This is a **substantive source-language QA pass**, not a
+native-speaker editorial approval, accessible font-layout screenshot
+or real-device language PASS. All locale status rows remain Draft.

@@ -1000,3 +1000,20 @@ this new tranche; this is NOT a browser-rendered or physically installed
 E2E acceptance result. Actual source CI counts will be recorded after
 the explicit marker. Do not claim dynamic production Cloudflare
 transition or real WAF/Workers Analytics spike was witnessed.
+
+### Source Mode B first full gate and locale follow-up
+
+Preflight #40379110546 at `a66bf1e` passed on standard GitHub-hosted
+Ubuntu: 88/88 Node tests, 10/10 offline Python tests (7 release + 3 icon),
+61/61 Rust tests, Rust check, icon, source i18n and JavaScript parsing.
+No skipped/failing checks. The added Rust fixtures and all-locale Node
+checks are validated, but no real provider/network/machine execution was
+performed. This is a source PASS, not E2E.
+
+The separate semantic source review then found eight label-level
+ambiguities: Italian finished-vs-success, Spanish correct-vs-success,
+German/Thai never-checked-vs-unverified, and zh-Hant/JA/KO/AR
+deploying-only-vs-in-progress including builds. Corrected in
+`a4ee1cd`, pinned by explicit Node assertions. One **final** source
+Preflight is required on this revised content before triggering two
+unreleased candidate workflows from a single marker commit.
