@@ -134,4 +134,130 @@ mod tests {
         let cache = ResourceCatalogCache { account_id:account.clone(), resources:source };
         assert!(cache.show_stale(&account).is_empty());
     }
+
+    #[test]
+    fn given_account_id_when_validating_then_exact_ascii_hex_bounds_are_enforced() {
+        for account in [
+            "a".repeat(32), "A".repeat(32), "0123456789abcdef0123456789ABCDEF".into()
+        ] {
+            assert!(safe_account(&account), "valid hex: {account}");
+        }
+        for account in [
+            "".to_owned(), "a".repeat(31), "a".repeat(33),
+            "g".repeat(32), "a".repeat(31) + " ", "é".repeat(16),
+        ] {
+            assert!(!safe_account(&account), "invalid account: {account}");
+        }
+    }
+
+    #[test]
+    fn given_resource_name_when_validating_then_injection_and_128_character_boundary_are_enforced() {
+        for name in ["x", "worker_name", "pages-service", "A0123", &"a".repeat(128)] {
+            assert!(safe_name(name), "valid name: {name}");
+        }
+        for name in ["", ".", "..", "../escape", "worker/path", "name?secret",
+            "name#fragment", "<script>", "tab\tname", "newline\nname",
+            "é", "bad%2fescape", &"a".repeat(129)] {
+            assert!(!safe_name(name), "invalid name: {name}");
+        }
+    }
+
+    #[test]
+    fn given_0_1_512_513_entries_when_cached_then_the_limit_is_strict() {
+        let account = "a".repeat(32);
+        for (count, allowed) in [(0,true),(1,true),(511,true),(512,true),(513,false)] {
+            let input: Vec<Resource> = (0..count)
+                .map(|i| make("worker", &format!("worker{i}"), "healthy")).collect();
+            let cache = ResourceCatalogCache::from_discovery(&account, &input);
+            assert_eq!(cache.is_some(), allowed, "catalog length {count}");
+            if let Some(cache) = cache {
+                let rows = cache.show_stale(&account);
+                assert_eq!(rows.len(), count);
+                assert!(rows.iter().all(|r| r.status == "unknown"
+                    && r.attempt_id.is_empty()));
+            }
+        }
+    }
+
+    #[test]
+    fn given_invalid_kinds_and_keys_when_building_cache_then_only_trusted_worker_pages_survive() {
+        let account = "a".repeat(32);
+        let mut forged_key = make("worker", "real", "healthy");
+        forged_key.key = "worker:someone-else".into();
+        let mut corrupted_kind = make("worker", "other", "failed");
+        corrupted_kind.kind = "zone".into();
+        let rows = [
+            make("worker", "real", "healthy"),
+            make("pages", "site-one", "deploying"),
+            make("zone", "zone-one", "failed"),
+            make("worker", "bad/path", "failed"),
+            forged_key, corrupted_kind
+        ];
+        let cache = ResourceCatalogCache::from_discovery(&account, &rows).unwrap();
+        let expected: Vec<_> = cache.show_stale(&account)
+            .into_iter().map(|r| r.key).collect();
+        assert_eq!(expected, ["worker:real", "pages:site-one"]);
+    }
+
+    #[test]
+    fn given_duplicate_row_keys_when_caching_then_first_row_wins_and_output_does_not_duplicate() {
+        let account = "a".repeat(32);
+        let source = [
+            make("worker", "alpha", "failed"),
+            make("worker", "alpha", "healthy"),
+            make("pages", "alpha", "deploying")
+        ];
+        let cache = ResourceCatalogCache::from_discovery(&account, &source).unwrap();
+        assert_eq!(cache.resources.len(), 2);
+        assert_eq!(cache.show_stale(&account).len(), 2);
+        assert_eq!(cache.resources[0].key, "worker:alpha");
+        assert_eq!(cache.resources[1].key, "pages:alpha");
+    }
+
+    #[test]
+    fn given_account_switch_and_cached_history_when_restarting_then_no_foreign_row_or_verified_state_leaks() {
+        let a = "a".repeat(32);
+        let b = "b".repeat(32);
+        let from_a = ResourceCatalogCache::from_discovery(
+            &a, &[make("worker", "alpha", "failed"),
+                make("pages", "beta", "healthy")]).unwrap();
+        assert!(from_a.show_stale(&b).is_empty());
+        assert!(from_a.show_stale(&a.to_uppercase()).is_empty());
+        assert_eq!(from_a.show_stale(&a).len(), 2);
+        let from_b = ResourceCatalogCache::from_discovery(
+            &b, &[make("worker", "beta", "healthy")]).unwrap();
+        assert_eq!(from_b.show_stale(&b).len(), 1);
+        assert!(from_b.show_stale(&a).is_empty());
+    }
+
+    #[test]
+    fn given_legacy_or_corrupt_serialized_catalog_when_restoring_then_missing_identity_is_fail_closed() {
+        let parsed: ResourceCatalogCache =
+            serde_json::from_str(r#"{"resources":[]}"#).unwrap();
+        assert!(parsed.show_stale(&"a".repeat(32)).is_empty());
+        assert!(serde_json::from_str::<ResourceCatalogCache>(
+            r#"{"account_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","resources":"invalid"}"#)
+            .is_err());
+        let default: ResourceCatalogCache = serde_json::from_str("{}").unwrap();
+        assert!(default.show_stale(&"a".repeat(32)).is_empty());
+    }
+
+    #[test]
+    fn given_hostile_saved_urls_when_serialized_then_cache_contains_only_canonical_dashboard_urls() {
+        let account = "a".repeat(32);
+        let cache = ResourceCatalogCache::from_discovery(&account, &[
+            make("worker", "script", "healthy"),
+            make("pages", "frontend", "failed")
+        ]).unwrap();
+        let json = serde_json::to_string(&cache).unwrap();
+        assert!(!json.contains("evil.example"));
+        assert!(!json.contains("token=secret"));
+        assert!(!json.contains("old-attempt"));
+        assert!(!json.contains("previous live status"));
+        assert_eq!(cache.show_stale(&account)[0].url,
+            format!("https://dash.cloudflare.com/{account}/workers/services/view/script/production"));
+        assert_eq!(cache.show_stale(&account)[1].url,
+            format!("https://dash.cloudflare.com/{account}/pages/view/frontend"));
+    }
+
 }
