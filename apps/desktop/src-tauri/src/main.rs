@@ -443,6 +443,14 @@ async fn save_settings(
 
 fn show_window(app: &AppHandle, label: &str) {
     if let Some(window) = app.get_webview_window(label) {
+        #[cfg(target_os = "linux")]
+        if let Ok(native) = window.gtk_window() {
+            use gtk::prelude::*;
+            native.set_icon_name(Some("cfvigil-desktop"));
+        }
+        if let Some(icon) = app.default_window_icon().cloned() {
+            let _ = window.set_icon(icon);
+        }
         let _ = window.show();
         let _ = window.set_focus();
         if label == "settings" {
@@ -942,6 +950,19 @@ fn install_window_icons(app: &tauri::App) {
         }
     } else {
         eprintln!("CFVigil application icon is missing from bundled resources");
+    }
+    #[cfg(target_os = "linux")]
+    {
+        use gtk::prelude::*;
+        // KDE may resolve a desktop-entry Icon= name instead of the pixbuf,
+        // particularly for Wayland's app-id window/task-switcher resolution.
+        for label in ["main", "settings", "history", "about"] {
+            if let Some(window) = app.get_webview_window(label) {
+                if let Ok(native) = window.gtk_window() {
+                    native.set_icon_name(Some("cfvigil-desktop"));
+                }
+            }
+        }
     }
 }
 

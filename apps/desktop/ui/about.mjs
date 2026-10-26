@@ -28,3 +28,9 @@ document.getElementById("about-source").addEventListener("click", () => {
     document.getElementById("about-source").title = t("card.openError");
   });
 });
+
+const closeAbout = () => { void window.__TAURI__.window.getCurrentWindow().hide(); };
+document.getElementById("about-close").addEventListener("click", closeAbout);
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape") { event.preventDefault(); closeAbout(); }
+});

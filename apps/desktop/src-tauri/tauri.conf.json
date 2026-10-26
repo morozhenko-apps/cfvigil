@@ -52,7 +52,9 @@
         "height": 310,
         "resizable": false,
         "visible": false,
-        "maximizable": false
+        "decorations": false,
+        "maximizable": false,
+        "minimizable": false
       }
     ],
     "security": {
