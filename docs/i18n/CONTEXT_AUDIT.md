@@ -318,3 +318,32 @@ native-speaker 114-string editorial certification in every language.
 CJK/Indic/Thai/Bengali glyphs, Arabic bidi, long German/Polish/Greek
 words, screen-reader labels and installed Windows/KDE layouts remain
 physical checks. Existing per-locale status stays DRAFT.
+
+
+### Approved-compatible source correction for build-success history semantics
+
+Confirmed from `incident_policy::describe_transition` and
+`select_worker_attempt`: native `EVENT_BUILD_SUCCESS` is emitted on
+`current.status == healthy` for a successfully stopped **Worker build**
+as well as a verified successful deployment. The persisted native literal
+historically says "Latest Cloudflare deployment succeeded", which can
+overclaim the deployment. This is a terminology/display correctness defect.
+
+Scoped compatible remediation (no persistent/public schema change):
+- Keep `native_messages::EVENT_BUILD_SUCCESS` **exactly unchanged** and
+  persist the same historical English value for new and old records.
+- Update the **display-only** English `event.buildSuccess` and 19 target
+  translations to say latest **build or deployment attempt** succeeded,
+  not deployed workload availability.
+- Introduce an explicit constant-literal legacy alias in
+  `localization.mjs` mapping the old persisted English string to the new
+  locale message key. Ensure `eventText` and `incidentText` still
+  recognize old history and work for all 20 locales without rewriting data.
+- Replace the overrestrictive test asserting that the English UI wording
+  must equal immutable native storage. Instead assert immutable source
+  literal, deliberate new display semantics and the backward mapping.
+- No Cloudflare API write, incident state or historical-message rewrite.
+
+This removes a misleading *presentation claim* while preserving native
+event identity. Native machine text fitting and human editorial review
+remain pending.
