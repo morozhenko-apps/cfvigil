@@ -893,3 +893,23 @@ Settings Apply, token-editor saved-state ambiguity, and release console.
 A platform-isolated Windows card controller and credential-save revision
 synchronization replace the problematic flows in dev source. None of
 these remediations may be called native PASS until installed retest.
+
+## 2026-10-26: 0.8 Cloudflare diagnostic text presentation
+
+### Implementation and validation checkpoint
+
+Source: twenty complete draft catalogs gained ten known diagnostic labels
+(`37a0662`, `f44e478`, `a18236f`, `91d12c6`), then one pure formatter,
+card/Settings routing and regression tests (`754a358`). No native API call,
+serialized JSON, incident classification, provider status or release gate changed.
+
+First stable Preflight #40332875940 at `35afb88`: syntax, all source locale
+catalogs and icon checks passed; Node 81 PASS / 1 FAIL. The sole failure in
+`tests/polling.test.mjs` was an exact-source-text assertion expecting the
+pre-localization rendering literal `entry.textContent = item`. The actual
+updated renderer continues to use `textContent` safely but now invokes
+`diagnosticText(item)`. Test expectation was updated to enforce that safe
+localized path (`7649604`); no production code or test semantics were
+weakened. Rerun requested once by `aef1a49` (#40333108575, queued at this
+checkpoint). Python and Rust steps were skipped in the failed first run.
+Full gate, native install, editorial locale acceptance and Mode B are OPEN.
