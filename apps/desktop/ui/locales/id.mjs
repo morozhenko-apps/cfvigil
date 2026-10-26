@@ -86,7 +86,7 @@ export default Object.freeze({
   "settings.title": "Pengaturan",
   "settings.connection": "Koneksi",
   "settings.account": "ID akun Cloudflare",
-  "settings.accountPlaceholder": "ID akun 32 karakter",
+  "settings.accountPlaceholder": "ID akun 32 karakter heksadesimal",
   "settings.token": "Token API",
   "settings.tokenStored": "Token tersimpan di sistem. Masukkan token baru untuk menggantinya.",
   "settings.tokenUnavailable": "Tidak dapat memeriksa token (penyimpanan tidak tersedia).",

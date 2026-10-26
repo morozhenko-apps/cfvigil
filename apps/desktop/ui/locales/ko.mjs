@@ -86,7 +86,7 @@ export default Object.freeze({
   "settings.title": "설정",
   "settings.connection": "연결",
   "settings.account": "Cloudflare 계정 ID",
-  "settings.accountPlaceholder": "32자 계정 ID",
+  "settings.accountPlaceholder": "16진수 32자리 계정 ID",
   "settings.token": "API 토큰",
   "settings.tokenStored": "토큰이 시스템 저장소에 저장되었습니다. 변경하려면 새 토큰을 입력하세요.",
   "settings.tokenUnavailable": "저장된 토큰을 확인할 수 없습니다(저장소 사용 불가).",
