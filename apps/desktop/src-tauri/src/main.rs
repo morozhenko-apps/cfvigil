@@ -443,13 +443,13 @@ async fn save_settings(
 
 fn show_window(app: &AppHandle, label: &str) {
     if let Some(window) = app.get_webview_window(label) {
+        if let Some(icon) = app.default_window_icon().cloned() {
+            let _ = window.set_icon(icon);
+        }
         #[cfg(target_os = "linux")]
         if let Ok(native) = window.gtk_window() {
             use gtk::prelude::*;
             native.set_icon_name(Some("cfvigil-desktop"));
-        }
-        if let Some(icon) = app.default_window_icon().cloned() {
-            let _ = window.set_icon(icon);
         }
         let _ = window.show();
         let _ = window.set_focus();
