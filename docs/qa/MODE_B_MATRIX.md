@@ -501,3 +501,118 @@ Remaining owner/native and protected-release gates: KDE/Windows real
 installed UI, actual Cloudflare API response drift, keychain failure
 and concurrency under real OS conditions, protected R2 public GET
 readback and signing. Never turn these to PASS from fixture output.
+
+
+## 2026-10-26 — Follow-on Mode B Stage 9–10 tranche
+
+This continuation advances the **previously identified** gaps in the
+21+3-artifact Positive/N1–N12 matrix. It does not create a new product
+feature or alter the public Cloudflare API, persistent user formats,
+security boundary or release channel. At completion of this tranche,
+these are **source-authored, not yet executed**.
+
+### Actual implementation and contracts
+
+- `main.rs`: extracted the existing credential operation decision and
+  execution into `credential_action` / `perform_credential_action`,
+  reusing **those same helpers in production**. The only native operations
+  remain the existing OS keyring read/set, under the established serialized
+  `refresh_lock`. No keyring I/O on a locale-only or unchanged Apply;
+  a token write or old-token verification error returns **before** JSON
+  settings commit or polling. `CredentialAction` intentionally does
+  not implement `Debug` to prevent incidental secret formatting.
+- `main.rs`: an OS autostart read/change seam `apply_autostart`
+  runs the existing real plugin calls while allowing deterministic
+  `PermissionDenied` and `read unavailable` failure injection.
+  An unchanged preference never asks the OS for its current value.
+  The real public command still reports partial settings persistence
+  if autostart failed; it does not silently claim rollback.
+- `main.rs`: both provider-response publication guards now call the
+  same `superseded_revision` helper. Concurrent configuration changes
+  invalidate replies collected with outdated account/credentials.
+  There is no added poller, retry, timeout or activity check.
+- `main.rs` test modules: 13 Settings/keyring/autostart methods and
+  5 partial-provider/revision tests, including version change during
+  in-flight data, independent Workers/Pages partial-failure statuses
+  and WAF's explicit confirmed-zone recovery boundary.
+- `tests/smoke-defects-mode-a.test.mjs` was corrected to assert the
+  **absence** of the About description, as explicitly requested by
+  the owner. The older test incorrectly asserted its presence and
+  contradicted the more recent `mode-b-about-history-icon` contract.
+  Locale dictionary keys remain intentionally available to avoid
+  modifying historical/localized data.
+- `tests/artifact-retention.test.mjs`: 4 new fail-closed cleanup
+  scenarios for forged/incomplete receipts, 403/malformed/multiple
+  GitHub artifacts, DELETE 503/uncleared artifacts, missing token
+  and idempotent already-deleted results.
+- `tests/test_release_r2.py`: 6 new offline tests use fake S3
+  head/upload/get bytes to verify the **real** `r2_release.upload`
+  logic: exact CFVigil bucket/prefix, immutable same-hash reuse,
+  immutable hash conflict refusing overwrite, mutable index
+  `no-store`, private byte-mismatch rejection, and denied
+  credentials without a new upload. No R2 or public GET was called.
+
+### Mode B new scenario inventory (this continuation only)
+
+| Test owner | New test functions | Categories exercised (overlap allowed) |
+| --- | ---: | --- |
+| Cloudflare REST localhost | 9 Rust | Positive, N1, N2, N3, N6, N7 |
+| Workers Analytics GraphQL localhost | 4 Rust | Positive, N1, N2, N3, N6, N7 |
+| Zone-level WAF localhost | 4 Rust | Positive, N2, N3, N6, N7 |
+| Atomic cache persisted/recovery | 2 Rust | Positive, N6, N7, N12 |
+| Post-fsync rename failure | 2 Rust | N6, N10, N12 |
+| Credential/autostart state + simulated OS failures | 13 Rust | Positive, N4, N5, N7, N10 |
+| Partial provider and revision-race policy | 5 Rust | Positive, N3, N4, N5, N6 |
+| Public download Worker | 4 Node | Positive, N1, N2, N7 |
+| In-memory decision mutants (18 mutations) | 3 Node | Stage 10, Positive, N1, N2, N5, N6 |
+| GitHub artifact cleanup receipt and API denials | 4 Node | N1, N3, N4, N6, N7 |
+| R2 immutable/mutable byte and permission contracts | 6 Python | Positive, N3, N4, N6, N7, N12 |
+| **Total new test functions** | **56 (39 Rust, 11 JS, 6 Python)** | **Unexecuted, never label PASS** |
+
+Scenario categories **not applicable** to this free, read-only
+monitoring product: N11 purchases, subscriptions, paywalls and
+entitlements (no such production flows exist). N8 (locale/date)
+and N9 (UI interruption) have prior dedicated test coverage and
+separately pending physical tests; they were not targeted by this
+transport/persistence continuation. The table intentionally does
+not claim 56 distinct N-category-exclusive checks: many tests cover
+multiple categories. Counts are source inventory, NOT results.
+
+### Stage 10 intended mutation kills and evidence boundaries
+
+New assertions should reject: retry after 429, missing pagination
+page, wrong latest-attempt selection, treating HTTP 400 as denied
+scope, foreign WAF zones, GraphQL partial response claimed recovered,
+mutable R2 object treated immutable or vice versa, cleanup before
+validated public readback, unpublished receipts, unverified deletes,
+cross-account cached identity, publication of superseded account
+results, unintended OS autostart write on no-op, or committing settings
+after keyring write failure.
+
+The existing 18 JS source mutants now have an executable test harness
+under `tests/mode-b-mutation-checks.test.mjs`, but **their actual kill
+results are not yet recorded**. The Rust mutation descriptions are
+test-to-invariant mappings, not a recorded automated mutation run.
+
+### Remaining mandatory gaps before Mode B COMPLETE
+
+Stage 11 full stable suite remains **NOT EXECUTED** for these commits:
+run Node stable, i18n, offline Python, locked Rust check and test
+**only after** all planned changes/mutation reviews. Known-FLAKY
+suite: none registered; do not infer perfect stability. If errors
+occur, use root cause and rerun only affected checks plus mandatory
+stable gate, never weaken assertions.
+
+Actual locked/denied OS keyring under KDE and Windows; real OS
+autostart-denial behavior; screen-reader/RTL and visual scroll; real
+Cloudflare schema/permission drift; Windows SmartScreen warning
+classification; production protected signing/R2 upload/public GET
+readback and cleanup are **NOT OBSERVED**. A fake HTTP or S3 provider
+does not close those physical/production gates. No self-hosted runners,
+CI markers, candidate builds, `main`, release or R2 publication
+were touched in this continuation.
+
+Rollback: each change is scoped to a source/test commit. The
+keyring/autostart helpers preserve existing action ordering. The
+new R2 and GitHub tests are test-only and require no user-state
+migration or cleanup.
