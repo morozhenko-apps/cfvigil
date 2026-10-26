@@ -257,3 +257,64 @@ retain exact key/plural/parameter parity and immutable native status
 identifiers. This is a **substantive source-language QA pass**, not a
 native-speaker editorial approval, accessible font-layout screenshot
 or real-device language PASS. All locale status rows remain Draft.
+
+
+## 2026-10-26: contextual semantics review (beyond key parity)
+
+Review target: actual monitoring semantics from `docs/PRODUCT.md`,
+not English word matching. Green represents **the latest verified
+successful build/deployment attempt**, not application uptime;
+yellow is any in-progress *build or deployment*; grey means
+unverified, including previously seen resources. Workers runtime
+error spikes are separate from failed deployments. WAF zone-level
+blocked traffic is not an attack attribution.
+
+### Confirmed translation defects requiring correction
+
+- **en** `card.healthy` uses `Healthy`, which claims operational
+  health/uptime CFVigil does not measure. Change display text only to
+  `Successful`; keep internal `healthy` status ID stable.
+- **de** `settings.tokenUnavailable` ends with `Systemsperre
+  gesperrt` (a misleading system lock). Change to
+  `Anmeldedatenspeicher gesperrt` to describe an unavailable/locked
+  OS credential store. Preserve no-token exposure.
+- **tr** `settings.tokenHelp` describes a user API *key* as
+  `API anahtarı`; the application requires a user API **token**.
+  Use `kullanıcı API belirteci` and refer to `belirteç`
+  throughout that help message. Do not confuse scopes.
+- **ru** `event.buildFailure` uses plural verb with an alternative
+  singular `сборка или развёртывание`; reword as
+  `Последняя попытка сборки или развёртывания Cloudflare завершилась ошибкой`.
+- **ru** `event.buildStarted` inconsistently genders
+  `Началась новая сборка или развёртывание`. Reword as
+  `Запущена новая сборка или новое развёртывание Cloudflare`.
+
+These changes are locale-only display strings; existing persisted
+native event literals, Cloudflare statuses, tokens and event IDs MUST
+remain byte-for-byte stable. Add exact assertions for the corrected
+semantic cases, not a broad fallback to the English source.
+
+### Additional semantic contract requiring separate decision
+
+The English native event `Latest Cloudflare deployment succeeded`
+(`EVENT_BUILD_SUCCESS`) is potentially emitted after a Worker
+*build* succeeds even if the application did not verify a deployment.
+The current language catalogs translate the narrower "deployment"
+claim faithfully, but the underlying native event wording may be
+overconfident. Updating the persisted event literal without a
+backwards-compatibility mapping would break localization of historical
+events. **Do not change this serialized literal silently.** Inspect the
+complete event transition contract and choose a compatible
+presentation-only correction or explicit versioned event identity
+before considering it accepted.
+
+### Unresolved human/native semantic evidence
+
+Each activated locale was reviewed for critical status labels,
+Worker/Pages build/deploy distinctions, runtime error vs deployment
+failure, WAF block spike, token permission names and unverified
+responses. This source-review pass is **not equivalent** to a human
+native-speaker 114-string editorial certification in every language.
+CJK/Indic/Thai/Bengali glyphs, Arabic bidi, long German/Polish/Greek
+words, screen-reader labels and installed Windows/KDE layouts remain
+physical checks. Existing per-locale status stays DRAFT.
