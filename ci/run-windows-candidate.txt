@@ -56,3 +56,10 @@ no main, tags, signing, R2 or publication.
 Same source tree as the Linux candidate marker in this single commit.
 Run hosted stable tests, verify unsigned installer/checksums and retain 1 day.
 No tag, protected release, R2, main, self-hosted runners or publication.
+
+2026-10-26: owner retest Windows unsigned NSIS after cross-platform Mode A.
+Hosted Preflight #40398156902 passed at exact source edfcc2a;
+candidate shares ONE dev commit with Linux (only both marker paths differ).
+Recheck changed-only Settings OK/Cancel, native tray locale, cache, pointer
+scrollbar, About/icon, unsigned Chrome warning. SHA256 verification required.
+No main, release tag, R2, production publish, or owner runners.
