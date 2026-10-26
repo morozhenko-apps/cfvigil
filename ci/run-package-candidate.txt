@@ -84,3 +84,8 @@ are unsigned native-machine candidates only. No main, tags, R2 or Mode B.
 Icon=hicolor installable image, stable Node/Python/Rust suites and build a
 fresh unreleased DEB/AppImage on exactly this SHA. Earlier installed DEB
 predates asset commit and cannot show this image. No main/Mode B/R2/tags.
+
+2026-10-26: owner-directed final smoke candidate, Linux amd64 DEB/AppImage.
+Same source tree as the Windows candidate marker in this single commit.
+Run hosted stable tests, validate package identity/checksums and retain 1 day.
+No tag, protected release, R2, main, self-hosted runners or publication.

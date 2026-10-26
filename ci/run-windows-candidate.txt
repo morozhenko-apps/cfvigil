@@ -51,3 +51,8 @@ offset following manual drag, opaque corner bevel and misaligned Hide arrow.
 Run JS contracts and Windows Rust/NSIS at exactly the same source as Preflight.
 Unsigned/private candidate only, retain owner installation acceptance gate;
 no main, tags, signing, R2 or publication.
+
+2026-10-26: owner-directed final smoke candidate, Windows x64 unsigned NSIS.
+Same source tree as the Linux candidate marker in this single commit.
+Run hosted stable tests, verify unsigned installer/checksums and retain 1 day.
+No tag, protected release, R2, main, self-hosted runners or publication.
