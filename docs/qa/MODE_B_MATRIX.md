@@ -338,7 +338,7 @@ contain multiple exact boundary fixtures):
 | `polling_policy.rs` | 2 | N2, N4, N5, infinite input safety |
 | `incident_store.rs` | 4 | N2, N4, N6, cross-account and eviction |
 
-Source additions total **58 new test functions** (22 JS +
+Source additions total **59 new test functions** (23 JS +
 36 Rust; excludes the existing suites). These are code inventory
 counts, **NOT pass counts**. Category membership overlaps and should
 not be double counted to inflate a global total. Every parameterized
@@ -392,3 +392,19 @@ Final stable (Node, Python, locked Rust check/test and locale/asset
 contracts) plus separate known-flaky group is reserved for completion
 of Stages 9–10. Previously recorded stable PASS at `edfcc2a`
 predates all the new tests and cannot be cited as their execution.
+
+
+### Stage 9 defect surfaced by testability inspection: About window capability
+
+The new frameless About Close/Escape control invokes
+`getCurrentWindow().hide()`. Repo previously granted
+`core:window:allow-hide` only to Settings; About had `core:default`
+and could be denied. Fixed in narrowly scoped
+`apps/desktop/src-tauri/capabilities/about.json` with window
+`["about"]` and permission `["core:window:allow-hide"]`.
+One additional JS contract case checks that both capability files
+grant hide to **only their corresponding windows**, not all WebViews.
+This is a real functional prerequisite discovered in Stage 9, not
+a test assertion relaxed to accommodate a broken implementation.
+
+No native or full stable suite has been executed after the changes.
