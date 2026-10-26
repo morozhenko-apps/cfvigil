@@ -925,3 +925,51 @@ Card locale switching now refreshes existing provider and sync error text
 without a fresh provider read. Rust, network and persistence untouched.
 Source/tests committed to `dev`; final stable gate and real owner-native
 machine inspection are still required. No main, package, R2, tag or Mode B.
+
+
+## 2026-10-26: owner-directed final source QA and candidate handoff
+
+**Primary task mode: Mode B (verification).** Owner explicitly requests this
+execution order: (1) source-level 20-locale completion/context audit;
+(3) Cloudflare provider-contract and scenario verification; (4) final
+stable/negative/fixture/Mode B source suite; and then (2) unreleased Linux
+and Windows binaries for **owner-run physical acceptance**. This explicit
+ordering supersedes the earlier native-before-Mode-B sequencing for
+source/fixture regression tests only. It does **not** waive the hard
+physical-machine gate, live-provider evidence or owner release approval.
+No account-scoped secret or local KDE/Windows desktop is accessible here.
+
+### Execution plan and evidence boundaries
+
+1. [ ] Audit each of 20 current draft UI dictionaries against its English
+   monitoring/incident semantics, fixed placeholders and source references;
+   run negative cases, inspect untranslated or misleading user-facing text,
+   make scoped corrections when justified, and update per-locale source audit
+   results. Do not claim native-editorial or on-screen acceptance without
+   source, reviewer and device evidence. No new product features.
+2. [ ] Cloudflare: inspect existing REST/GraphQL parsers, error budgets,
+   latest-attempt ordering, 403 vs 400/429 and partial-source handling;
+   confirm current fixtures. Introduce deterministic source tests for
+   gaps, including unknown/stale analytics and read-only boundaries.
+   Live account checks remain separately owner-run: never manufacture
+   successful real Cloudflare API observations or trigger synthetic
+   production outages.
+3. [ ] Mode B source and CI suite: positive/negative/boundary scenarios
+   grounded in existing contracts; classify stable vs flaky and run
+   stable suite once, final CI via one explicit Preflight marker. Evidence
+   must enumerate actual passing JS/Python/Rust counts and test failures.
+4. [ ] After a clean final code SHA and passing verification, issue Linux
+   and Windows candidate marker commits with no production publication.
+   **Both candidates must check out exactly the same source files/tree**
+   (the Windows marker commit differs only by marker): record run IDs,
+   source SHA mapping, checksums and temporary one-day artifacts.
+   Provide repeatable KDE/Windows smoke steps for owner to execute.
+5. [ ] Fix any validation failures before the final handoff; no automatic
+   main fast-forward, tag, bucket creation, R2 publication, signing setup,
+   GitHub Release, credential requests or machine PASS claim.
+
+Expected risks: weak pseudo-native test confidence, English leakage/RTL
+clipping, provider HTTP false-permission attribution, flaky CI, GitHub
+artifact expiry. Rollback is limited to scoped source/test commits; no
+persistent storage migration or Cloudflare mutation is planned. The owner
+must explicitly accept physical installed binaries before release.
