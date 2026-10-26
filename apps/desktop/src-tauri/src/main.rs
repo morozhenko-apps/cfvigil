@@ -12,6 +12,8 @@ mod polling_policy;
 mod security;
 mod storage;
 mod resource_cache;
+#[cfg(test)]
+mod test_http;
 #[cfg(target_os = "linux")]
 mod linux_surface;
 #[cfg(target_os = "linux")]
