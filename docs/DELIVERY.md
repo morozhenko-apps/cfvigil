@@ -1145,3 +1145,20 @@ classification and the actual old KDE launcher (packaged icon versus
 per-user pinned override) remain not diagnosed on owner's machines.
 Latest initially reported candidate `549d292` is obsolete for this
 repair batch. No `main`, tag, R2, live Cloudflare or release action.
+
+
+### First stable CI defect and targeted assertion repair
+
+Explicit Preflight #40397157304 at `f292e8a` failed at the
+stable JS step: **115 passed, 3 failed of 118**. The failures were
+outdated white-box assertions, not runtime/network tests:
+`tests/autostart.test.mjs` expected unconditional autostart payload;
+`tests/storage-contract.test.mjs` assumed only three persisted JSON
+files and one exact whitespace layout; new cross-platform smoke test
+used `handle` instead of actual `handler` for the KSNI update.
+The targeted test-only commit `b88b0ee` now checks the intended
+changed-only Apply, cached-state quarantine and actual KSNI path
+without weakening runtime/business assertions. Rust check and unit
+tests were **not reached** by the failed run; no Rust success is
+claimed. One deliberate final marker rerun is required before
+generating new owner candidates.
