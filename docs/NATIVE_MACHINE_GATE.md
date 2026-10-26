@@ -502,3 +502,37 @@ The repaired candidates must be produced from an identical new SHA
 after the stable source gate, then manually rechecked on both platforms.
 Mark every row PASS/FAIL with actual machine evidence; do not conflate
 the successful Tauri package build with native UI acceptance.
+
+
+## 2026-10-26: new matched owner-retest candidates for all reported defects
+
+**GitHub Actions builds in progress at record time**, not native PASS.
+A single candidate marker commit `ac9cd43537479de130482dcfb865febe6df4c0f0`
+contains the identical executable source for Linux and Windows.
+Stable Preflight [#40398156902](https://github.com/morozhenko-apps/cfvigil/actions/runs/40398156902)
+passed JS 118/118, offline Python 10/10, Rust 64/64 and locked
+Rust check at source `edfcc2a`; intervening commits were
+documentation and candidate marker edits only.
+
+- Linux DEB + AppImage: [candidate run #40399294585](https://github.com/morozhenko-apps/cfvigil/actions/runs/40399294585);
+  artifact `cfvigil-linux-unreleased-candidate`, retention 1 day.
+- Windows unsigned NSIS: [candidate run #40399294242](https://github.com/morozhenko-apps/cfvigil/actions/runs/40399294242);
+  artifact `cfvigil-windows-unreleased-unsigned-candidate`, retention 1 day.
+
+Exact SHA256 values are in the generated artifact sidecars; do not
+invent or copy values from older builds. Download only after each
+workflow succeeds; verify SHA256 before installing.
+
+The **first** use after upgrading may still perform Cloudflare
+discovery to seed the newly added catalog cache, though the asynchronous
+fetch must not block showing the tray/card. After a successful query,
+a subsequent **second** app launch must display previously known
+Worker/Pages names immediately in **grey/unverified** status, then
+update to verified colors when the API responds. A language-only
+Settings OK must never cause new Cloudflare network requests, change
+account/token/interval/autostart, or repoll provider details.
+
+Native acceptance remains OPEN; update the owner-observed matrix
+above only after physical Linux and Windows results, not the candidate
+job PASS alone. KDE menu launcher/pinned entry and Chrome warning
+classification still need owner-machine evidence.
