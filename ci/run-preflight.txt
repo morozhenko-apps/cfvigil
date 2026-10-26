@@ -212,3 +212,11 @@ native diagnostic string mappings, safe textContent rendering, updated
 live language-change warnings (no API refresh), RU/pt-PT/other-locale
 negative/positive cases, pre-existing icon/JS/Python/Rust checks.
 No Mode B, native machine PASS, candidate package, main/tag/R2 release.
+
+2026-10-26: Re-run stable Preflight ONCE after fixing two stale
+test-only assertions from failed #40374098821. Production localization
+remains unchanged: unknown provider payloads are still not translated
+unless the exact diagnostic literal is supported, and live language
+changes re-render the saved raw sync error. Validate all 20 catalogs,
+all Node tests, Python distribution checks and Rust native tests;
+no packages, Mode B, main, tag, R2 or owner machine PASS.
