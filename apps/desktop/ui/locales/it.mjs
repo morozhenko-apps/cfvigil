@@ -118,6 +118,7 @@ export default Object.freeze({
   "settings.autostartDetectedOff": "Disattivato per impostazione predefinita. Attivalo per avviare CFVigil automaticamente.",
   "settings.autostartUnavailable": "Stato dell'avvio automatico non disponibile; le altre impostazioni sono modificabili.",
   "settings.storageWarning": "I dati locali danneggiati sono stati conservati in un file .corrupt.* nella cartella delle impostazioni di CFVigil. Verifica connessione e cronologia.",
+  "about.close": "Chiudi",
   "about.title": "Informazioni su CFVigil",
   "about.name": "CFVigil",
   "about.version": "Versione {version} · Gratuito e open source",

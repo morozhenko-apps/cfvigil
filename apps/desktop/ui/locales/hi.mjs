@@ -114,6 +114,7 @@ export default Object.freeze({
   "settings.autostartDetectedOff": "डिफ़ॉल्ट रूप से बंद है। CFVigil को अपने आप शुरू करने के लिए इसे चालू करें।",
   "settings.autostartUnavailable": "ऑटो-स्टार्ट की स्थिति उपलब्ध नहीं है; अन्य सेटिंग्स बदली जा सकती हैं।",
   "settings.storageWarning": "खराब स्थानीय डेटा CFVigil सेटिंग्स फ़ोल्डर में .corrupt.* फ़ाइल के रूप में सुरक्षित रखा गया है। कनेक्शन और इतिहास जाँचें।",
+  "about.close": "बंद करें",
   "about.title": "CFVigil के बारे में",
   "about.name": "CFVigil",
   "about.version": "संस्करण {version} · मुफ़्त और ओपन सोर्स",
