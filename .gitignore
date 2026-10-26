@@ -9,6 +9,10 @@
 .DS_Store
 node_modules
 
+# Regenerable Python interpreter caches
+__pycache__/
+*.pyc
+
 # ICO/ICNS are now tracked derivatives of assets/branding/cfvigil_icon.png.
 # Keep only ancillary Tauri-generated aliases out of version control.
 /apps/desktop/src-tauri/icons/32x32.png
