@@ -195,3 +195,16 @@ A new DEB may be installed with `sudo apt install ./package.deb`
 without `apt purge`. On real KDE and Windows, verify the new icon in
 About/History/task switcher, not just the WebView's HTML favicon.
 Native acceptance remains owner-controlled.
+
+## 2026-10-26: independent DEB package audit evidence
+
+GitHub-hosted Linux candidate #40380870574 at source `549d292`
+printed `Verified KDE launcher Icon=cfvigil-desktop and 1 installed
+hicolor PNG(s)` and `cfvigil_0.1.0_amd64.deb: OK` in job logs.
+Thus that DEB had an actual themed PNG matching its desktop entry.
+This does **not** verify whether the pixels match the expected shield
+on the installed owner machine or whether KDE resolves a pinned desktop
+shortcut to that themed icon. It is not evidence that uninstall/purge
+would fix the issue. Inspect the installed theme and
+`~/.local/share/applications` override, rebuild `kbuildsycoca6`,
+and replace a stale pinned KDE shortcut only after observing its target.
