@@ -152,12 +152,14 @@ mod tests {
 
     #[test]
     fn given_resource_name_when_validating_then_injection_and_128_character_boundary_are_enforced() {
-        for name in ["x", "worker_name", "pages-service", "A0123", &"a".repeat(128)] {
+        let exact_limit = "a".repeat(128);
+        let over_limit = "a".repeat(129);
+        for name in ["x", "worker_name", "pages-service", "A0123", exact_limit.as_str()] {
             assert!(safe_name(name), "valid name: {name}");
         }
         for name in ["", ".", "..", "../escape", "worker/path", "name?secret",
             "name#fragment", "<script>", "tab\tname", "newline\nname",
-            "é", "bad%2fescape", &"a".repeat(129)] {
+            "é", "bad%2fescape", over_limit.as_str()] {
             assert!(!safe_name(name), "invalid name: {name}");
         }
     }
