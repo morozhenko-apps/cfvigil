@@ -141,3 +141,14 @@ an unexpected packaging contract. The R2-only distribution invariants and
 release permissions remain unchanged.
 
 Status: analysis complete; implementation and final CI verification pending.
+
+## 2026-10-26: protected release source-contract checkpoint
+
+The current source already has an exact-expression regression assertion
+in `tests/protected-release.test.mjs` preventing a literal stray brace
+after `${{ runner.temp }}`, plus exact upload/download paths for both
+staging directories. The protected workflow currently matches those paths.
+This supersedes the previous pre-implementation status note for the
+**source-path** problem only. The protected environment, public R2 readback,
+actual APT signing, live publishing and subsequent artifact deletion have
+NOT been executed or accepted. Keep production publication disabled.

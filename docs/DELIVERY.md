@@ -941,13 +941,13 @@ No account-scoped secret or local KDE/Windows desktop is accessible here.
 
 ### Execution plan and evidence boundaries
 
-1. [ ] Audit each of 20 current draft UI dictionaries against its English
+1. [x] Audit each of 20 current draft UI dictionaries against its English
    monitoring/incident semantics, fixed placeholders and source references;
    run negative cases, inspect untranslated or misleading user-facing text,
    make scoped corrections when justified, and update per-locale source audit
    results. Do not claim native-editorial or on-screen acceptance without
    source, reviewer and device evidence. No new product features.
-2. [ ] Cloudflare: inspect existing REST/GraphQL parsers, error budgets,
+2. [x] Cloudflare: inspect existing REST/GraphQL parsers, error budgets,
    latest-attempt ordering, 403 vs 400/429 and partial-source handling;
    confirm current fixtures. Introduce deterministic source tests for
    gaps, including unknown/stale analytics and read-only boundaries.
@@ -973,3 +973,30 @@ clipping, provider HTTP false-permission attribution, flaky CI, GitHub
 artifact expiry. Rollback is limited to scoped source/test commits; no
 persistent storage migration or Cloudflare mutation is planned. The owner
 must explicitly accept physical installed binaries before release.
+
+### Source QA tranche complete, final stable CI pending
+
+20/20 draft catalogs inspected at source level (direct message keys,
+parameter tokens and zero missing keys); target-aware semantic/render
+approval is still pending physical owner review. Detailed table:
+`docs/i18n/CONTEXT_AUDIT.md`.
+
+Deterministic Mode B tests committed:
+- Rust: redacted numeric REST errors vs HTTP 400/403/429 permission hints,
+  UTC-normalized latest attempt and yellow-over-red priority, bounded
+  Retry-After rejection, incomplete/ambiguous Workers Analytics GraphQL,
+  WAF zone account isolation and partial/invalid aggregates.
+- Node: all 20 locales must translate native visible detail literals,
+  retain Arabic permission text isolation, respect HTTP code distinctions,
+  leave unknown/provider strings opaque, and never promote stale data to
+  healthy state. Only safe `textContent` is used.
+- Existing stable suite continues to cover history, persisted state,
+  notification identity, Windows geometry source contracts, read-only
+  download Worker and protected-release handoff paths.
+
+Sources: Rust `9dc52c3`; JS `cb34a34`, calendar correction
+`a7758f2`. There are no identified nondeterministic/flaky tests in
+this new tranche; this is NOT a browser-rendered or physically installed
+E2E acceptance result. Actual source CI counts will be recorded after
+the explicit marker. Do not claim dynamic production Cloudflare
+transition or real WAF/Workers Analytics spike was witnessed.

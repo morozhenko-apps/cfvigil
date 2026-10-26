@@ -307,3 +307,18 @@ rendering/filtering portion PASS only. Persistence after a complete
 quit/restart, newly observed incident lifecycle and recovery remain
 NOT TESTED. Do not synthesize missing failure history for an older
 pre-monitoring build.
+
+## 2026-10-26: owner-directed deterministic provider acceptance before candidates
+
+Mode B source fixtures now verify HTTP 400/403/429 separation, bounded
+request/backoff policy, absolute-time latest-attempt priority, failed-build
+vs queued-new-build behavior, account-isolated WAF, and partial GraphQL
+responses that **cannot** silently clear prior alerts. This is a
+**controlled deterministic provider-contract check**, not a live API pass.
+
+Previous owner-observed KDE Pages discovery and the latest-failure browser
+link remain PASS. The still unobserved live dynamic transitions, Workers
+Analytics/WAF actual samples, read-only token keyring/offline negative
+states, and cross-platform incident recovery must be checked through
+the newly built candidate without inducing a production failure.
+No claim of live REST/GraphQL calls or user-token access in this batch.
