@@ -1,4 +1,5 @@
-import {t, diagnosticText, currentLocale, ACTIVE_LOCALES, LANGUAGE_NAMES} from "./localization.mjs";
+import {t, diagnosticText, currentLocale, setLocale, localizeDocument, ACTIVE_LOCALES, LANGUAGE_NAMES} from "./localization.mjs";
+import {planSettingsApply} from "./settings-transaction.mjs";
 import {initializeLanguage} from "./runtime-language.mjs";
 const invoke = (name, args={}) => window.__TAURI__.core.invoke(name, args);
 const message = document.getElementById("message-text");
@@ -111,41 +112,52 @@ form.addEventListener("submit", async event => {
   const nextRefresh = Number(document.getElementById("interval").value);
   const replacement = token.value.trim();
   const nextLanguage = language.value;
+  let saved = false;
   try {
-    await invoke("save_settings", {
+    const {changed, args} = planSettingsApply({
+      config: storedSettings,
+      language: confirmedLanguage,
+      autostart: autostartLoaded ? storedAutostart : null
+    }, {
       accountId: nextAccount,
-      token: replacement || null,
+      token: replacement,
       refreshSeconds: nextRefresh,
-      autostart: autostartLoaded ? autostart.checked : null,
+      autostart: autostart.checked,
       language: nextLanguage
     });
+    if (changed) await invoke("save_settings", args);
     storedSettings = {account_id: nextAccount, refresh_seconds: nextRefresh};
     token.value = "";
-    confirmedLanguage = nextLanguage;
-    // Never return the secret to JS. Only the native bool state is used.
-    if (replacement) showTokenPresence(true);
-    // Credential save has completed at this point; status re-query is
-    // informational and must not keep the Apply spinner on screen.
-    void refreshTokenStatus();
-    message.textContent = t("settings.saved");
-    if (autostartLoaded) {
-      try {
-        autostart.checked = await invoke("get_autostart");
-        storedAutostart = autostart.checked;
-        autostartHint.textContent = autostart.checked
-          ? t("settings.autostartEnabled")
-          : t("settings.autostartDisabled");
-      } catch {
-        autostartLoaded = false;
-        autostart.disabled = true;
-        autostartHint.textContent = t("settings.autostartUnavailable");
-      }
+    // Native emits the committed locale to every WebView; repaint this one
+    // synchronously too, before it is hidden, so the picker never lags.
+    if (currentLocale !== nextLanguage) {
+      setLocale(nextLanguage);
+      localizeDocument(document);
     }
+    confirmedLanguage = nextLanguage;
+    language.value = nextLanguage;
+    if (replacement) {
+      showTokenPresence(true);
+      // Query only after an actual replacement, not for locale-only Apply.
+      void refreshTokenStatus();
+    }
+    if (autostartLoaded && args.autostart !== null) {
+      storedAutostart = args.autostart;
+      autostartHint.textContent = storedAutostart
+        ? t("settings.autostartEnabled") : t("settings.autostartDisabled");
+    }
+    message.textContent = t("settings.saved");
+    saved = true;
   } catch (error) {
     message.textContent = diagnosticText(String(error));
   } finally {
     setSaving(false);
-    scheduleFit();
+    if (saved) {
+      // Apply is "OK": commit once and close, not an Apply-and-leave-open.
+      await window.__TAURI__.window.getCurrentWindow().hide();
+    } else {
+      scheduleFit();
+    }
   }
 });
 
