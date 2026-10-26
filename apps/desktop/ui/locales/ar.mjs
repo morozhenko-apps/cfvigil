@@ -143,5 +143,5 @@ export default Object.freeze({
   "event.runtimeRecovery": "انتهى ارتفاع أخطاء تشغيل Workers",
   "event.wafRecovery": "انتهى ارتفاع عمليات حظر WAF",
   "event.buildStarted": "بدأت عملية بناء أو نشر جديدة في Cloudflare",
-  "event.buildSuccess": "نجحت أحدث عملية نشر في Cloudflare"
+  "event.buildSuccess": "نجحت أحدث عملية بناء أو نشر في Cloudflare"
 });

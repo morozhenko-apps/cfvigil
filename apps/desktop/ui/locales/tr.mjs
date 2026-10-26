@@ -127,5 +127,5 @@ export default Object.freeze({
   "event.runtimeRecovery": "Workers çalışma zamanı hata artışı sona erdi",
   "event.wafRecovery": "WAF engelleme artışı sona erdi",
   "event.buildStarted": "Yeni bir Cloudflare derlemesi veya dağıtımı başladı",
-  "event.buildSuccess": "En son Cloudflare dağıtımı başarıyla tamamlandı"
+  "event.buildSuccess": "En son Cloudflare derlemesi veya dağıtımı başarıyla tamamlandı"
 });

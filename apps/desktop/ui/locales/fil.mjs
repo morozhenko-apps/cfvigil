@@ -127,5 +127,5 @@ export default Object.freeze({
   "event.runtimeRecovery": "Natapos ang pagtaas ng mga runtime error ng Workers",
   "event.wafRecovery": "Natapos ang pagtaas ng mga pagharang ng WAF",
   "event.buildStarted": "Nagsimula ang bagong Cloudflare build o deployment",
-  "event.buildSuccess": "Matagumpay ang pinakabagong Cloudflare deployment"
+  "event.buildSuccess": "Matagumpay ang pinakabagong Cloudflare build o deployment"
 });

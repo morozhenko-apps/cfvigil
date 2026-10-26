@@ -123,5 +123,5 @@ export default Object.freeze({
   "event.runtimeRecovery": "ข้อผิดพลาดรันไทม์ Workers กลับสู่ปกติแล้ว",
   "event.wafRecovery": "การบล็อก WAF กลับสู่ปกติแล้ว",
   "event.buildStarted": "เริ่มการบิลด์หรือดีพลอย Cloudflare ใหม่แล้ว",
-  "event.buildSuccess": "การดีพลอย Cloudflare ล่าสุดสำเร็จ"
+  "event.buildSuccess": "การบิลด์หรือดีพลอย Cloudflare ล่าสุดสำเร็จ"
 });

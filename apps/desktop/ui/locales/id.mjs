@@ -123,5 +123,5 @@ export default Object.freeze({
   "event.runtimeRecovery": "Lonjakan kesalahan runtime Workers telah berakhir",
   "event.wafRecovery": "Lonjakan pemblokiran WAF telah berakhir",
   "event.buildStarted": "Build atau deployment Cloudflare baru dimulai",
-  "event.buildSuccess": "Deployment Cloudflare terbaru berhasil"
+  "event.buildSuccess": "Build atau deployment Cloudflare terbaru berhasil"
 });
