@@ -185,4 +185,79 @@ mod tests {
         assert_eq!(checked.active.len(), 1);
         assert_eq!(checked.notified, vec!["same"]);
     }
+    #[test]
+    fn given_account_missing_changed_or_matching_when_restoring_then_incident_identity_is_scoped() {
+        let original=IncidentJournal {
+            account_id:"a".repeat(32),
+            active:vec![resource("worker","worker:alpha","runtime-error-spike","failed")],
+            notified:vec!["worker:alpha:runtime-spike".into()],
+        };
+        for wrong in ["".to_owned(),"b".repeat(32),"a".repeat(31)] {
+            let restored=original.clone().restore(&wrong);
+            assert_eq!(restored.account_id,wrong);
+            assert!(restored.active.is_empty());
+            assert!(restored.notified.is_empty());
+        }
+        let same=original.clone().restore(&original.account_id);
+        assert_eq!(same.active.len(),1);
+        assert_eq!(same.active[0].status,"unknown");
+        assert_eq!(same.notified,original.notified);
+    }
+
+    #[test]
+    fn given_0_1_320_321_incidents_when_snapshotting_then_journal_is_strictly_bounded() {
+        for size in [0,1,319,320,321] {
+            let resources=(0..size).map(|index|resource(
+                "worker",&format!("worker:job{index}"),"runtime-error-spike","failed"
+            )).collect::<Vec<_>>();
+            let journal=IncidentJournal::snapshot("a",&resources,&NotificationWindow::default());
+            assert_eq!(journal.active.len(),size.min(MAX_ACTIVE));
+            assert!(journal.active.iter().all(|item|item.status=="unknown"
+                && item.attempt_id=="runtime-error-spike"));
+            let restored=journal.restore("a");
+            assert_eq!(restored.active.len(),size.min(MAX_ACTIVE));
+            assert_eq!(restored.active.first().map(|r|r.key.as_str()),
+                resources.first().map(|r|r.key.as_str()));
+        }
+    }
+
+    #[test]
+    fn given_each_notification_window_boundary_when_evicted_then_old_ids_can_rearm() {
+        let mut window=NotificationWindow::default();
+        assert!(!window.insert(String::new()));
+        for index in 0..MAX_NOTIFICATIONS {
+            assert!(window.insert(format!("alert:{index}")));
+        }
+        assert_eq!(window.ids().len(),MAX_NOTIFICATIONS);
+        assert!(!window.insert("alert:0".into()));
+        assert!(!window.insert("alert:511".into()));
+        assert!(window.insert("alert:new".into()));
+        assert_eq!(window.ids().len(),MAX_NOTIFICATIONS);
+        assert!(!window.ids().contains(&"alert:0".to_string()));
+        assert!(window.insert("alert:0".into()));
+        assert!(window.remove("alert:new"));
+        assert!(!window.remove("alert:new"));
+        assert!(window.insert("alert:new".into()));
+        window.clear();
+        assert!(window.ids().is_empty());
+        assert!(window.insert("alert:511".into()));
+    }
+
+    #[test]
+    fn given_corrupt_and_legacy_journal_shapes_when_parsing_then_default_fields_or_fail_closed() {
+        let legacy: IncidentJournal=serde_json::from_str(
+            r#"{"account_id":"a"}"#).unwrap();
+        assert_eq!(legacy.account_id,"a");
+        assert!(legacy.active.is_empty() && legacy.notified.is_empty());
+        for json in [
+            r#"{"account_id":null,"active":[]}"#,
+            r#"{"account_id":"a","active":"unexpected"}"#,
+            r#"{"account_id":"a","notified":[7]}"#,
+            r#"{not-json"#,
+        ] {
+            assert!(serde_json::from_str::<IncidentJournal>(json).is_err(),
+                "invalid JSON: {json}");
+        }
+    }
+
 }
