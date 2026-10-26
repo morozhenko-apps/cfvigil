@@ -98,6 +98,17 @@ pub fn read_or_default<T: DeserializeOwned + Default>(
 /// and atomically swaps into place. Interrupted writes cannot truncate the
 /// last complete JSON file. Secrets still belong only in the OS keychain.
 pub fn write_atomic<T: Serialize>(path: &Path, value: &T, max_size: u64) -> Result<(), String> {
+    write_atomic_with_rename(path, value, max_size, fs::rename)
+}
+
+// Injectable rename seam makes the post-flush disk-failure branch testable
+// without changing permissions on the machine or damaging user files.
+fn write_atomic_with_rename<T: Serialize>(
+    path: &Path,
+    value: &T,
+    max_size: u64,
+    rename: impl FnOnce(&Path, &Path) -> std::io::Result<()>,
+) -> Result<(), String> {
     refuse_link(path)?;
     let bytes = serde_json::to_vec_pretty(value)
         .map_err(|_| msg::STORAGE_SERIALIZE)?;
@@ -120,7 +131,7 @@ pub fn write_atomic<T: Serialize>(path: &Path, value: &T, max_size: u64) -> Resu
         file.sync_all()?;
         drop(file);
         // Replacement is atomic on the same filesystem, not a remove/write.
-        fs::rename(&temp, path)?;
+        rename(&temp, path)?;
         #[cfg(unix)]
         if let Some(parent) = path.parent() {
             File::open(parent)?.sync_all()?;
@@ -311,6 +322,37 @@ mod tests {
           .map(|path|fs::read_to_string(path).unwrap()).collect::<Vec<_>>();
         contents.sort();
         assert_eq!(contents,vec!["not-json-0","not-json-1","not-json-2"]);
+    }
+
+    #[test]
+    fn given_rename_failure_after_full_flush_when_replacing_history_then_old_bytes_survive() {
+        let dir=TestDir::new();
+        let path=dir.file();
+        write_atomic(&path,&vec!["previous"],MAX_JSON_BYTES).unwrap();
+        let original=fs::read(&path).unwrap();
+        let result=write_atomic_with_rename(
+            &path,&vec!["new","event"],MAX_JSON_BYTES,
+            |_,_| Err(std::io::Error::new(
+                std::io::ErrorKind::Other,"injected private file path: /secret/account"))
+        );
+        assert_eq!(result.err().as_deref(),Some(msg::STORAGE_PERSIST));
+        assert_eq!(fs::read(&path).unwrap(),original);
+        assert_eq!(fs::read_dir(&dir.0).unwrap().count(),1,
+            "failed rename must remove temporary partial JSON");
+    }
+
+    #[test]
+    fn given_failed_first_rename_when_persisting_then_no_fake_settings_file_remains() {
+        let dir=TestDir::new();
+        let path=dir.file();
+        let result=write_atomic_with_rename(
+            &path,&vec!["settings"],MAX_JSON_BYTES,
+            |_,_| Err(std::io::ErrorKind::PermissionDenied.into())
+        );
+        assert_eq!(result.err().as_deref(),Some(msg::STORAGE_PERSIST));
+        assert!(!path.exists());
+        assert_eq!(fs::read_dir(&dir.0).unwrap().count(),0,
+            "an atomic-write failure must not leave orphaned JSON");
     }
 
 }
