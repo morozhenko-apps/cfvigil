@@ -1177,3 +1177,28 @@ Rust test asserted that a valid duplicate should disappear after the
 unrelated forged row is rejected; corrected in test-only `12b21fe`.
 Neither the Rust check nor the Rust test stage was successfully completed
 by the failed workflow. Only a fresh exact-SHA gate may validate these.
+
+
+### Final stable source evidence after installed-smoke remediation
+
+At exact source commit `edfcc2a903afbd0715227ba95aca8351595a143f`,
+Preflight [#40398156902](https://github.com/morozhenko-apps/cfvigil/actions/runs/40398156902)
+completed **SUCCESS** on GitHub-hosted Ubuntu:
+- JavaScript: **118 passed, 0 failed** (including cross-platform smoke contracts).
+- Python: **7 offline release + 3 icon = 10 passed**.
+- Rust: `cargo check --locked` PASS; `cargo test --locked`:
+  **64 passed, 0 failed**.
+- Localization source contracts and icon consistency: PASS.
+
+A subsequent docs-only icon evidence commit does not change
+executable inputs. This closes the source verification requirement,
+**not** the physical/native owner acceptance gate. Owners must
+retest same-SHA Linux and Windows package candidates. Required
+observations: instant grey cache on *second* run after one successful
+poll; no network poll on language-only OK; Settings OK/Cancel and
+cross-platform scrollbar pointer control; instant native tray
+translations; native History/About icons; KDE launcher identity.
+
+No live API latency benchmark, Chrome warning classification,
+physical launcher repair, or cross-platform installed smoke is
+claimed as PASS from this source CI.
