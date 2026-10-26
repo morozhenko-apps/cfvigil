@@ -334,6 +334,23 @@ fn get_history(state: State<'_, AppState>) -> Vec<HistoryEvent> {
 }
 
 #[tauri::command]
+fn get_app_version() -> &'static str {
+    env!("CARGO_PKG_VERSION")
+}
+
+#[tauri::command]
+fn open_about_website() -> Result<(), String> {
+    open::that("https://morozhenko.com/").map_err(|_| msg::ERROR_BROWSER.into())
+}
+
+#[tauri::command]
+fn open_about_source() -> Result<(), String> {
+    open::that("https://github.com/morozhenko-apps/cfvigil")
+        .map_err(|_| msg::ERROR_BROWSER.into())
+}
+
+
+#[tauri::command]
 async fn save_settings(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -894,6 +911,27 @@ fn configure_gdk_for_native_wayland() {
 /// Use one branded Tauri icon for ALL system-managed windows. KDE's
 /// titlebar otherwise falls back to the generic WebKit/Tauri application icon.
 fn install_window_icons(app: &tauri::App) {
+    // Explicitly apply the *same* committed icon to the GTK window:
+    // the WebView favicon and Tauri tray image do not establish the
+    // window-manager icon for History and About on every KDE backend.
+    #[cfg(target_os = "linux")]
+    {
+        use gtk::gdk_pixbuf::prelude::*;
+        use gtk::prelude::*;
+        let loader = gtk::gdk_pixbuf::PixbufLoader::new();
+        if loader.write(include_bytes!("../icons/icon.png")).is_ok()
+            && loader.close().is_ok() {
+            if let Some(pixbuf) = loader.pixbuf() {
+                for label in ["main", "settings", "history", "about"] {
+                    if let Some(window) = app.get_webview_window(label) {
+                        if let Ok(native) = window.gtk_window() {
+                            native.set_icon(Some(&pixbuf));
+                        }
+                    }
+                }
+            }
+        }
+    }
     if let Some(icon) = app.default_window_icon().cloned() {
         for label in ["main", "settings", "history", "about"] {
             if let Some(window) = app.get_webview_window(label) {
@@ -1040,6 +1078,9 @@ fn main() {
             get_snapshot,
             acknowledge_incident,
             get_history,
+            get_app_version,
+            open_about_website,
+            open_about_source,
             hide_card,
             set_card_expanded,
             start_card_drag,
