@@ -55,6 +55,38 @@ test("Given legacy deployed-success bytes When a Worker build passes Then the di
 });
 
 
+
+test("Given Cloudflare account input When user sees localized help Then all twenty specify hexadecimal digits not arbitrary characters", () => {
+  const expected = {
+  "en": "32-character hexadecimal Account ID",
+  "ru": "ID аккаунта: 32 шестнадцатеричных символа",
+  "es": "ID de cuenta de 32 caracteres hexadecimales",
+  "pt": "ID da conta: 32 caracteres hexadecimais",
+  "de": "Konto-ID mit 32 Hexadezimalzeichen",
+  "fr": "ID de compte de 32 caractères hexadécimaux",
+  "it": "ID account di 32 caratteri esadecimali",
+  "pl": "Identyfikator konta: 32 znaki szesnastkowe",
+  "hi": "32 हेक्साडेसिमल वर्णों वाला खाता ID",
+  "zh-Hant": "32 個十六進位字元的帳戶 ID",
+  "ja": "16進数32文字のアカウント ID",
+  "nl": "Account-ID met 32 hexadecimale tekens",
+  "sv": "Konto-ID med 32 hexadecimala tecken",
+  "tr": "32 onaltılık karakterli hesap kimliği",
+  "ko": "16진수 32자리 계정 ID",
+  "bn": "৩২টি হেক্সাডেসিমেল অক্ষরের অ্যাকাউন্ট ID",
+  "th": "ID บัญชี 32 อักขระฐานสิบหก",
+  "id": "ID akun 32 karakter heksadesimal",
+  "fil": "Account ID na may 32 hexadecimal na character",
+  "ar": "معرّف حساب من 32 محرفًا بالنظام الست عشري"
+};
+  assert.deepEqual(Object.keys(expected), ACTIVE_LOCALES);
+  for (const [locale,message] of Object.entries(expected)) {
+    assert.equal(t("settings.accountPlaceholder", {}, locale),message,locale);
+  }
+  assert.match(t("settings.tokenPlaceholder", {}, "tr"), /belirteci/);
+  assert.doesNotMatch(t("settings.tokenPlaceholder", {}, "tr"), /anahtarı/);
+});
+
 test("Given Arabic RTL settings When listing Cloudflare scopes Then each immutable identifier is directionally isolated", () => {
   const help = t("settings.tokenHelp", {}, "ar");
   assert.match(help, /^استخدم رمز API خاصًا بالمستخدم/);
