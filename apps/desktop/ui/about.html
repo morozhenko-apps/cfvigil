@@ -2,17 +2,24 @@
 <html lang="en" dir="ltr">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <link rel="icon" type="image/png" href="./icon.png">
   <title data-i18n="about.title"></title>
-  <link rel="stylesheet" href="./window.css">
+  <link rel="stylesheet" href="./about.css">
   <script type="module" src="./about.mjs"></script>
 </head>
 <body>
-  <h2 data-i18n="about.name"></h2>
-  <p id="about-version"></p>
-  <p data-i18n="about.description"></p>
-  <p data-i18n="about.license"></p>
-  <p data-i18n="about.copyright"></p>
-  <a href="https://github.com/morozhenko-apps/cfvigil" data-i18n="about.source"></a>
+  <main class="about">
+    <img src="./icon.png" width="72" height="72" alt="" aria-hidden="true" draggable="false">
+    <h1 data-i18n="about.name">CFVigil</h1>
+    <p id="about-version" aria-live="polite"></p>
+    <p data-i18n="about.copyright"></p>
+    <p data-i18n="about.description"></p>
+    <div class="about-links">
+      <button id="about-website" type="button">morozhenko.com ↗</button>
+      <button id="about-source" type="button" data-i18n="about.source"></button>
+    </div>
+    <p data-i18n="about.license"></p>
+  </main>
 </body>
 </html>
