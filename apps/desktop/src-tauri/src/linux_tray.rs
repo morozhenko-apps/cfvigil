@@ -5,6 +5,7 @@ use tauri::{App, AppHandle, Manager};
 
 struct CFVigilTray {
     app: AppHandle,
+    locale: String,
 }
 
 fn tray_argb() -> (Vec<u8>, u32, u32) {
@@ -60,7 +61,7 @@ impl Tray for CFVigilTray {
     }
 
     fn menu(&self) -> Vec<MenuItem<Self>> {
-        let locale = self.app.state::<AppState>().language.lock().unwrap().locale.clone();
+        let locale = self.locale.clone();
         vec![
             StandardItem {
                 label: language::menu(&locale, "open").into(),
@@ -92,7 +93,18 @@ impl Tray for CFVigilTray {
 }
 
 pub fn install(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
-    let handler = CFVigilTray { app: app.handle().clone() }.spawn()?;
+    let locale = app.state::<AppState>().language.lock().unwrap().locale.clone();
+    let handler = CFVigilTray { app: app.handle().clone(), locale }.spawn()?;
     app.manage(handler);
     Ok(())
+}
+
+/// KSNI menu contents are registered with the status notifier. Reading the
+/// new locale during a future menu() call alone does not notify KDE that the
+/// existing menu needs repainting. Update the tray handle explicitly.
+pub fn set_language(app: &AppHandle, locale: &str) {
+    if let Some(handler) = app.try_state::<ksni::blocking::Handle<CFVigilTray>>() {
+        let locale = locale.to_owned();
+        let _ = handler.update(move |tray| tray.locale = locale);
+    }
 }
