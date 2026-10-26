@@ -233,3 +233,44 @@ localized path (`7649604`); no production code or test semantics were
 weakened. Rerun requested once by `aef1a49` (#40333108575, queued at this
 checkpoint). Python and Rust steps were skipped in the failed first run.
 Full gate, native install, editorial locale acceptance and Mode B are OPEN.
+
+
+## 2026-10-26: Mode A, resource detail and analytics/WAF presentation
+
+Status: IN PROGRESS. Previous bounded HTTP/credential localization source gate
+#40333108575 completed SUCCESS at `aef1a49` (after the stale test assertion
+correction). The native-machine gate remains open; no Mode B or release.
+
+Motivation: the current UI shows plain-English native resource details for
+unverified Workers/Pages deployment reads and preserved Workers Analytics /
+WAF anomalies. These are actually visible to users, unlike internal errors
+from the Analytics/WAF GraphQL parsers, which are swallowed behind an
+unverified status. Translating all hidden parser error strings without a
+presentation path would create unused catalogs and a false completeness claim.
+
+Plan and invariants:
+
+1. [ ] Introduce a small, exact-literal display catalog for the native
+   resource details seen in the drawer: latest Worker build/deployment,
+   latest Pages deployment, builds unavailable, missing/unverified latest
+   deployment, malformed/unavailable Pages response, stale resource catalog,
+   and unverified Workers Analytics / WAF. Include the known generic invalid/
+   unexpected Cloudflare provider-response warnings, preserving prefixes.
+2. [ ] Extend each of the exact 20 existing draft dictionaries with the same
+   baseline IDs and interpolations. Keep Cloudflare names, numeric status
+   codes, URLs and resource identifiers unchanged; Arabic isolates
+   directional identifiers. Unknown text must remain opaque, never HTML.
+3. [ ] Ensure the live language-change event refreshes the actual visible
+   provider warnings and outstanding sync error without Cloudflare polling,
+   changing incidents, or treating unknown as success. Keep the five-cell
+   compact layout and Tauri native API untouched.
+4. [ ] Add focused positive/negative source regression tests for RU/pt-PT,
+   all-locale parity, preservation of untrusted text and no HTML rendering.
+   Run precisely one explicit stable Preflight after the completed batch.
+5. [ ] Record actual checks, deficiencies and the still-open real KDE/Windows,
+   translation-editorial, accessibility, launcher-icon and Mode B gates.
+
+No native API, scope, serialized state, status classification, event journal,
+Cloudflare querying, HTTP permission handling, publication, `main` or release
+change is authorized. Rollback: reverse only the standalone UI/locales/tests
+commit(s); no schema or provider migration is needed.
