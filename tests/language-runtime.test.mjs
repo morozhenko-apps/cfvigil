@@ -157,7 +157,7 @@ test("accessibility status names follow locale while status IDs remain stable", 
   const card = read("apps/desktop/ui/app.mjs");
   assert.match(card, /t\(statusLabelKey\[resource\.status\]/);
   assert.equal(t("card.statusUnknown", {}, "ru"), "Не проверено");
-  assert.equal(t("card.statusUnknown", {}, "pt"), "Por verificar");
+  assert.equal(t("card.statusUnknown", {}, "pt"), "Não verificado");
 });
 
 test("Spanish, German and French use correct CLDR categories and native menu labels", () => {
