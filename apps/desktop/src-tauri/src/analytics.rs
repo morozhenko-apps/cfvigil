@@ -121,6 +121,15 @@ fn parse_batch(
 pub async fn query_spikes(
     account: &str, token: &str, allowed_workers: &HashSet<String>, budget: &ApiBudget,
 ) -> Result<MetricsScan, String> {
+    query_spikes_at(account, token, allowed_workers, budget, GRAPHQL).await
+}
+
+/// The caller always uses the fixed provider URL. Only test-local fixtures
+/// can invoke this private helper with their own loopback endpoint.
+async fn query_spikes_at(
+    account: &str, token: &str, allowed_workers: &HashSet<String>,
+    budget: &ApiBudget, endpoint: &str,
+) -> Result<MetricsScan, String> {
     if allowed_workers.is_empty() {
         return Ok(MetricsScan { spikes: HashMap::new(), unverified: HashSet::new() });
     }
@@ -142,7 +151,7 @@ pub async fn query_spikes(
             &recent_end.to_rfc3339(), &baseline_start.to_rfc3339())?;
         let attempt = async {
             budget.check()?;
-            let response = http.post(GRAPHQL).bearer_auth(token)
+            let response = http.post(endpoint).bearer_auth(token)
                 .json(&serde_json::json!({"query":query}))
                 .send().await.map_err(|_| msg::ANALYTICS_REQUEST_FAILED.to_string())?;
             budget.observe(&response);
@@ -358,3 +367,7 @@ mod tests {
     }
 
 }
+
+#[cfg(test)]
+#[path = "analytics_http_tests.rs"]
+mod http_tests;
