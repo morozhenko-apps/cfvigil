@@ -123,5 +123,5 @@ export default Object.freeze({
   "event.runtimeRecovery": "Workers 執行階段錯誤激增已結束",
   "event.wafRecovery": "WAF 封鎖激增已結束",
   "event.buildStarted": "新的 Cloudflare 建置或部署已開始",
-  "event.buildSuccess": "最新的 Cloudflare 部署成功"
+  "event.buildSuccess": "最新的 Cloudflare 建置或部署成功"
 });

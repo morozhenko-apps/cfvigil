@@ -127,5 +127,5 @@ export default Object.freeze({
   "event.runtimeRecovery": "Workers रनटाइम त्रुटियों में वृद्धि समाप्त हुई",
   "event.wafRecovery": "WAF ब्लॉक में वृद्धि समाप्त हुई",
   "event.buildStarted": "नया Cloudflare बिल्ड या डिप्लॉयमेंट शुरू हुआ",
-  "event.buildSuccess": "नवीनतम Cloudflare डिप्लॉयमेंट सफल रहा"
+  "event.buildSuccess": "नवीनतम Cloudflare बिल्ड या डिप्लॉयमेंट सफल रहा"
 });

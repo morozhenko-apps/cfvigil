@@ -123,5 +123,5 @@ export default Object.freeze({
   "event.runtimeRecovery": "Workers 런타임 오류 급증이 해소되었습니다",
   "event.wafRecovery": "WAF 차단 급증이 해소되었습니다",
   "event.buildStarted": "새 Cloudflare 빌드 또는 배포가 시작되었습니다",
-  "event.buildSuccess": "최신 Cloudflare 배포가 성공했습니다"
+  "event.buildSuccess": "최신 Cloudflare 빌드 또는 배포가 성공했습니다"
 });

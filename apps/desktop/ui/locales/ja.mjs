@@ -123,5 +123,5 @@ export default Object.freeze({
   "event.runtimeRecovery": "Workers の実行時エラー急増が解消しました",
   "event.wafRecovery": "WAF ブロックの急増が解消しました",
   "event.buildStarted": "新しい Cloudflare ビルドまたはデプロイが開始されました",
-  "event.buildSuccess": "最新の Cloudflare デプロイが成功しました"
+  "event.buildSuccess": "最新の Cloudflare ビルドまたはデプロイが成功しました"
 });
