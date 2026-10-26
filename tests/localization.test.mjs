@@ -127,6 +127,40 @@ test("known Cloudflare diagnostics localize without altering provider, status, o
   }
 });
 
+
+test("resource and preserved analytics/WAF details are localized without changing state", () => {
+  assert.equal(resourceDetail("Workers Builds unavailable", "ru"),
+    "Сведения о сборках Workers недоступны");
+  assert.equal(resourceDetail("WAF analytics unavailable; previous alert unverified", "ru"),
+    "Аналитика WAF недоступна; прежнее предупреждение не проверено");
+  assert.equal(resourceDetail("Workers analytics unavailable; previous spike unverified", "pt"),
+    "Análise dos Workers indisponível; pico anterior não verificado");
+  assert.equal(resourceDetail("Resource catalog unavailable; previous state unverified", "pt"),
+    "Catálogo de recursos indisponível; estado anterior não verificado");
+  assert.equal(diagnosticText("Workers Builds: invalid Cloudflare response", "ru"),
+    "Workers Builds: некорректный ответ Cloudflare");
+  assert.equal(diagnosticText("Worker deployments: unexpected Cloudflare response", "pt"),
+    "Worker deployments: resposta inesperada do Cloudflare");
+  for (const locale of ACTIVE_LOCALES) {
+    for (const detail of [
+      "Latest Cloudflare Workers build", "Latest Worker deployment",
+      "Workers Builds unavailable", "No verified Worker deployment",
+      "Latest Cloudflare Pages deployment", "No Pages deployments",
+      "Malformed Pages deployment response", "Pages deployment status unavailable",
+      "Resource catalog unavailable; previous state unverified",
+      "WAF analytics unavailable; previous alert unverified",
+      "Workers analytics unavailable; previous spike unverified"
+    ]) {
+      assert.ok(resourceDetail(detail, locale).length > 0, `${locale}: ${detail}`);
+    }
+  }
+  for (const opaque of ["Workers analytics timeout: worker-secret", "WAF response from <script>",
+    "Pages: token=private", "Not a resource detail"]) {
+    assert.equal(resourceDetail(opaque, "ru"), opaque);
+    assert.equal(diagnosticText(opaque, "pt"), opaque);
+  }
+});
+
 test("DOM localization uses textContent and explicit direction, never innerHTML", () => {
   const values = [];
   const node = {

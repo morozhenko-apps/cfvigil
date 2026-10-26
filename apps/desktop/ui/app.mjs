@@ -22,6 +22,7 @@ let syncAvailable = false;
 let accountConfigured = false;
 let storageWarning = false;
 let providerWarnings = [];
+let lastSyncError = null;
 let resizing = false;
 let cardVisible = false;
 let idleTimer = null;
@@ -267,8 +268,28 @@ document.addEventListener("keydown", event => {
     void invoke("hide_card");
   }
 });
-await initializeLanguage({invoke,listen,doc:document,onChange:render});
+// The locale event never changes native monitoring state or starts polling.
+// Recompute active diagnostics from the original English native message.
+function refreshLocalizedWarnings() {
+  const button = byId("toggle-list");
+  if (lastSyncError !== null) {
+    const label = lastSyncError ? diagnosticText(lastSyncError) : t("card.apiError");
+    announce(label);
+    button.title = label;
+  } else if (storageWarning && !button.classList.contains("blink")) {
+    const label = t("card.storageWarning");
+    button.title = label;
+    announce(label);
+  } else if (!button.classList.contains("blink")) {
+    button.title = t("card.toggleTitle");
+  }
+}
+await initializeLanguage({invoke,listen,doc:document,onChange: () => {
+  render();
+  refreshLocalizedWarnings();
+}});
 function resetCard() {
+  lastSyncError = null;
   expanded = false;
   focusedKey = null;
   byId("search").value = "";
@@ -297,6 +318,7 @@ function applySnapshot(payload) {
   const snapshot = normalizeSnapshot(payload);
   resources = snapshot.resources;
   syncAvailable = snapshot.ready;
+  if (syncAvailable) lastSyncError = null;
   accountConfigured = snapshot.configured;
   storageWarning = payload?.storage_warning === true;
   providerWarnings = snapshot.provider_warnings;
@@ -326,9 +348,8 @@ function presentIncident(payload) {
 }
 await listen("cfvigil-incident", ({payload}) => presentIncident(payload));
 await listen("cfvigil-sync-error", ({payload}) => {
-  const label = payload ? diagnosticText(payload) : t("card.apiError");
-  announce(label);
-  byId("toggle-list").title = label;
+  lastSyncError = typeof payload === "string" ? payload : "";
+  refreshLocalizedWarnings();
 });
 try {
   const snapshot = await invoke("get_snapshot");

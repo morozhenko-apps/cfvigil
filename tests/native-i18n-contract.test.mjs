@@ -63,6 +63,22 @@ test("translated diagnostics correspond to stable native literals", () => {
   assert.doesNotMatch(ui, /t\(resource\./);
 });
 
+
+test("resource detail translations preserve native constants and presentation-only behavior", () => {
+  const declared = constants(native);
+  const pairs = [["DETAIL_WORKERS_BUILD","Latest Cloudflare Workers build"],["DETAIL_WORKER_DEPLOYMENT","Latest Worker deployment"],["DETAIL_BUILDS_UNAVAILABLE","Workers Builds unavailable"],["DETAIL_NO_WORKER_DEPLOYMENT","No verified Worker deployment"],["DETAIL_PAGES_DEPLOYMENT","Latest Cloudflare Pages deployment"],["DETAIL_NO_PAGES_DEPLOYMENTS","No Pages deployments"],["DETAIL_PAGES_MALFORMED","Malformed Pages deployment response"],["DETAIL_PAGES_UNAVAILABLE","Pages deployment status unavailable"],["DATA_CATALOG_UNAVAILABLE","Resource catalog unavailable; previous state unverified"],["DATA_WAF_UNAVAILABLE","WAF analytics unavailable; previous alert unverified"],["DATA_WORKERS_ANALYTICS_UNAVAILABLE","Workers analytics unavailable; previous spike unverified"]];
+  const ui = read("apps/desktop/ui/localization.mjs");
+  for (const [constant, literal] of pairs) {
+    assert.equal(declared.get(constant), literal);
+    assert.ok(ui.includes(JSON.stringify(literal)), constant);
+  }
+  const card = read("apps/desktop/ui/app.mjs");
+  assert.match(card, /onChange: \(\) => \{\s*render\(\);\s*refreshLocalizedWarnings\(\)/);
+  assert.match(card, /lastSyncError = typeof payload === "string"/);
+  assert.match(card, /if \(syncAvailable\) lastSyncError = null/);
+  assert.match(card, /entry\.textContent = diagnosticText\(item\)/);
+});
+
 test("legacy persisted incident strings stay byte-for-byte compatible with English catalog", () => {
   const declared = constants(native);
   const keys = {

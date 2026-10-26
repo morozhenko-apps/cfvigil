@@ -188,6 +188,19 @@ export function incidentText(message, locale = currentLocale) {
 // Match only stable native literals and sanitized numeric HTTP diagnostics.
 // Raw provider text is never used as a translation key or interpreted as HTML.
 const nativeDiagnostics = Object.freeze({
+  "Latest Cloudflare Workers build": "detail.workersBuild",
+  "Latest Worker deployment": "detail.workerDeployment",
+  "Workers Builds unavailable": "detail.buildsUnavailable",
+  "No verified Worker deployment": "detail.noWorkerDeployment",
+  "Latest Cloudflare Pages deployment": "detail.pagesDeployment",
+  "No Pages deployments": "detail.noPagesDeployments",
+  "Malformed Pages deployment response": "detail.pagesMalformed",
+  "Pages deployment status unavailable": "detail.pagesUnavailable",
+  "Resource catalog unavailable; previous state unverified": "detail.catalogUnavailable",
+  "WAF analytics unavailable; previous alert unverified": "detail.wafUnavailable",
+  "Workers analytics unavailable; previous spike unverified": "detail.workersAnalyticsUnavailable",
+  "invalid Cloudflare response": "detail.invalidResponse",
+  "unexpected Cloudflare response": "detail.unexpectedResponse",
   "Cloudflare network request failed": "diagnostic.network",
   "Cloudflare returned invalid JSON": "diagnostic.invalidJson",
   "Cloudflare credentials unavailable": "diagnostic.credentials",
