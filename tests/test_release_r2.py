@@ -79,8 +79,14 @@ class PublicationFixture(unittest.TestCase):
             hashed = index / "by-hash/SHA256" / sha(data)
             hashed.parent.mkdir(parents=True, exist_ok=True)
             hashed.write_bytes(data)
-        # The test stubs only the GPG cryptographic check; the signed
-        # Release text itself must carry coherent index SHA256 records.
+        self.seal_offline_indexes()
+
+    def seal_offline_indexes(self):
+        """Re-sign test-only metadata using fake GPG, plus coherent by-hash.
+
+        This never exercises a private key, network or real signature.
+        """
+        index = self.apt / "dists/stable/main/binary-amd64"
         signed_lines = [
             "-----BEGIN PGP SIGNED MESSAGE-----",
             "Hash: SHA256",
@@ -90,6 +96,9 @@ class PublicationFixture(unittest.TestCase):
         ]
         for item in (index / "Packages", index / "Packages.gz"):
             data = item.read_bytes()
+            hashed = index / "by-hash/SHA256" / sha(data)
+            hashed.parent.mkdir(parents=True, exist_ok=True)
+            hashed.write_bytes(data)
             relative = "main/binary-amd64/" + item.name
             signed_lines.append(f" {sha(data)} {len(data)} {relative}")
         signed_lines.extend([
@@ -101,6 +110,15 @@ class PublicationFixture(unittest.TestCase):
         (self.apt / "dists/stable/InRelease").write_text(
             "\n".join(signed_lines), encoding="utf8"
         )
+
+    def rewrite_package_indexes(self, plain, compressed=None):
+        """Intentionally construct internally wrong but signed test catalogs."""
+        index = self.apt / "dists/stable/main/binary-amd64"
+        (index / "Packages").write_bytes(plain)
+        (index / "Packages.gz").write_bytes(
+            gzip.compress(plain, mtime=0) if compressed is None else compressed
+        )
+        self.seal_offline_indexes()
 
     def planned(self):
         with patch.object(release.subprocess, "run"):
