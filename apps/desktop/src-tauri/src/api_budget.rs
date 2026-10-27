@@ -171,4 +171,116 @@ mod tests {
         assert!(budget.check().is_err());
     }
 
+
+    #[tokio::test]
+    async fn given_non429_http_responses_when_observed_then_budget_remains_available() {
+        use crate::test_http::FixtureHttp;
+        use serde_json::json;
+
+        let server = FixtureHttp::start(|request| {
+            let status = match request.path.as_str() {
+                "/success" => 200,
+                "/bad-request" => 400,
+                "/unauthorized" => 401,
+                "/forbidden" => 403,
+                "/server-error" => 500,
+                "/unavailable" => 503,
+                path => panic!("unexpected fixture path: {path}"),
+            };
+            (status, json!({"errors":[{"message":"fixture-private-secret"}]}))
+        });
+        let budget = ApiBudget::new();
+        let client = reqwest::Client::new();
+        for (path, status) in [
+            ("/success", 200), ("/bad-request", 400),
+            ("/unauthorized", 401), ("/forbidden", 403),
+            ("/server-error", 500), ("/unavailable", 503),
+        ] {
+            assert!(budget.check().is_ok(), "admission before {path}");
+            let response = client.get(server.url(path)).send().await.unwrap();
+            assert_eq!(response.status().as_u16(), status, "{path}");
+            budget.observe(&response);
+            assert_eq!(budget.retry_after_seconds(), 0, "{path}");
+            assert!(!budget.exhausted(), "{path} must not throttle");
+        }
+        let requests = server.requests();
+        assert_eq!(requests.len(), 6);
+        for (request, (path, _)) in requests.iter().zip([
+            ("/success", 200), ("/bad-request", 400),
+            ("/unauthorized", 401), ("/forbidden", 403),
+            ("/server-error", 500), ("/unavailable", 503),
+        ]) {
+            assert_eq!(request.method, "GET");
+            assert_eq!(request.path, path);
+        }
+        assert!(budget.check().is_ok(), "non-429 HTTP failures are not rate limits");
+    }
+
+    #[tokio::test]
+    async fn given_real_http_429_when_observed_then_retry_after_stops_followup_admissions() {
+        use crate::test_http::FixtureHttp;
+        use serde_json::json;
+
+        let server = FixtureHttp::start(|request| {
+            assert_eq!(request.path, "/throttled");
+            (429, json!({"errors":[{"message":"fixture-private-secret"}]}))
+        });
+        let budget = ApiBudget::new();
+        assert_eq!(budget.retry_after_seconds(), 0);
+        assert!(!budget.exhausted());
+        budget.check().unwrap();
+
+        let response = reqwest::Client::new().get(server.url("/throttled"))
+            .send().await.unwrap();
+        assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+        budget.observe(&response);
+        assert_eq!(budget.retry_after_seconds(), 75,
+            "read the Retry-After header from the actual HTTP response");
+        assert!(budget.exhausted());
+        let error = budget.check().unwrap_err();
+        assert_eq!(error, msg::BUDGET_RATE_LIMIT);
+        assert!(!error.contains("fixture-private-secret"));
+        assert_eq!(server.requests().len(), 1,
+            "rejected retry must not issue another HTTP request");
+    }
+
+    #[tokio::test]
+    async fn given_independent_poll_budgets_when_one_gets_429_then_other_is_not_throttled() {
+        use crate::test_http::FixtureHttp;
+        use serde_json::json;
+
+        let server = FixtureHttp::start(|request| {
+            match request.path.as_str() {
+                "/first-poll" => (429, json!({"success":false})),
+                "/other-poll" => (200, json!({"success":true})),
+                path => panic!("unexpected fixture path: {path}"),
+            }
+        });
+        let throttled = ApiBudget::new();
+        let independent = ApiBudget::new();
+        let client = reqwest::Client::new();
+
+        throttled.check().unwrap();
+        let first = client.get(server.url("/first-poll")).send().await.unwrap();
+        throttled.observe(&first);
+        assert_eq!(throttled.retry_after_seconds(), 75);
+        assert!(throttled.exhausted());
+        assert_eq!(throttled.check().unwrap_err(), msg::BUDGET_RATE_LIMIT);
+
+        independent.check().unwrap();
+        let second = client.get(server.url("/other-poll")).send().await.unwrap();
+        assert_eq!(second.status(), StatusCode::OK);
+        independent.observe(&second);
+        assert_eq!(independent.retry_after_seconds(), 0);
+        assert!(!independent.exhausted());
+        assert!(independent.check().is_ok());
+
+        let later_poll = ApiBudget::new();
+        assert_eq!(later_poll.retry_after_seconds(), 0);
+        assert!(!later_poll.exhausted());
+        assert!(later_poll.check().is_ok());
+        assert_eq!(server.requests().iter().map(|r| r.path.as_str())
+            .collect::<Vec<_>>(), vec!["/first-poll", "/other-poll"]);
+    }
+
 }
