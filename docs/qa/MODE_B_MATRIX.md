@@ -1266,3 +1266,29 @@ cells, no complete mutation-run score, and no assertion of
 acceptance; do not repeatedly request it. All twenty
 locale contract checks remain green, without requiring
 external native-speaker recruitment.
+
+### Package-catalog integrity regression receipt — 2026-10-27
+
+Mode A release correctness fix with Mode B negative controls
+in `r2_release.py::verify_apt_package_catalog` and the
+`test_release_r2.py` offline publisher fixture. In addition
+to the earlier signed-index SHA256/size checks, the source
+now enforces the actual package identity, sole stanza,
+canonical pool pathname, binary size/digest and byte-for-byte
+gzip-to-plain parity. Three independent Python test methods
+cover the positive exact matching package and folded
+Description, twelve invalid package-control variants, and
+four gzip corruption or mismatch variants. The mock
+InRelease SHA256 and by-hash are regenerated in the
+negative cases so those tests address the content defect,
+not merely a stale metadata hash.
+
+[Preflight #40574280521](https://github.com/morozhenko-apps/cfvigil/actions/runs/40574280521):
+final code SHA `cd49390dc9b38585509a2f5ff695b8914de7b382`;
+Node 167/167, Python release 19/19, Python icon 3/3,
+Rust 164/164; all **353 tests PASS**, 0 failed.
+Separate known-flaky suite remains unregistered; no
+mutation percentage or complete cross-module branch
+coverage is claimed. No actual release publication,
+APT private-key operation, production R2 access, or
+new native install was tested or performed.
