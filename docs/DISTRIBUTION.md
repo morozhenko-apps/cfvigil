@@ -379,3 +379,68 @@ change, Cloudflare calls, R2 writes or GitHub artifact DELETE
 is performed in this test batch. Full dev Preflight must run
 once after both files are finalized; do not cite the previous
 `#40563249933` for this additional change.
+
+### 2026-10-27 — final apt signed-index content hardening (Stage 1–12 release slice)
+
+**Observed result before change:** Preflight
+[#40568546486](https://github.com/morozhenko-apps/cfvigil/actions/runs/40568546486)
+SUCCEEDED on exact SHA `b72f4c654b504eebee772adddc11cb37b563b359`.
+Source/localization/icon checks PASS, Node **167/167**,
+offline Python **13+3/16**, Rust **164/164**; zero failures,
+total **347/347**. The two-platform cleanup preflight and all
+three new regression cases passed. Its reported status is now
+CLOSED, replacing the prior "CI pending" checkpoint.
+
+**Next production risk:** `scripts/r2_release.py::apt_files` executes
+`gpgv` against `InRelease`, compares each by-hash object to
+its corresponding Packages/Packages.gz, and checks that Packages
+mentions the CFVigil pool, but it **never checks that the verified
+signature's SHA256 index entries refer to those same index bytes**.
+An older valid signed `InRelease` plus new indexes/by-hash can
+pass source_map and be uploaded, leaving APT clients unable to
+verify the advertised package indexes. No such corrupted live
+publication is known; this is a failure found in source audit.
+
+Root-cause alternatives screened: missing signature validity
+(existing gpgv check); missing by-hash blob parity (existing check);
+wrong pool DEB hash (existing check); stale signed index digest
+and size (not checked); malformed/duplicate/missing SHA256 index
+rows (not checked); unrelated package claims (current broad
+substring check). Scope this fix to stale/missing/duplicate
+signed index checks and associated test fixtures; do not
+change public URLs, APT metadata format or publication order.
+
+**Planned implementation:**
+1. Add a pure parser/validator for RFC4880 clear-signed `InRelease`
+   checking a single complete `SHA256:` section and one canonical
+   size+digest record each for
+   `main/binary-amd64/Packages` and
+   `main/binary-amd64/Packages.gz`. Handle LF/CRLF only with
+   exact canonical paths, fail closed on missing/malformed/duplicate
+   target rows, mismatch in byte count or digest; never trust
+   `by-hash` alone. Execute it only **after gpgv succeeds**.
+2. Update mock InRelease in the existing Python offline
+   publisher fixture to contain coherent signed Release records;
+   keep the fake GPG execution limited to fixtures.
+3. Add negative tests for old valid signature with newer index,
+   size-only tamper, digest-only tamper, duplicate/missing path,
+   missing SHA256 section and malformed clear-signed envelope.
+   Ensure R2 `source_map` rejects prior to any network
+   upload or receipt emission. Add actual parser-positive
+   coverage including LF/CRLF.
+4. Run one final full hosted Ubuntu Preflight (Node, Python,
+   Rust and source checks) **after** the full code/test
+   implementation; update this dated evidence, not previous
+   release claims. No provider calls, no production R2,
+   tag/main, owner OS retest or signing-key operations.
+
+**Rollback:** scoped script/test commit plus documentation
+and final CI marker. No state migration, auth change, or
+release-source schema change. Existing genuine
+`apt-ftparchive release .` signed indexes contain these
+SHA256 rows and should pass unchanged.
+
+**Release boundary:** a green offline gate does not create
+bucket, route, protected environment, signing subkey or
+public readback; first live publication still requires
+explicit authorization and provisioned CFVigil-only secrets.
