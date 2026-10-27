@@ -870,3 +870,31 @@ download, and preserve existing attribution/UTM behavior.
 If the manifest cannot be loaded, do not invent a version or
 link to an unverified guessed file. CORS for browser-side
 direct R2 reads remains unconfigured in this source-only task.
+
+### Hosted signed flat APT acceptance — completed 2026-10-27
+
+[Preflight #40589861497](https://github.com/morozhenko-apps/cfvigil/actions/runs/40589861497)
+completed **SUCCESS** on exact checked-in source/CI SHA
+`07d2eccbc611bade2e1187970bb86964ecb98fe0`.
+The job log reports **Node 162/162**, **Python release 24/24**
+(including the two real APT integration methods),
+**Python icons 3/3** and **Rust 164/164**:
+**353/353 PASS, zero failures**. All companion syntax,
+localization, icon and locked Cargo checks succeeded.
+
+The new CI cases executed the exact `apt_repository.assemble`
+using real Debian tools and GPG under an isolated, temporary
+client configuration. An actual APT client accepted the
+`./` source and resolved `cf-vigil 0.1.0`; it rejected
+a mutated but not re-signed `InRelease`. They validate
+the signed *local* flat APT protocol, not a public R2
+upload or existing installed Ubuntu package. This run
+did not use CFVigil release credentials, issue tags,
+other products, production R2 or website settings.
+
+Only documentation changed after the passing code SHA;
+no duplicate CI requested. Next operational gates still
+require the owner-configured protected environment,
+real signed source release tag, Cloudflare publicly
+reachable `latest.json` and the eventual
+PersonalLanding consumer with safe fallback.
