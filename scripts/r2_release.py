@@ -6,6 +6,7 @@ a separately provisioned signing subkey, and scoped CFVigil R2 credentials.
 The verified receipt is written ONLY after every public download matches.
 """
 import argparse
+import gzip
 import hashlib
 import json
 import os
@@ -14,6 +15,7 @@ import re
 import subprocess
 import time
 import urllib.request
+import zlib
 
 BUCKET = "cfvigil-dist"
 PREFIX = "dist/CFVigil/"
@@ -154,6 +156,72 @@ def verify_signed_apt_indexes(inrelease, index):
             raise ValueError("Signed APT index SHA256 or size does not match the file")
 
 
+
+def verify_apt_package_catalog(packages, compressed, pool, version):
+    """Bind APT's signed single-package index to the exact approved DEB.
+
+    The caller must first authenticate InRelease and confirm its SHA256
+    records for both index files. Independent signatures over two files
+    do not establish that either describes the correct package, nor
+    that the compressed variant contains the same index bytes.
+    """
+    try:
+        lines = packages.read_text(encoding="utf8").splitlines()
+    except UnicodeError as error:
+        raise ValueError("APT package catalog is not valid UTF-8") from error
+    critical = {"Package", "Version", "Architecture", "Filename", "Size", "SHA256"}
+    entries = []
+    fields = {}
+    previous = None
+    for line in lines:
+        if not line:
+            if fields:
+                entries.append(fields)
+                fields = {}
+            previous = None
+            continue
+        if line[0] in " \t":
+            # Debian control files permit folded Description and other
+            # informational fields, but critical identities cannot fold.
+            if previous is None or previous in critical:
+                raise ValueError("APT package catalog has unsafe continuation")
+            continue
+        key, separator, value = line.partition(":")
+        if (not separator or
+                not re.fullmatch(r"[A-Za-z][A-Za-z0-9-]*", key) or
+                key in fields):
+            raise ValueError("APT package catalog contains malformed or duplicate fields")
+        fields[key] = value.strip()
+        previous = key
+    if fields:
+        entries.append(fields)
+    if len(entries) != 1:
+        raise ValueError("APT package catalog must contain one exact CFVigil package")
+    record = entries[0]
+    expected = {
+        "Package": "cf-vigil",
+        "Version": version,
+        "Architecture": "amd64",
+        "Filename": f"pool/main/c/cf-vigil/cfvigil_{version}_amd64.deb",
+        "Size": str(pool.stat().st_size),
+        "SHA256": digest(pool),
+    }
+    if any(record.get(key) != value for key, value in expected.items()):
+        raise ValueError("APT package catalog does not match approved DEB")
+
+    # Compare bounded output chunks to the signed plain index. Never
+    # unboundedly inflate a compressed file into memory.
+    try:
+        with packages.open("rb") as plain, gzip.open(compressed, "rb") as packed:
+            while chunk := plain.read(1024 * 1024):
+                if packed.read(len(chunk)) != chunk:
+                    raise ValueError("APT package catalog gzip differs from Packages")
+            if packed.read(1):
+                raise ValueError("APT package catalog gzip contains additional data")
+    except (EOFError, OSError, zlib.error) as error:
+        raise ValueError("APT package catalog has invalid gzip") from error
+
+
 def apt_files(apt, linux_deb, version):
     if apt.is_symlink() or not apt.is_dir():
         raise ValueError("Incomplete signed APT directory")
@@ -173,8 +241,7 @@ def apt_files(apt, linux_deb, version):
     subprocess.run(["gpgv", "--keyring", str(keyring), str(inrelease)],
                    check=True, stdout=subprocess.DEVNULL)
     verify_signed_apt_indexes(inrelease, index)
-    if b"pool/main/c/cf-vigil/" not in packages.read_bytes():
-        raise ValueError("APT package index points outside CFVigil pool")
+    verify_apt_package_catalog(packages, compressed, pool, version)
     immutable = {}
     mutable = {}
     for item in (pool, keyring):
