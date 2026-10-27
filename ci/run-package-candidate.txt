@@ -107,3 +107,12 @@ no main/tag/R2/release or user self-hosted runners.
 revealed one test assertion was LF-only. Same Rust, icons and bundle
 identity; test fixed to accept CRLF on Windows. Rebuild both platforms
 from one SAME SHA for owner smoke. Tauri must produce Name/Exec/Icon CFVigil.
+
+2026-10-27: v1.0.0 exact-source first public-release preparation candidate.
+Stable source checked at ad32baa710a5135393c354b317815804c444d5d5:
+Preflight #40598381215 SUCCESS, 368/368. Post-gate changes were
+documentation only. Produce fresh *unreleased* Linux DEB/AppImage
+and Windows unsigned NSIS from ONE shared marker commit to verify
+v1.0.0 package identity, checksum and actual packaging.
+No main fast-forward, tag, approval, R2 publication, or self-hosted
+runner; artifacts expire after 1 day.

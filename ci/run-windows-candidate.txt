@@ -84,3 +84,12 @@ Node and packaging checks. Unsigned candidate only; no release or R2.
 parser must preserve valid anchor:null and valid signed positions.
 Run Windows Rust including quarantine restore tests, then unsigned NSIS
 candidate on SAME SHA as Ubuntu. No production release or R2.
+
+2026-10-27: v1.0.0 exact-source first public-release preparation candidate.
+Stable source checked at ad32baa710a5135393c354b317815804c444d5d5:
+Preflight #40598381215 SUCCESS, 368/368. Post-gate changes were
+documentation only. Produce fresh *unreleased* Linux DEB/AppImage
+and Windows unsigned NSIS from ONE shared marker commit to verify
+v1.0.0 package identity, checksum and actual packaging.
+No main fast-forward, tag, approval, R2 publication, or self-hosted
+runner; artifacts expire after 1 day.
