@@ -22,6 +22,13 @@ test("no dev push or workflow dispatch can publish CFVigil",()=>{
   assert.doesNotMatch(release,/\$\{\s+(?:github|vars|secrets|needs|runner|steps)\./);
 });
 
+test("protected release tag validation has real GPG and dpkg prerequisites",()=>{
+  const admit=release.slice(0,release.indexOf("\n  linux:"));
+  const install=admit.indexOf("sudo apt-get install -y --no-install-recommends dpkg-dev gnupg gpgv");
+  const verify=admit.indexOf("python3 -m unittest discover -s tests -p 'test_release_*.py'");
+  assert.ok(install >= 0 && verify > install,"real signed-APT integration dependencies must precede tag validation");
+});
+
 test("publication orders R2 readback ahead of cleanup and text-only GitHub release",()=>{
   assert.match(release,/python" scripts\/r2_release\.py/);
   assert.match(release,/--receipt "\$RUNNER_TEMP\/publication-receipt\.json"/);
