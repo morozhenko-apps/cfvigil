@@ -411,3 +411,13 @@ any GitHub writes; explicit --apply scoped to CFVigil environment;
 primary fingerprint correction. No private key is loaded by CI.
 Full stable JavaScript/Python/Rust check once. Production R2,
 GitHub environment secret values, main, tags unchanged.
+
+2026-10-27: exact first v1.0.0 stable release source gate.
+Source/doc baseline 14f78c23254c22939e99ed6ad471da3fa734edd5. Verify Rust Cargo package, Cargo.lock workspace
+metadata and Tauri version 1.0.0; tag v1.0.0 accepted / old v0.1.0
+rejected; full Linux/Windows product identity intact; protected
+release validation installs GPG/dpkg integration dependencies before
+test execution; all existing offline security and 20-locale cases.
+One full hosted Node, Python and locked Rust Preflight.
+No main/tag, GitHub environment approval, R2 objects, WAF or
+external installer publication changed.
