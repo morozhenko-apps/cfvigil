@@ -167,6 +167,28 @@ mod tests {
     }
 
     #[test]
+    fn noncanonical_saved_language_array_is_quarantined_before_defaults_apply() {
+        let dir=TestDir::new();
+        let path=dir.0.join("language.json");
+        fs::write(&path,b"[]").unwrap();
+        let loaded=read_or_default::<crate::language::LanguagePreference>(
+            &path,MAX_JSON_BYTES).unwrap();
+        assert!(loaded.quarantined);
+        assert_eq!(loaded.value.locale,"en");
+        assert!(!path.exists());
+        let backups=fs::read_dir(&dir.0).unwrap()
+            .map(|entry|entry.unwrap().path()).collect::<Vec<_>>();
+        assert_eq!(backups.len(),1);
+        assert_eq!(fs::read(&backups[0]).unwrap(),b"[]");
+        write_atomic(&path,&crate::language::LanguagePreference {
+            locale:"pt".to_owned()
+        },MAX_JSON_BYTES).unwrap();
+        assert_eq!(read_or_default::<crate::language::LanguagePreference>(
+            &path,MAX_JSON_BYTES).unwrap().value.locale,"pt");
+        assert_eq!(fs::read(&backups[0]).unwrap(),b"[]");
+    }
+
+    #[test]
     fn atomic_write_preserves_existing_history_and_private_permissions() {
         let dir = TestDir::new();
         let path = dir.file();

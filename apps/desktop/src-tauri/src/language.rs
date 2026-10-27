@@ -7,9 +7,22 @@ pub const ACTIVE: &[&str] = &["en", "ru", "es", "pt", "de", "fr", "it", "pl", "h
 fn default_locale() -> String { "en".to_owned() }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(try_from = "serde_json::Map<String, serde_json::Value>")]
 pub struct LanguagePreference {
-    #[serde(default = "default_locale")]
     pub locale: String,
+}
+// The on-disk format has always been a JSON object. Serde's derived
+// struct visitor otherwise accepts [] as an empty field sequence and
+// silently bypasses read_or_default's corrupt-data quarantine.
+impl TryFrom<serde_json::Map<String, serde_json::Value>> for LanguagePreference {
+    type Error = String;
+    fn try_from(mut fields: serde_json::Map<String, serde_json::Value>) -> Result<Self, Self::Error> {
+        match fields.remove("locale") {
+            None => Ok(Self::default()), // Compatible with legacy {}.
+            Some(serde_json::Value::String(locale)) => Ok(Self { locale }),
+            Some(_) => Err("Invalid saved language preference".into()),
+        }
+    }
 }
 impl Default for LanguagePreference {
     fn default() -> Self { Self { locale: default_locale() } }

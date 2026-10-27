@@ -19,8 +19,27 @@ struct Anchor {
 }
 
 #[derive(Clone, Default, Serialize, Deserialize)]
+#[serde(try_from = "serde_json::Map<String, serde_json::Value>")]
 struct SavedPosition {
     anchor: Option<Anchor>,
+}
+// Serialized positions always include "anchor" (null before first drag).
+// Missing/sequence-shaped data is corrupt, not a successfully saved
+// empty anchor. Unknown object fields remain compatible with old files.
+impl TryFrom<serde_json::Map<String, serde_json::Value>> for SavedPosition {
+    type Error = String;
+    fn try_from(mut fields: serde_json::Map<String, serde_json::Value>) -> Result<Self, Self::Error> {
+        let anchor = match fields.remove("anchor") {
+            Some(serde_json::Value::Null) => None,
+            Some(serde_json::Value::Object(positions)) => {
+                let anchor = serde_json::from_value(serde_json::Value::Object(positions))
+                    .map_err(|_| "Invalid saved Windows card anchor".to_owned())?;
+                Some(anchor)
+            }
+            _ => return Err("Missing or invalid Windows card anchor".into()),
+        };
+        Ok(Self { anchor })
+    }
 }
 
 #[derive(Default)]
@@ -354,6 +373,7 @@ mod tests {
         assert!(serde_json::from_str::<SavedPosition>(r#"{}"#).is_err(),
             "missing required anchor is rejected by current persistence contract");
         for input in [
+            "[]",r#"{"anchor":[]}"#,
             r#"{"anchor":{}}"#,
             r#"{"anchor":{"x":50}}"#,
             r#"{"anchor":{"bottom":900}}"#,
