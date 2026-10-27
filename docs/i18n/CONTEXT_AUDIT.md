@@ -460,3 +460,32 @@ Rollback: revert only scoped new tests and this separate documentation
 milestone; product logic and dictionaries remain intact unless an
 actual failing assertion confirms a defect. No network, keyring,
 new fonts or binary-release operations.
+
+## 2026-10-27 — engineering acceptance of all 20 locales (no native-speaker gate)
+
+The source/runtime audit covering en, ru, es, pt, de, fr, it, pl, hi,
+zh-Hant, ja, nl, sv, tr, ko, bn, th, id, fil and ar has now
+executed as part of the full
+[Preflight #40562000345](https://github.com/morozhenko-apps/cfvigil/actions/runs/40562000345).
+The new six table-driven tests passed, together with all existing
+locale source/context contracts (163 JavaScript tests total).
+
+**Per-locale disposition:** all twenty above are ACCEPTED for
+engineering source/runtime contracts. This covers reviewed golden
+monitoring states, complete dictionary keys/interpolation/CLDR plural
+choices, six exact permission names, 32-character account guidance,
+stable historic event translation, numeric HTTP/scope diagnostic
+semantics, Arabic FSI/PDI permission isolation, explicit pt-PT and
+zh-Hant codes, DST-adjacent date formatting and all four translated
+WebView attribute types.
+
+**Scope of evidence:** source/runtime contract acceptance, not a
+claim of native-speaker-certified idiomatic prose nor a new physical
+font/screenshots inspection. The owner specifically waived sourcing
+twenty external national-language reviewers. Earlier Draft statuses
+apply to that human editorial certification only; they are not a
+remaining mandatory v1.0 release gate under the 2026-10-27 owner
+policy. If a reproducible mistranslation, glyph or UI issue is
+reported, handle it as an ordinary regression, not a preemptive
+repeat-platform blocker. Persisted English history messages and
+Cloudflare status IDs remain byte-for-byte unchanged.
