@@ -20,6 +20,11 @@ export function validateR2Receipt(receipt) {
       receipt.artifacts.some(item => !NAMES.has(item.name))) {
     throw Error("Invalid CFVigil publication receipt or artifact scope");
   }
+  // r2_release.py emits one GitHub release run for BOTH handoff
+  // archives; a receipt cannot splice archives from unrelated workflows.
+  if (new Set(receipt.artifacts.map(item => item.run_id)).size !== 1) {
+    throw Error("CFVigil receipt archives must share the same source run");
+  }
   // Only the exact artifacts emitted by r2_release.py can authorize
   // destruction of their temporary GitHub handoff archives. The public
   // R2 URL prefix alone does not prove the full platform payload exists.
@@ -82,25 +87,37 @@ async function listRunArtifacts(run, token, request) {
 export async function deletePublishedArtifacts(receipt, token, request = fetch) {
   validateR2Receipt(receipt); // no DELETE without verified readback proof
   if (!token) throw Error("Missing Actions-write cleanup token");
-  let removed = 0;
+  const runId = receipt.artifacts[0].run_id;
+  // Inspect BOTH archives before the first destructive request.
+  // A foreign second archive, duplicate or bad listing must never
+  // allow deletion of an otherwise valid first archive.
+  const artifacts = await listRunArtifacts(runId, token, request);
+  const approved = [];
   for (const target of receipt.artifacts) {
-    const artifacts = await listRunArtifacts(target.run_id, token, request);
     const matches = artifacts.filter(a => a.name === target.name);
     if (matches.length > 1) throw Error("Ambiguous release artifact; refusing deletion");
-    if (!matches.length) continue; // idempotent if already cleaned
+    if (!matches.length) continue; // idempotent after a successful prior cleanup
     const artifact = matches[0];
     if (!Number.isSafeInteger(artifact.id) || artifact.id < 1 ||
-        artifact.workflow_run?.id !== target.run_id ||
+        artifact.workflow_run?.id !== runId ||
         artifact.workflow_run?.head_sha !== receipt.commit) {
       throw Error("Artifact belongs to a different build; refusing deletion");
     }
+    approved.push({target, artifact});
+  }
+  if (new Set(approved.map(item => item.artifact.id)).size !== approved.length) {
+    throw Error("Ambiguous release artifact; refusing deletion");
+  }
+
+  let removed = 0;
+  for (const {target, artifact} of approved) {
     const response = await request(
       "https://api.github.com/repos/" + REPO + "/actions/artifacts/" + artifact.id,
       {method:"DELETE",headers:{Authorization:"Bearer " + token,Accept:"application/vnd.github+json"}}
     );
     if (response.status !== 204) throw Error("GitHub Actions artifact cleanup failed");
     removed++;
-    const remaining = await listRunArtifacts(target.run_id, token, request);
+    const remaining = await listRunArtifacts(runId, token, request);
     if (remaining.some(a => a.id === artifact.id || a.name === target.name)) {
       throw Error("Deleted artifact remains in GitHub Actions listing");
     }
