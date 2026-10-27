@@ -1438,3 +1438,11 @@ from default mode. No authenticated GitHub env, GPG
 signing service, R2 bucket or publicly deployed package
 was exercised by these tests; no production acceptance
 or broad Mode B completion is claimed.
+
+### 2026-10-27 — existing owner APT signing subkey reuse (source-only)
+
+Owner's authenticated GH CLI created `cfvigil-release`; all 7 environment credential names were absent, and main/dev still diverge. The owner has a RepoTicker primary signing fingerprint, public GPG exports and encrypted **full-secret backup**. Reusing its existing single signing subkey is technically supported as an optional owner choice. Shared signing trust increases cross-product compromise/revocation scope; no such reuse occurs in hosted CI or agent tools. The CFVigil variable `CFVIGIL_APT_FINGERPRINT` must be the **primary** 40-hex fingerprint. The verifier rejects a full primary secret export and expects exactly one signing subkey with only a primary secret stub.
+
+Added `scripts/provision_existing_apt_key.sh` supporting `--check` (no remote write) and explicit `--apply` (write only two signing secrets and one fingerprint to the already-created CFVigil environment). Source checks cover bash syntax, unsupported mode, noninteractive terminal rejection even for apply, use of `--export-secret-subkeys` only, isolated signing verification via `gpgv`, protection against overwriting an existing authority, and absence of RepoTicker-scoped GH writes. Live local GPG availability and correct passphrase remain unverified until the owner runs the script. No R2 variable/credential, tag approval, main, production R2 or signing private key was touched.
+
+A single final hosted Preflight is required to accept the new source test and helper. There is no production key handling in this CI gate.
