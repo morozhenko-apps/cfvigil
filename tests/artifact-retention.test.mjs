@@ -6,9 +6,25 @@ import {validateR2Receipt,deletePublishedArtifacts} from "../scripts/cleanup-pub
 const BASE = "https://download.morozhenko.com/dist/CFVigil/releases/v0.1.0/";
 const HASH = "a".repeat(64);
 const COMMIT = "b".repeat(40);
+// Mirror the exact receipt file lists emitted by r2_release.py.
+const filesFor = (name, ext) => {
+  if (name === "cfvigil-release-linux") return [
+    "linux/cfvigil_0.1.0_amd64.deb",
+    "linux/cfvigil_0.1.0_amd64.deb.sha256",
+    "linux/CFVigil-0.1.0-linux-x64.AppImage",
+    "linux/CFVigil-0.1.0-linux-x64.AppImage.sha256"
+  ];
+  if (name === "cfvigil-release-windows") return [
+    "windows/CFVigil-Setup-0.1.0-win-x64.exe",
+    "windows/CFVigil-Setup-0.1.0-win-x64.exe.sha256"
+  ];
+  return [name + ext];
+};
 const record = (name, run_id, ext) => ({
-  name,run_id,files:[{url:BASE + name + ext,sha256:HASH,readback_sha256:HASH,
-    size:12345,readback_size:12345,readback_status:200}]
+  name,run_id,files:filesFor(name,ext).map(relative => ({
+    url:BASE + relative,sha256:HASH,readback_sha256:HASH,
+    size:12345,readback_size:12345,readback_status:200
+  }))
 });
 const receipt = () => ({
   schema:1,product:"CFVigil",version:"0.1.0",commit:COMMIT,
