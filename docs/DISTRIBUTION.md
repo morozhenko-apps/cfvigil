@@ -795,3 +795,43 @@ repository change and must be checked before offering
 dynamic public downloads. Only documentation was
 updated after the successful CI SHA, so no additional
 source-gate CI was requested.
+
+### 2026-10-27: persistent real-APT CI acceptance plan
+
+Source baseline: `dev` `174cfc6da934f391591f478471cf431e3004bb4b`.
+The flat APT distribution and its publisher were approved and
+source-tested in full Preflight #40585813847 (351/351), and a
+one-off disposable local APT read was previously documented.
+However, the persistent Python suite mocks `gpgv` for publisher
+tests; no checked-in CI case currently executes an actual generated
+Debian archive, signing command, `apt-get update` or resolver
+against the exact `apt_repository.py` flat output.
+
+Root cause: the pipeline's source-level signed index tests cannot
+establish real package-manager compatibility. This is a test-evidence
+gap, not permission to change the adopted flat R2 storage layout,
+remove signature enforcement, or introduce a new Worker.
+
+Scope: add one offline integration test module generating a synthetic
+`cf-vigil_0.1.0_amd64.deb`, a **disposable** GPG key in a private
+temporary directory, real `apt_repository.assemble`, and an isolated
+`file:` apt source with dedicated lists/status/cache directories.
+Require a successful real `apt-get update`, candidate resolution and
+exact `./cfvigil_0.1.0_amd64.deb` index Filename; deliberately tamper
+signed `InRelease` and require apt to reject it. Publish no package,
+alter no host APT source, install no system package, and never use or
+print real release credentials. Keep the existing package boundary,
+`latest.json`, GitHub cleanup, docs/Issue forms and PersonalLanding
+unchanged. Include these tools in the hosted Preflight prerequisites:
+`dpkg-dev`, `gnupg`, `gpgv` (same apt update/install phase).
+Run exactly one final complete source Preflight and record the exact
+code SHA plus observed Node, Python and Rust totals. No main/tag/R2/WAF,
+credential or production site mutation.
+
+Website continuation: PersonalLanding currently has no CFVigil
+catalog entry. Do not publish dead install links before the first
+R2 release; after actual public `latest.json` is available, validate
+the manifest against a strict same-origin/CORS reader and connect
+its versioned URLs with the existing attribution contract. The
+absence of a website button during this source-only gate is
+intentional, not a passing public distribution check.
