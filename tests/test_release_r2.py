@@ -5,6 +5,7 @@ import io
 import json
 import sys
 import tempfile
+from types import ModuleType
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -323,6 +324,68 @@ class PublicationFixture(unittest.TestCase):
             self.assertNotIn("/releases/", item["url"])
         self.assertEqual(release.BUCKET, "app-dist")
         self.assertNotIn("latest.json", mutable)
+
+    def offline_publication(self, fail_latest=False):
+        """Emulate cloud clients while running real upload/publish ordering."""
+        client = UploadSafetyTests.FakeS3()
+        boto = ModuleType("boto3")
+        boto.client = lambda *args, **kwargs: client
+        config = ModuleType("botocore.config")
+        config.Config = lambda **kwargs: None
+        botocore = ModuleType("botocore")
+        botocore.__path__ = []
+        botocore.config = config
+        seen = []
+
+        def public(file, key):
+            seen.append(key)
+            if key == "latest.json" and fail_latest:
+                raise ValueError("intentional last-pointer readback failure")
+            size = file.stat().st_size
+            checksum = release.digest(file)
+            return {
+                "url": release.BASE + key, "sha256": checksum,
+                "readback_sha256": checksum, "size": size,
+                "readback_size": size, "readback_status": 200,
+            }
+
+        destination = Path(self.temp.name) / "verified-publication-receipt.json"
+        with patch.dict(sys.modules, {
+            "boto3": boto, "botocore": botocore, "botocore.config": config
+        }), patch.object(release.subprocess, "run"), patch.object(
+                release, "public_readback", side_effect=public):
+            if fail_latest:
+                with self.assertRaisesRegex(ValueError, "last-pointer"):
+                    release.publish(self.bundle, self.apt, VERSION, COMMIT, 51,
+                                    destination, "a" * 32, "test-key", "test-secret")
+            else:
+                release.publish(self.bundle, self.apt, VERSION, COMMIT, 51,
+                                destination, "a" * 32, "test-key", "test-secret")
+        return client, seen, destination
+
+    def test_flat_publication_preserves_single_binary_and_publishes_latest_last(self):
+        client, seen, destination = self.offline_publication()
+        self.assertTrue(destination.exists())
+        self.assertEqual(seen[-1], "latest.json")
+        self.assertEqual(seen[-2], "linux/InRelease")
+        self.assertEqual(sum(k.endswith(".deb") for k in client.objects), 1)
+        self.assertTrue(all(k.startswith(release.PREFIX) for k in client.objects))
+        self.assertEqual(len(client.objects), 11)
+        self.assertEqual([key for _, key, _ in client.writes][-1],
+                         release.PREFIX + "latest.json")
+        data = json.loads(destination.read_text(encoding="utf8"))
+        self.assertEqual(data["latest"]["url"], release.BASE + "latest.json")
+        self.assertEqual(len(data["artifacts"]), 2)
+        self.assertEqual(
+            json.loads(client.objects[release.PREFIX + "latest.json"][0])["version"],
+            VERSION
+        )
+
+    def test_failed_final_latest_readback_never_emits_deletion_receipt(self):
+        client, seen, destination = self.offline_publication(fail_latest=True)
+        self.assertEqual(seen[-1], "latest.json")
+        self.assertIn(release.PREFIX + "linux/InRelease", client.objects)
+        self.assertFalse(destination.exists())
 
     def test_receipt_cannot_be_emitted_with_missing_credentials(self):
         with self.assertRaisesRegex(ValueError, "credentials"):
