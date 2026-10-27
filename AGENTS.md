@@ -50,7 +50,7 @@ use the owner's self-hosted CI runners for this. See
 
 - Follow `docs/PRODUCT.md` and `docs/ROADMAP_TO_1_0.md` as feature scope.
 - Read existing RepoTicker conventions before modifying tray, packaging or CI.
-- Release publication is enabled only by owner-approved version tag matching exact `main` HEAD AND a protected `cfvigil-release` environment with a matching `CFVIGIL_RELEASE_APPROVED_TAG`. Never create or populate release credentials, advance `main`, add tags, deploy the Worker, or publish R2 objects without explicit owner approval. Use a separate `cfvigil-dist` bucket and dedicated secrets, never the RepoTicker bucket token. See `docs/DISTRIBUTION.md`.
+- Release publication is enabled only by owner-approved version tag matching exact `main` HEAD AND a protected `cfvigil-release` environment with a matching `CFVIGIL_RELEASE_APPROVED_TAG`. Never create or populate release credentials, advance `main`, add tags or publish R2 objects without explicit owner approval. The approved distribution uses the existing `app-dist` bucket with exactly the `dist/CFVigil/` key prefix; release secrets must be provisioned deliberately for that boundary and must not silently reuse another product's token. No CFVigil download Worker is required: the R2 Custom Domain serves versioned installers, signed flat APT and `latest.json` directly. See the approved contract at the top of `docs/DISTRIBUTION.md`.
   Public GitHub Actions use **standard GitHub-hosted runners** (ubuntu-24.04,
   and windows-2025 only when Windows CI is introduced). Do not consume or
   change the user's Alcotester self-hosted runners for this open-source app.
@@ -67,9 +67,23 @@ use the owner's self-hosted CI runners for this. See
 - Build all remaining MVP features **before** the 20-language localization
   milestone. Do a contextual audit for each supported locale and then perform
   final Mode B quality/testing and release acceptance.
-- Bug reports are accepted through the one GitHub Issue form. No external PR
-  contribution process, external maintainers or feature request intake.
-  Forks are welcome under Apache License 2.0.
+- Accept reproducible bug reports and improvement suggestions through two
+  separate GitHub Issue forms. Suggestions are feedback, not a promised roadmap.
+  No outside code contributions, patches, PR review/merges or additional upstream
+  maintainers. Independent forks are permitted under Apache License 2.0.
+  Keep Issues free of private Cloudflare tokens and account details; sensitive
+  findings go to private GitHub Security Advisories. See `CONTRIBUTING.md`.
+
+## Future macOS distribution extension (not implemented)
+
+A macOS release would add a new `dist/CFVigil/macos/` directory under the
+existing shared bucket. It requires no second bucket, Worker or change
+to flat Linux APT. However, its artifact allowlist, platform receipt,
+`latest.json` schema, tests and website links must be extended with
+the macOS binary, checksums and version. Its GitHub-hosted macOS
+build, appropriate Apple signing/notarization and native installation
+checks require separate owner approval. Do not advertise macOS in
+the public manifest before that platform is genuinely released.
 
 ## Repository housekeeping (2026-10-25)
 
