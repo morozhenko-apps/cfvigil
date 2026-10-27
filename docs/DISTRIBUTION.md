@@ -835,3 +835,38 @@ the manifest against a strict same-origin/CORS reader and connect
 its versioned URLs with the existing attribution contract. The
 absence of a website button during this source-only gate is
 intentional, not a passing public distribution check.
+
+### Persistent signed flat APT client gate (2026-10-27)
+
+`tests/test_release_apt_integration.py` now exercises
+`apt_repository.assemble` with a synthetic package produced by
+actual `dpkg-deb`, a disposable unsigned-to-user GPG test identity,
+real `gpg` clearsigning, its exported public keyring and an
+isolated `apt-get update` using the approved `./` flat catalog.
+The test asserts that the real resolver finds `cf-vigil 0.1.0`
+at `Filename: ./cfvigil_0.1.0_amd64.deb`, with no pool/dists
+hierarchy, and independently checks that a changed but not
+re-signed `InRelease` is rejected. It never installs the dummy
+package, changes `/etc/apt`, alters host trust, uses a production
+key or accesses Cloudflare. Temporary keyring, lists and
+package files are cleaned by the test fixture.
+
+`.github/workflows/checks.yml` installs `dpkg-dev`, `gnupg`
+and `gpgv` alongside its existing Linux dependencies and runs
+these tests within the ordinary offline release suite. A local
+disposable rehearsal against a module mirroring the approved
+generator passed **2/2** before this change was pushed.
+That rehearsal is **not** evidence that GitHub CI has run the
+new checked-in test against exact `dev` source; the final
+source SHA and hosted run must be verified independently.
+
+PersonalLanding's source has no CFVigil card or landing route
+yet. The first website install URL must remain absent until
+a real `latest.json` artifact and public end-to-end byte
+readback are available. The website consumer must validate
+manifest schema, product identity, release version, canonical
+same-product platform URLs and hashes before exposing a
+download, and preserve existing attribution/UTM behavior.
+If the manifest cannot be loaded, do not invent a version or
+link to an unverified guessed file. CORS for browser-side
+direct R2 reads remains unconfigured in this source-only task.
