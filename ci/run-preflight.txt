@@ -304,3 +304,13 @@ Do NOT publish/tag/release or use owner's self-hosted machines.
 passed, one obsolete tests/ci-trigger.test.mjs regex still demanded
 cfvigil-desktop. Updated contract now verifies canonical -p cfvigil.
 Need fresh Node+Python+locked Rust check/test. No release or owner runners.
+
+2026-10-27: targeted Mode B REST boundary extension after owner-reviewed Linux
+canonical CFVigil candidate. Real reqwest loopback GET covers 200 envelopes,
+false/missing success, malformed JSON, 2 MiB-1/exact/+1, sanitized
+400/401/403/404/500/503 error body, 429 missing or malformed Retry-After,
+Workers list 0/1/256/257, Pages pagination 0/1/50/51 and cumulative
+256/257, malformed second pages and query delimiter. Final STABLE:
+Node syntax/locales/assets/tests, offline Python release tests, icon
+tests, cargo check --locked and cargo test --locked. No external
+Cloudflare, production R2, main or candidate marker.
