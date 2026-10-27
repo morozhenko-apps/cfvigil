@@ -363,3 +363,13 @@ confirmation, protected tag/main and read-only download Worker tests
 must continue to pass. Execute one complete STABLE hosted Ubuntu suite
 after all code and documentation changes; no real release, Windows
 native recheck, production Cloudflare/R2 or archive deletion.
+
+2026-10-27: final Stage B release hardening signed APT InRelease
+consistency. Verify actual GPG-authenticated SHA256 metadata for
+Packages and Packages.gz matches local bytes and sizes, with
+missing/duplicate/stale/digest/size/malformed-envelope negative
+fixtures and positive CRLF/LF. Preserve exact two-archive cleanup
+preflight and earlier provider, localization, offline release tests.
+Run the complete stable GitHub-hosted Ubuntu Node/Python/Rust suite
+only, once after production fix. No user machine, signing key,
+main/tag, Cloudflare live access or R2 publication.
