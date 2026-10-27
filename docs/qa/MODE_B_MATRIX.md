@@ -706,3 +706,41 @@ Execute one complete STABLE group after the additions: Node syntax,
 locked Rust check and tests. Physical Windows/live Cloudflare/R2
 release and human editorial 20-locale review stay separate,
 unverified gates. No known-FLAKY group is registered.
+
+
+### Implementation evidence: bounded Cloudflare REST fault suite
+
+Source commit `db3edeb9` adds ten deterministic `#[tokio::test]`
+functions with multiple independent table-driven cases to
+`apps/desktop/src-tauri/src/cloudflare_http_tests.rs`. A test-only
+`Loopback::with_retry_header` controls external Retry-After headers,
+while continuing to exercise the actual production `ApiBudget::observe`
+and `Cloudflare::get` logic. No production feature/configuration or
+real Cloudflare endpoint was changed.
+
+| New test | Branch proof intended | N categories |
+| --- | --- | --- |
+| `given_rest_success_envelopes...` | nine true/false/missing/null/invalid result envelopes | P, N1, N6 |
+| `given_rest_payload_at_two_megabytes_boundary...` | 2 MiB−1, exactly 2 MiB, 2 MiB+1 | P, N2 |
+| `given_untrusted_http_errors...` | 400/401/403/404/500/503, code type, 8192-byte error cutoff, secret redaction | N1, N3, N7, N10 |
+| `given_429_without_usable_retry_after...` | absent/bad/overflow retry; 300-second backoff, no second HTTP | N3, N4, N7 |
+| `given_0_1_256_257_workers...` | exact Worker count bounds; never add unsupported params | P, N2 |
+| `given_worker_list_as_nonarray...` | null/object/string/boolean list rejected | N1, N6 |
+| `given_pages_catalog_0_1_50_51_pages...` | 50-page cap plus 0/1 case, reject 51 without traversal | P, N2, N3 |
+| `given_cumulative_pages_count_at_256_257...` | 256 accepted, 257 rejected across pages | P, N2 |
+| `given_malformed_later_pages...` | bad second-page payload, false success, malformed shape | N1, N3, N6 |
+| `given_existing_query_in_pages_path...` | pagination separator with pre-existing query | P, N1 |
+
+These are **implemented, not yet executed** for the new commit.
+The strict branch-level mutation candidates are:
+`> 2 MiB` → `>= 2 MiB`; `> 256` → `>= 256`;
+`> 50` → `>= 50`; `success == true` bypass;
+`retry_after` fallback removed; error body accidentally leaked;
+first/last Pages query delimiter corrupted. Each must be killed by
+one of the explicit assertions. No automated Rust mutation runner
+has been executed, so no mutation kill percentage is claimed.
+
+Next stage is ONE GitHub-hosted full stable verification on the final
+code commit. N11 remains not applicable; Windows native, real
+Cloudflare authorization, human 20-locale semantic acceptance and
+protected R2 release remain outside this offline suite and OPEN.
