@@ -648,3 +648,61 @@ Real owner KDE/Windows upgrade/autostart smoke remains OPEN.
 N1/N6/N7/N9 are applicable to upgrade/package identity; N11 still
 inapplicable. No live Cloudflare, production release, R2, signing,
 `main` or self-hosted runners touched.
+
+
+## 2026-10-27 — Owner Linux acceptance, remaining Mode B contract slice
+
+The owner installed the canonical `cfvigil` Linux candidate from the
+same-SHA `b20d13278d4ebfac5128ee495a52d0eece5c54da` packaging
+runs and reported the visible Ubuntu experience satisfactory with no
+new UI complaints. Record this as **owner visual Linux candidate
+acceptance in the reported scope**, not as a complete verification of
+KWallet permission denials, arbitrary network failures, signed APT,
+Windows runtime, all 20 locale screens or live Cloudflare analytics.
+
+GitHub-hosted source gate [#40484906417](https://github.com/morozhenko-apps/cfvigil/actions/runs/40484906417)
+and matched Linux/Windows candidate packaging runs
+[#40485912007](https://github.com/morozhenko-apps/cfvigil/actions/runs/40485912007)
+and [#40485912042](https://github.com/morozhenko-apps/cfvigil/actions/runs/40485912042)
+are green **at that earlier exact SHA**, with 157 JavaScript,
+16 Python and 139 Rust tests. No claim that these already covered
+every testable branch.
+
+### Targeted plan: high-risk real HTTP boundary and fault cases
+
+This Mode B increment closes concrete **missing transport branches** from
+Stage 4 and row `Provider REST, pagination, latest attempt`, retaining
+the existing production implementation. It uses real `reqwest`
+against an isolated `127.0.0.1` `Loopback` test server.
+Test only the dependency (HTTP server), never mock
+`Cloudflare::get`/`list_paginated`/`list_workers`.
+
+Inventory and branch map for this tranche:
+
+| Method / artifact | Uncovered branches and boundaries | Categories | Expected scenarios |
+| --- | --- | --- | ---: |
+| `Cloudflare::get` | 200 valid/invalid JSON, missing `success`, `success:false`, non-object envelope, short/long body; 2 MiB exact/max+1 | P, N1, N2, N6 | 9 |
+| `Cloudflare::get` errors | HTTP 400/401/403/404/429/500/503, string/malformed/oversized error code, no secret-body leakage; 429 absent/malformed Retry-After | N1, N3, N7, N10 | 11 |
+| `Cloudflare::list_workers` | 0/1/256/257 entries, non-array result, forbidden Workers pagination | P, N1, N2, N6 | 5 |
+| `Cloudflare::list_paginated` | 0/1/50/51 advertised pages, empty later pages, malformed subsequent page, 256/257 cumulative entries, existing query delimiter | P, N1, N2, N3, N6 | 9 |
+
+Interaction matrix: a malformed reply must never be accepted as
+verified/green; one provider can fail while the other is retained;
+limit-triggered rejection must stop further REST traversal;
+429 without usable Retry-After must inhibit subsequent requests and
+use the bounded 300-second fallback, without exposing the bearer
+token, account, or server-supplied free text.
+
+Stage 10 mutation expectations: invert `> 2 MiB`, `> 256` or
+`> 50`; bypass `success === true`; log untrusted HTTP error body;
+remove budget stop on 429; follow a nonexistent extra Pages page.
+The new tests must reject these mutations. Source implementation
+and any necessary loopback fault-test seam changes will be in
+test-only commits. No feature expansion, changed public API,
+persistent format, auth boundary, or production network destination.
+
+Execute one complete STABLE group after the additions: Node syntax,
+20-locale and icon contracts, JavaScript tests, offline Python,
+locked Rust check and tests. Physical Windows/live Cloudflare/R2
+release and human editorial 20-locale review stay separate,
+unverified gates. No known-FLAKY group is registered.
