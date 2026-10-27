@@ -64,18 +64,23 @@ def assemble(deb: Path, out: Path, version: str, gpg_home: Path,
     with (out / "Packages.gz").open("wb") as f:
         with gzip.GzipFile(filename="", mode="wb", fileobj=f, mtime=0) as g:
             g.write(packages)
-    release_body = subprocess.run(["apt-ftparchive", "release", "."],
-                                  cwd=out, check=True, capture_output=True).stdout
     today = dt.datetime.now(dt.timezone.utc)
+    # SHA256-only Release is sufficient for APT and deliberately contains
+    # only the two flat package indexes. The whole Release is GPG clearsigned.
     headers = (
         "Origin: CFVigil\nLabel: CFVigil\n"
         "Architectures: amd64\n"
         f"Date: {today.strftime('%a, %d %b %Y %H:%M:%S +0000')}\n"
+        "SHA256:\n"
         # Metadata expiration requires an independent refresh workflow,
         # which is not yet configured: do not advertise stale Valid-Until.
     )
+    rows = "".join(
+        f" {sha256(out / name)} {(out / name).stat().st_size} {name}\n"
+        for name in ("Packages", "Packages.gz")
+    )
     release = out / "Release"
-    release.write_bytes(headers.encode() + release_body)
+    release.write_text(headers + rows, encoding="utf8")
     inrelease = out / "InRelease"
     subprocess.run([
         "gpg", "--homedir", str(gpg_home), "--batch", "--yes", "--no-tty",
