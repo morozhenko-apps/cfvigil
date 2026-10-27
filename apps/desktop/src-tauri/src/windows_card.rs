@@ -267,4 +267,126 @@ mod tests {
         let restored: SavedPosition = serde_json::from_str(&json).unwrap();
         assert_eq!(restored.anchor.unwrap().bottom, 700);
     }
+
+    #[test]
+    fn given_compact_and_expanded_heights_when_positioning_then_physical_bottom_remains_fixed() {
+        for anchor in [
+            Anchor {x: 80,bottom: 900},
+            Anchor {x: -3000,bottom: -400},
+            Anchor {x: 0,bottom: 0},
+            Anchor {x: 1920,bottom: 2160},
+        ] {
+            let compact=anchored_position(anchor,92).unwrap();
+            let expanded=anchored_position(anchor,510).unwrap();
+            assert_eq!(compact.x,anchor.x);
+            assert_eq!(expanded.x,anchor.x);
+            assert_eq!(i64::from(compact.y)+92,i64::from(anchor.bottom));
+            assert_eq!(i64::from(expanded.y)+510,i64::from(anchor.bottom));
+            assert_eq!(i64::from(compact.y)-i64::from(expanded.y),418);
+        }
+    }
+
+    #[test]
+    fn given_exact_physical_outer_heights_when_restoring_then_no_logical_height_is_assumed() {
+        let anchor=Anchor {x:-40,bottom:1000};
+        for (height,top) in [
+            (0,1000),(1,999),(92,908),(100,900),(510,490),(511,489),(1000,0)
+        ] {
+            let physical=anchored_position(anchor,height).unwrap();
+            assert_eq!(physical.x,-40);
+            assert_eq!(physical.y,top,"physical outer height {height}");
+            assert_eq!(i64::from(physical.y)+i64::from(height),1000);
+        }
+        let reopened=anchored_position(anchor,100).unwrap();
+        assert_eq!(reopened.y,900,
+            "window is anchored by measured 100px height, never 92px CSS height");
+        assert_ne!(reopened,anchored_position(anchor,92).unwrap());
+    }
+
+    #[test]
+    fn given_i32_screen_edges_when_calculating_top_then_overflow_fails_closed() {
+        let cases=[
+            (i32::MIN,0,true),
+            (i32::MIN,1,false),
+            (i32::MAX,0,true),
+            (i32::MAX,1,true),
+            (i32::MAX,u32::MAX,true),
+            (0,u32::MAX,false),
+            (-1,u32::MAX,false),
+            (i32::MAX,u32::MAX-1,true),
+        ];
+        for (bottom,height,valid) in cases {
+            let result=anchored_position(Anchor{x:i32::MIN,bottom},height);
+            assert_eq!(result.is_ok(),valid,
+                "bottom {bottom} and height {height} must be range-checked");
+            if let Ok(pos)=result {
+                assert_eq!(pos.x,i32::MIN);
+                assert_eq!(i64::from(pos.y)+i64::from(height),i64::from(bottom));
+            }
+        }
+    }
+
+    #[test]
+    fn given_saved_negative_coordinates_when_restarting_then_anchor_roundtrips_without_drift() {
+        for anchor in [
+            Anchor {x:0,bottom:0},
+            Anchor {x:-500,bottom:-200},
+            Anchor {x:i32::MIN,bottom:i32::MAX},
+            Anchor {x:i32::MAX,bottom:i32::MIN},
+        ] {
+            let json=serde_json::to_string(&SavedPosition{anchor:Some(anchor)}).unwrap();
+            let restored:SavedPosition=serde_json::from_str(&json).unwrap();
+            let result=restored.anchor.unwrap();
+            assert_eq!((result.x,result.bottom),(anchor.x,anchor.bottom));
+            let again=serde_json::to_string(
+                &SavedPosition{anchor:Some(result)}).unwrap();
+            assert_eq!(again,json,"restarts must not introduce coordinate drift");
+        }
+    }
+
+    #[test]
+    fn given_corrupt_or_legacy_saved_position_when_restoring_then_no_forged_anchor_is_accepted() {
+        let none:SavedPosition=serde_json::from_str(
+            r#"{"anchor":null,"legacy_top":900}"#).unwrap();
+        assert!(none.anchor.is_none());
+        let empty=SavedPosition::default();
+        assert!(empty.anchor.is_none());
+        assert!(serde_json::from_str::<SavedPosition>(r#"{}"#).is_err(),
+            "missing required anchor is rejected by current persistence contract");
+        for input in [
+            r#"{"anchor":{}}"#,
+            r#"{"anchor":{"x":50}}"#,
+            r#"{"anchor":{"bottom":900}}"#,
+            r#"{"anchor":{"x":"50","bottom":900}}"#,
+            r#"{"anchor":{"x":1.5,"bottom":900}}"#,
+            r#"{"anchor":{"x":2147483648,"bottom":900}}"#,
+            r#"{"anchor":{"x":50,"bottom":-2147483649}}"#,
+            r#"{"anchor":[]}"#,
+            r#"{"anchor":"50,900"}"#,
+            "not-json",
+        ] {
+            assert!(serde_json::from_str::<SavedPosition>(input).is_err(),
+                "invalid Windows persisted coordinates: {input}");
+        }
+    }
+
+    #[test]
+    fn given_separate_native_card_sessions_when_created_then_no_stale_drag_or_checkpoint_leaks() {
+        let first=NativeCard::default();
+        assert!(first.anchor.lock().unwrap().is_none());
+        assert!(!first.dragging.load(Ordering::Acquire));
+        assert!(first.last_written.lock().unwrap().is_none());
+
+        *first.anchor.lock().unwrap()=Some(Anchor{x:10,bottom:900});
+        first.dragging.store(true,Ordering::Release);
+        *first.last_written.lock().unwrap()=Some(Instant::now());
+
+        let restarted=NativeCard::default();
+        assert!(restarted.anchor.lock().unwrap().is_none());
+        assert!(!restarted.dragging.load(Ordering::Acquire));
+        assert!(restarted.last_written.lock().unwrap().is_none());
+        assert!(first.anchor.lock().unwrap().is_some(),
+            "the first session remains independently owned");
+    }
+
 }
