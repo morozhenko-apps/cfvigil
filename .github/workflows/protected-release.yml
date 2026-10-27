@@ -56,8 +56,8 @@ jobs:
       - name: Build Linux packages from locked Rust dependencies
         run: |
           set -euo pipefail
-          cargo check --locked -p cfvigil-desktop
-          cargo test --locked -p cfvigil-desktop
+          cargo check --locked -p cfvigil
+          cargo test --locked -p cfvigil
           cargo install tauri-cli --version '^2' --locked
           ( cd apps/desktop/src-tauri && cargo tauri build --bundles deb,appimage )
           node scripts/candidate-assets.mjs collect \

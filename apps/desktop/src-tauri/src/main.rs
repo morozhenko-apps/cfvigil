@@ -505,7 +505,7 @@ fn show_window(app: &AppHandle, label: &str) {
         #[cfg(target_os = "linux")]
         if let Ok(native) = window.gtk_window() {
             use gtk::prelude::*;
-            native.set_icon_name(Some("cfvigil-desktop"));
+            native.set_icon_name(Some("cfvigil"));
         }
         let _ = window.show();
         let _ = window.set_focus();
@@ -1015,7 +1015,7 @@ fn install_window_icons(app: &tauri::App) {
         for label in ["main", "settings", "history", "about"] {
             if let Some(window) = app.get_webview_window(label) {
                 if let Ok(native) = window.gtk_window() {
-                    native.set_icon_name(Some("cfvigil-desktop"));
+                    native.set_icon_name(Some("cfvigil"));
                 }
             }
         }

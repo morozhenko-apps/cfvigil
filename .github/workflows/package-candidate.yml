@@ -50,8 +50,8 @@ jobs:
           done
           node --test tests/*.test.mjs
           cargo metadata --locked --format-version 1 --no-deps >/dev/null
-          cargo check --locked -p cfvigil-desktop
-          cargo test --locked -p cfvigil-desktop
+          cargo check --locked -p cfvigil
+          cargo test --locked -p cfvigil
       - name: Install Tauri CLI with its locked dependencies
         run: cargo install tauri-cli --version '^2' --locked
       - name: Build unsigned Linux DEB and AppImage candidate
