@@ -922,3 +922,25 @@ test code cannot run on Ubuntu; both Linux Preflight and Windows
 candidate workflow `cargo test --locked -p cfvigil` are required.
 No known registered FLAKY group exists; keep physical Windows
 screen/UI acceptance and 20-language human editorial audit OPEN.
+
+
+## 2026-10-27 — Mode B: confirmed persisted-shape failures in Linux and Windows CI
+
+Evidence from exact SHA `a88832d9b7f3a29f4ff8291f53143d970bb8f09b`:
+- Ubuntu Preflight [#40513445192](https://github.com/morozhenko-apps/cfvigil/actions/runs/40513445192): **155/156 Rust tests**, `language::tests::given_legacy_or_corrupt_locale_json...` fails on `[]`.
+- Windows native [#40513445237](https://github.com/morozhenko-apps/cfvigil/actions/runs/40513445237): **161/163 Rust tests**, same `language.rs` failure plus `windows_card::tests::given_corrupt_or_legacy_saved_position...` fails for `{}`.
+- Earlier source-only JS/Python tests and Rust check reached PASS, but **the full gate FAILED**; Windows NSIS packaging was not reached.
+
+### Root-cause protocol (R1–R5)
+
+Expected: serialized language preferences use an object `{"locale":"pt"}`; the empty **object** `{}` is a deliberate legacy-compatible default to English, while an empty **array** `[]` is malformed and must be quarantined. Windows position uses `{"anchor":null}` before a drag, or `{"anchor":{"x":-40,"bottom":700}}` afterward; a missing required `anchor` key must not be silently treated as an intentionally absent anchor. Existing `storage::read_or_default` quarantines files **only if deserialization returns Err**.
+
+Candidate explanations evaluated: serde derive's sequence visitor; implicit serde default for `Option<T>`; a normal zero-length file; storage error swallowing; Windows path normalization; JSON wrong-type coercion; incorrect test expectations. The logs identify the first two as the reproducible causes; both operating systems show the first defect, so this is not a Windows path-specific failure. Blank files and arbitrary filesystem errors are not involved in the observed tests.
+
+**Mode B remediation plan before coding:** introduce *map-object-only* deserialization for `LanguagePreference` and Windows `SavedPosition`, preserving the existing **Serialize** output, persisted field names, in-memory state, default `{}` language compatibility, and valid `{"anchor":null}` Windows preference. Reject JSON arrays, wrong field types, and `SavedPosition` maps with no `anchor`. Unknown extra object fields remain accepted for forward/legacy compatibility. This is an input-validation repair, NOT a persistent data-format or public API migration. No app ID, username, keyring, locale string or window geometry change.
+
+Test branches: `{}` language -> en; `[]` language -> parse Err; valid 20-language map roundtrip; invalid locale strings still sanitized -> en; `{"anchor":null}` -> None; `{}` Windows position -> Err; partial/malformed coordinates, bad scalar/sequence, overflow -> Err; valid negative/extreme positions -> same roundtrip. Add `storage::read_or_default` integration proving malformed files are quarantined intact and not silently treated as valid empty preferences.
+
+**Stage 10 intended mutations:** allow `[]` as empty language; strip required `anchor`; reinterpret null as default coordinates; silently ignore wrong-type locale; disable corrupt-file quarantine. All must be detected by assertions at the final STABLE gate.
+
+The Linux and Windows compile/test failures remain **OPEN** until fresh same-SHA GitHub-hosted stable Rust and Windows-native Rust suites pass. Do not run intermediate suites per commit or claim Windows package PASS. No real Cloudflare, R2, `main`, release tag, owner runners or credentials required.
