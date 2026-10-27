@@ -344,3 +344,38 @@ its tests, and this separate documentation amendment.
 
 **Completion criteria:** a real final stable CI PASS on the exact code
 SHA, clear count/citation; leave protected production deployment gated.
+
+### 2026-10-27 — implemented two-platform cleanup preflight (CI pending)
+
+`validateR2Receipt` now requires the exact Linux/Windows archives
+to reference a **single positive source run ID**; this is the
+existing emission behavior of `r2_release.py`. The cleanup
+operation now makes a single read-only listing of the source run,
+checks **all** present platform records for correct name, unique
+numeric artifact ID, matching `workflow_run.id`, matching source
+`head_sha`, and unambiguous matches BEFORE the first destructive
+API call. A missing named archive remains idempotently skipped.
+After each authorized deletion the operation independently
+re-lists and rejects a still-present archive.
+
+The shared-run test fixture now represents the actual publisher
+instead of two artificial unrelated run IDs. New regression tests
+cover a cross-run receipt with zero requests, an otherwise-good
+Linux archive plus foreign Windows commit, a duplicate Windows
+archive, malformed Windows artifact ID, and two platform names
+sharing one GitHub artifact ID. All negative tests require
+**zero DELETE calls**; most require a single read-only listing.
+
+Important failure-mode limit: GitHub's delete API has no
+cross-artifact transaction. If the second DELETE fails *after*
+the first succeeds, the workflow is marked failed; no untrue
+rollback or atomicity is claimed. Read-only preflight eliminates
+preventable partial deletion from corrupt/foreign **initial**
+provenance, not mid-operation network failures.
+
+Source modifications: `scripts/cleanup-published-artifacts.mjs`
+and `tests/artifact-retention.test.mjs` only. No schema version
+change, Cloudflare calls, R2 writes or GitHub artifact DELETE
+is performed in this test batch. Full dev Preflight must run
+once after both files are finalized; do not cite the previous
+`#40563249933` for this additional change.
