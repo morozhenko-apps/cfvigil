@@ -9,8 +9,8 @@ line-coverage percentage or call a partial fixture suite full Mode B.
 ## Stage 1: repository scan
 
 Tauri 2 Rust native desktop; JS WebView and Node `node --test tests/*.test.mjs`;
-Python offline distribution contracts; Rust `cargo check --locked -p cfvigil-desktop`
-and `cargo test --locked -p cfvigil-desktop`. Explicit `ci/run-preflight.txt`
+Python offline distribution contracts; Rust `cargo check --locked -p cfvigil`
+and `cargo test --locked -p cfvigil`. Explicit `ci/run-preflight.txt`
 marker triggers GitHub-hosted stable CI. UI/native E2E requires actual
 owner KDE/Windows; no local desktop control is available to this agent.
 No known-flaky group is registered. This does not prove tests never flake.
@@ -744,3 +744,52 @@ Next stage is ONE GitHub-hosted full stable verification on the final
 code commit. N11 remains not applicable; Windows native, real
 Cloudflare authorization, human 20-locale semantic acceptance and
 protected R2 release remain outside this offline suite and OPEN.
+
+
+### Stage 11 verified results for the REST boundary tranche
+
+**Source commit:** `3455ba8f56e59648e34023c121543b0845458d35`
+(test + documentation + explicit CI marker; no candidate, release
+or distribution production change).
+
+**GitHub-hosted STABLE:** [#40511403562](https://github.com/morozhenko-apps/cfvigil/actions/runs/40511403562)
+completed **SUCCESS** on 2026-10-27.
+
+| Exact CI command/stage | Verified result |
+| --- | --- |
+| JS syntax and `node scripts/check-i18n.mjs` | PASS |
+| `node scripts/check-icon-assets.mjs` | PASS |
+| `node --test tests/*.test.mjs` | **157 passed, 0 failed** |
+| `python3 -m unittest discover -s tests -p 'test_release_*.py'` | **13 passed** |
+| `python3 -m unittest discover -s tests -p 'test_icon_import.py'` | **3 passed** |
+| `cargo check --locked -p cfvigil` | PASS |
+| `cargo test --locked -p cfvigil` | **149 passed, 0 failed, 0 ignored** |
+
+**10 new Rust tests / 41 table-driven cases**, all 10 passed.
+Non-exclusive test-function coverage by negative category for
+this increment only (do not add as disjoint counts): P=6,
+N1=5, N2=4, N3=4, N4=1, N5=0, N6=3,
+N7=2, N8=0, N9=0, N10=1, N11=0 (N/A),
+N12=0. These are code review classifications, not profiler-driven
+statement coverage and not a claim all applicable categories are
+complete. N5/N8/N9/N12 have separately authored suites and still
+need artifact-level coverage closure evidence.
+
+**FLAKY:** no separately registered FLAKY suite. Therefore no
+independent FLAKY test execution was possible; this is *not*
+a claim that the codebase has no flaky cases. This tranche adds no
+sleep, nondeterministic production network, or current-time
+assertion. The CI run used exclusively GitHub-hosted Ubuntu.
+
+**Stage 12:** REST transport branches listed in this tranche
+are source-tested and CI-verified. End-to-end Mode B remains
+**PARTIAL / IN PROGRESS**: exhaustive per-public-method
+branch map, uncovered matrix `?` cells, real Windows/Cloudflare,
+the independent 20-locale human/RTL audit, signed APT/R2
+protected release and public readback remain unproven.
+The owner's Ubuntu visual approval is scoped to the installed client,
+not a blanket operational/security/regression sign-off.
+
+No `main`, release tag, protected publishing, user self-hosted
+runner, user keyring, or on-device installed application was
+modified by these new tests.
