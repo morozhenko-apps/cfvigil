@@ -185,3 +185,22 @@ it up when done. Keep code/config and docs-only commits separate.
 No GitHub CI integration in the **application**. GitHub Actions is used only
 for **building/testing/publishing this public repository**, using standard
 free GitHub-hosted runners.
+
+## 2026-10-27 owner resolution of release QA evidence requirements
+
+The owner confirms the prior requested native Linux and Windows checks
+have been performed. Routine repeat installed-machine gates must not
+be added as blockers to each source-only Mode B test tranche.
+
+For all 20 locales, release acceptance will use a documented
+engineering/semantic + executable localization audit by the project
+team. Recruiting native speakers from 20 language communities is not
+a release condition. Structural parity alone is insufficient: status
+semantics, immutable API scopes, CLDR grammar, RTL controls and actual
+text render paths must be checked. Any idiomatic uncertainty is disclosed
+rather than falsely labeled certified by native speakers.
+
+Before main/tag/publication, run source-level verification on the
+**final product code**, not a stale baseline. The protected signing
+and R2 workflows stay owner-gated; these updated QA preferences do
+not grant release credentials or approval to publish.
