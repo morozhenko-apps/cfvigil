@@ -1,0 +1,65 @@
+name: Suggest an improvement
+description: Share an idea that could make CFVigil more useful. No code or pull request needed.
+title: "[Idea] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        CFVigil started as a small tool for checking deployments across several Cloudflare projects without opening every dashboard one by one. Ideas and practical feedback are welcome, even if you don't have a technical solution.
+
+        Please explain what you are trying to do and what feels missing today. Proposals are considered by the maintainer, but submitting an issue does not promise that a feature will be added.
+
+        Do not include Cloudflare API tokens, account or zone IDs, private Worker names, private domains, secret URLs, or private screenshots. Please report security problems privately using the Security link instead of this public form. This project does not accept outside code contributions or pull requests.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: What part of CFVigil would this improve?
+      options:
+        - Tray card and resource list
+        - Deployment status or discovery
+        - Alerts, errors, WAF or event history
+        - Settings and Cloudflare permissions
+        - Installation or updates
+        - Accessibility or localization
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: situation
+    attributes:
+      label: What are you trying to do?
+      description: Describe your real workflow or the situation where this would help.
+      placeholder: I monitor several Workers and Pages projects. When something changes, I want to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is missing or inconvenient?
+      description: Tell us what currently makes this harder than it should be.
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you change? (optional)
+      description: A possible approach is helpful, but you do not need to design or code the solution.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Before submitting
+      options:
+        - label: I checked for a similar suggestion.
+          required: true
+        - label: I removed credentials, private Cloudflare information and other sensitive data.
+          required: true
+        - label: I understand that suggestions do not guarantee implementation and this project does not accept outside pull requests.
+          required: true
