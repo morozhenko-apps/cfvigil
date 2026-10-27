@@ -944,3 +944,48 @@ Test branches: `{}` language -> en; `[]` language -> parse Err; valid 20-languag
 **Stage 10 intended mutations:** allow `[]` as empty language; strip required `anchor`; reinterpret null as default coordinates; silently ignore wrong-type locale; disable corrupt-file quarantine. All must be detected by assertions at the final STABLE gate.
 
 The Linux and Windows compile/test failures remain **OPEN** until fresh same-SHA GitHub-hosted stable Rust and Windows-native Rust suites pass. Do not run intermediate suites per commit or claim Windows package PASS. No real Cloudflare, R2, `main`, release tag, owner runners or credentials required.
+
+
+### Stage 9 implementation completed; verification now required
+
+**Production parsing root cause fixed** at `f10b2f6b`:
+`LanguagePreference` and `SavedPosition` use
+`#[serde(try_from = "serde_json::Map<String, serde_json::Value>")]`
+to require JSON objects, rather than allow `serde` to deserialize
+empty `[]` as a field sequence. The exact existing serialized JSON
+shape is unchanged. Language `{}` remains the documented default
+`en`; Windows `{"anchor":null}` remains its default-on-first-run.
+A Windows map with no `anchor` is rejected, not treated as a
+deliberate null position. Unknown extra fields are accepted, preserving
+valid old files. Existing `storage::read_or_default` quarantines
+invalid bytes without silently replaying foreign or fabricated state.
+
+**New cross-platform regression** in `storage.rs` writes invalid
+language `[]` to a real disposable JSON file, requires quarantine,
+verifies original bytes intact, writes valid `pt` and verifies reload.
+**New Windows-native integration regression** in `windows_card.rs`
+writes invalid `{}`, verifies quarantine and no old anchor, writes
+valid negative X/bottom coordinates and verifies recovery. Commits:
+`f10b2f6b` production format hardening and Linux integration,
+`17186b4b` Windows persisted-fault integration.
+
+One new cross-platform and one Windows-only Rust test function:
+P=2; N1=2; N2=0; N3=0; N4=1; N5=0; N6=2;
+N7=1; N8=1; N9=1; N10=0; N11=N/A; N12=2.
+Counts overlap: these are per-function category allocations, not
+statement/branch profiler coverage. The previously failed 2 source
+tests must also be verified unchanged on both OS.
+
+**Stage 10 checks:** turning map-only `Deserialize` back into
+plain derived structs must fail the `[]` language case; deleting the
+required `anchor` key check must fail the `{}` position case;
+bypassing quarantine or overwriting broken bytes fails integration
+assertions; rejecting `{}` language or `{"anchor":null}`
+Windows would break documented backwards compatibility tests.
+No automated Rust mutation run is claimed.
+
+**Status:** committed but STABLE not yet executed for these changes.
+Run same-SHA Ubuntu Preflight and Windows candidate workflows once;
+Windows native gate must reach Rust test PASS and NSIS packaging,
+while user-machine/Cloudflare/R2/signed release gates remain
+explicitly OPEN.
