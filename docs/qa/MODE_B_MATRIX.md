@@ -862,3 +862,63 @@ specified; this is not a production release, tag or R2 publication.
 Document exact CI run and counts; do not interpret host-level
 source tests as a physical Windows OS/owner smoke. No registered
 FLAKY group, so no distinct runnable FLAKY suite exists.
+
+
+### Stage 9–10 implementation and mutation map (Windows/native locale)
+
+Windows-only test source commit `f05e722a` adds six
+`#[test]` functions to `windows_card.rs`:
+
+1. Physical bottom invariant at compact 92 and expanded 510 with
+   negative/multi-monitor screen coordinates.
+2. Physical outer height 0,1,92,100,510,511,1000 and first-reopen
+   distinction from logical height.
+3. `i32::MIN/MAX` bottom, `u32::MAX` height and exact
+   checked-overflow/fail-closed boundaries.
+4. Repeated serialized `x/bottom` roundtrip at both signed extrema.
+5. Null legacy anchor and invalid/missing/float/out-of-range saved
+   coordinate shapes reject instead of fabricating an active anchor.
+6. Two fresh native card sessions have independent drag,
+   persistence/checkpoint and anchor state.
+
+Native locale source commit `243cc6c0` adds seven Rust test
+functions to `language.rs`: all 20 language codes; invalid/
+noncanonical locales; durable 20-locale JSON roundtrip; defaulted
+legacy/malformed preference cases; **all 100 native menu labels**
+across five actions; unknown action/fallback; and **all 20 × 4
+native window titles**. All assertions use production logic and
+explicit expected translations; they establish consistency and
+correct code wiring, **not native-speaker semantic certification**.
+They do not modify any localized presentation strings.
+
+Category/function counts for this 13-function tranche (overlapping,
+not a claim of 13 unique N-exclusive paths):
+
+| Category | Authored test functions | Evidence/limits |
+| --- | ---: | --- |
+| Positive | 11 | Defined translations, anchor behavior, saved state |
+| N1 | 7 | Invalid action/locale/JSON/type/coordinate |
+| N2 | 2 | Height, integer boundary and overflow |
+| N3 | 0 | No network dependency in these artifacts |
+| N4 | 1 | Restart state/idempotence |
+| N5 | 1 | Independent session state, not real OS race |
+| N6 | 4 | Saved JSON, older state, malformed locale |
+| N7 | 2 | Fail-closed locale/action path input |
+| N8 | 7 | 20 locale menu/title/preference variants |
+| N9 | 4 | Restored size, display title, navigation state |
+| N10 | 0 | No credential/log paths in these methods |
+| N11 | N/A | Product has no monetization |
+| N12 | 1 | Corrupted persisted position; OS disk failures covered elsewhere |
+
+No new test-only DI, new production symbols or public contract change
+was necessary: existing `anchored_position` and native language
+functions were suitable as implemented. Intended operator mutations
+listed in the preceding Stage 10 section now have direct value-
+and state-specific assertions. An automated Rust mutation tool
+has **not** been run, so no numerical Rust mutation score is earned.
+
+**Status before STABLE gate:** authored, not yet executed. Windows-only
+test code cannot run on Ubuntu; both Linux Preflight and Windows
+candidate workflow `cargo test --locked -p cfvigil` are required.
+No known registered FLAKY group exists; keep physical Windows
+screen/UI acceptance and 20-language human editorial audit OPEN.
