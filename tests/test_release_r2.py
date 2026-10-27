@@ -108,6 +108,56 @@ class PublicationFixture(unittest.TestCase):
             self.assertNotIn("RepoTicker", key)
             self.assertNotIn("..", key)
 
+
+    def test_signed_apt_indexes_match_actual_sizes_and_digest_with_lf_and_crlf(self):
+        inrelease = self.apt / "dists/stable/InRelease"
+        index = self.apt / "dists/stable/main/binary-amd64"
+        release.verify_signed_apt_indexes(inrelease, index)
+        initial = inrelease.read_bytes()
+        inrelease.write_bytes(initial.replace(b"\\n", b"\\r\\n"))
+        release.verify_signed_apt_indexes(inrelease, index)
+        self.planned()
+
+    def test_old_signed_apt_index_must_reject_new_indexes_even_if_by_hash_matches(self):
+        index = self.apt / "dists/stable/main/binary-amd64"
+        packages = index / "Packages"
+        new_content = packages.read_bytes() + b"Version: unexpected\\n"
+        packages.write_bytes(new_content)
+        new_hash = index / "by-hash/SHA256" / sha(new_content)
+        new_hash.write_bytes(new_content)
+        with self.assertRaisesRegex(ValueError, "Signed APT index"):
+            self.planned()
+
+    def test_signed_apt_index_rejects_wrong_size_digest_missing_and_duplicate(self):
+        signed = self.apt / "dists/stable/InRelease"
+        original = signed.read_text(encoding="utf8")
+        lines = original.splitlines()
+        checksum_line = next(
+            row for row in lines if row.endswith("main/binary-amd64/Packages.gz")
+        )
+        digest, size, path = checksum_line.split()
+        scenarios = {
+            "wrong-size": original.replace(checksum_line,
+                f" {digest} {int(size) + 1} {path}"),
+            "wrong-digest": original.replace(checksum_line,
+                f" {'f' if digest[0] != 'f' else 'e'}{digest[1:]} {size} {path}"),
+            "missing-index": original.replace(checksum_line + "\\n", ""),
+            "duplicate-index": original.replace(checksum_line + "\\n",
+                checksum_line + "\\n" + checksum_line + "\\n"),
+            "missing-sha256": original.replace("SHA256:", "SHA999:"),
+            "malformed-hash": original.replace(checksum_line,
+                f" corrupt {size} {path}"),
+            "invalid-envelope": original.replace(
+                "-----BEGIN PGP SIGNED MESSAGE-----", "invalid signed header"),
+        }
+        for name, mutated in scenarios.items():
+            with self.subTest(name=name):
+                signed.write_text(mutated, encoding="utf8")
+                with self.assertRaisesRegex(ValueError, "Signed APT index"):
+                    self.planned()
+        signed.write_text(original, encoding="utf8")
+        self.planned()
+
     def test_corrupt_manifest_and_wrong_git_provenance_rejected(self):
         original = self.bundle / "windows" / "candidate.json"
         manifest = json.loads(original.read_text())
