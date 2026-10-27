@@ -165,4 +165,137 @@ mod tests {
         assert_eq!(sanitize(LanguagePreference {locale: "zz".into()}).locale, "en");
         assert_eq!(sanitize(LanguagePreference {locale: "pt".into()}).locale, "pt");
     }
+
+    const LABELS:&[(&str,[&str;5])] = &[
+        ("en",["Show Card","Event History","Settings","About","Exit"]),
+        ("ru",["Показать карточку","История событий","Настройки","О программе","Выход"]),
+        ("es",["Mostrar panel","Historial de eventos","Configuración","Acerca de","Salir"]),
+        ("pt",["Mostrar painel","Histórico de eventos","Definições","Sobre","Sair"]),
+        ("de",["Karte anzeigen","Ereignisverlauf","Einstellungen","Über","Beenden"]),
+        ("fr",["Afficher la carte","Historique des événements","Paramètres","À propos","Quitter"]),
+        ("it",["Mostra pannello","Cronologia eventi","Impostazioni","Informazioni","Esci"]),
+        ("pl",["Pokaż panel","Historia zdarzeń","Ustawienia","O programie","Zakończ"]),
+        ("hi",["कार्ड दिखाएँ","इवेंट इतिहास","सेटिंग्स","CFVigil के बारे में","बाहर निकलें"]),
+        ("zh-Hant",["顯示卡片","事件記錄","設定","關於 CFVigil","離開"]),
+        ("ja",["カードを表示","イベント履歴","設定","CFVigil について","終了"]),
+        ("nl",["Paneel tonen","Gebeurtenisgeschiedenis","Instellingen","Over","Afsluiten"]),
+        ("sv",["Visa panel","Händelsehistorik","Inställningar","Om","Avsluta"]),
+        ("tr",["Kartı göster","Olay geçmişi","Ayarlar","CFVigil hakkında","Çıkış"]),
+        ("ko",["카드 표시","이벤트 기록","설정","CFVigil 정보","종료"]),
+        ("bn",["কার্ড দেখান","ইভেন্টের ইতিহাস","সেটিংস","CFVigil সম্পর্কে","প্রস্থান"]),
+        ("th",["แสดงการ์ด","ประวัติเหตุการณ์","การตั้งค่า","เกี่ยวกับ CFVigil","ออก"]),
+        ("id",["Tampilkan panel","Riwayat peristiwa","Pengaturan","Tentang CFVigil","Keluar"]),
+        ("fil",["Ipakita ang card","History ng mga event","Mga Setting","Tungkol sa CFVigil","Lumabas"]),
+        ("ar",["عرض البطاقة","سجل الأحداث","الإعدادات","حول CFVigil","خروج"])
+    ];
+    const ACTIONS:[&str;5]=["open","history","settings","about","quit"];
+
+    #[test]
+    fn given_all_registered_native_locales_when_selecting_then_each_exact_locale_is_supported() {
+        assert_eq!(ACTIVE.len(),20);
+        assert_eq!(LABELS.len(),ACTIVE.len());
+        let mut seen=std::collections::HashSet::new();
+        for ((locale,_),registered) in LABELS.iter().zip(ACTIVE.iter()) {
+            assert_eq!(locale,registered,"native locale ordering must be stable");
+            assert!(seen.insert(*locale),"duplicate native locale: {locale}");
+            assert!(supported(locale),"{locale}");
+            assert_eq!(sanitize(LanguagePreference {locale:(*locale).into()}).locale,*locale);
+        }
+    }
+
+    #[test]
+    fn given_invalid_native_locale_when_sanitizing_then_fallback_does_not_activate_partial_catalog() {
+        for locale in [
+            ""," ","EN","PT","pt-BR","pt-PT","zh-Hans","zh-hant","ar-EG",
+            "fil-PH","unknown","../../en","en\n","en\0",
+        ] {
+            assert!(!supported(locale),"unsupported {locale:?}");
+            assert_eq!(sanitize(LanguagePreference {locale:locale.into()}).locale,"en");
+        }
+    }
+
+    #[test]
+    fn given_language_preference_when_serializing_then_all_twenty_choices_roundtrip() {
+        for locale in ACTIVE {
+            let original=LanguagePreference{locale:(*locale).into()};
+            let json=serde_json::to_string(&original).unwrap();
+            let loaded:LanguagePreference=serde_json::from_str(&json).unwrap();
+            assert_eq!(loaded.locale,*locale);
+            assert_eq!(sanitize(loaded).locale,*locale);
+        }
+    }
+
+    #[test]
+    fn given_legacy_or_corrupt_locale_json_when_loading_then_missing_defaults_and_invalid_shapes_reject() {
+        let default:LanguagePreference=serde_json::from_str("{}").unwrap();
+        assert_eq!(default.locale,"en");
+        let extra:LanguagePreference=serde_json::from_str(
+            r#"{"locale":"pt","legacySetting":100}"#).unwrap();
+        assert_eq!(extra.locale,"pt");
+        for content in [
+            r#"{"locale":null}"#,r#"{"locale":42}"#,r#"{"locale":[]}"#,
+            r#"{"locale":{}}"#,r#"[]"#,r#"true"#,"{corrupt",
+        ] {
+            assert!(serde_json::from_str::<LanguagePreference>(content).is_err(),
+                "malformed native language preference: {content}");
+        }
+        let unknown:LanguagePreference=serde_json::from_str(
+            r#"{"locale":"zz"}"#).unwrap();
+        assert_eq!(sanitize(unknown).locale,"en");
+    }
+
+    #[test]
+    fn given_each_active_locale_when_building_native_menu_then_five_actions_have_exact_labels() {
+        for (locale,expected) in LABELS {
+            for (index,action) in ACTIONS.iter().enumerate() {
+                assert_eq!(menu(locale,action),expected[index],
+                    "native {locale} action {action}");
+                assert!(!menu(locale,action).trim().is_empty());
+            }
+        }
+    }
+
+    #[test]
+    fn given_unknown_action_or_unregistered_locale_when_building_menu_then_english_fallback_is_safe() {
+        for locale in ["zz","en-GB","pt-BR","zh-Hans",""] {
+            for action in ACTIONS {
+                assert_eq!(menu(locale,action),menu("en",action),
+                    "unsupported {locale:?} action {action}");
+            }
+        }
+        for action in ["","unknown","Open","exit","destroy","../../settings"] {
+            for locale in ACTIVE {
+                assert_eq!(menu(locale,action),"CFVigil",
+                    "unknown command action must not pretend to be executable");
+            }
+        }
+    }
+
+    #[test]
+    fn given_native_window_titles_when_switching_twenty_locales_then_actions_update_consistently() {
+        let about_titles=[
+            "About CFVigil","О CFVigil","Acerca de CFVigil","Sobre o CFVigil",
+            "Über CFVigil","À propos de CFVigil","Informazioni su CFVigil",
+            "O programie CFVigil","CFVigil के बारे में","關於 CFVigil",
+            "CFVigil について","Over CFVigil","Om CFVigil","CFVigil hakkında",
+            "CFVigil 정보","CFVigil সম্পর্কে","เกี่ยวกับ CFVigil",
+            "Tentang CFVigil","Tungkol sa CFVigil","حول CFVigil"
+        ];
+        assert_eq!(about_titles.len(),ACTIVE.len());
+        for (i,locale) in ACTIVE.iter().enumerate() {
+            assert_eq!(window_title(locale,"main"),"CFVigil");
+            assert_eq!(window_title(locale,"about"),about_titles[i],"{locale} About");
+            assert_eq!(window_title(locale,"settings"),menu(locale,"settings"));
+            assert_eq!(window_title(locale,"history"),menu(locale,"history"));
+            for unrecognized in ["","unknown","main2","quit"] {
+                assert_eq!(window_title(locale,unrecognized),"CFVigil");
+            }
+        }
+        for unsupported in ["","zz","pt-BR","zh-Hans"] {
+            assert_eq!(window_title(unsupported,"about"),"About CFVigil");
+            assert_eq!(window_title(unsupported,"history"),"Event History");
+            assert_eq!(window_title(unsupported,"settings"),"Settings");
+        }
+    }
+
 }
