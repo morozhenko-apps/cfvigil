@@ -99,6 +99,61 @@ def platform_files(release, platform, version, commit):
     return entries
 
 
+
+def verify_signed_apt_indexes(inrelease, index):
+    """Validate the bytes APT's verified InRelease SHA256 section commits to.
+
+    Caller must verify the signature with gpgv first. A valid signature
+    over OLD index hashes is not proof of the new Packages files.
+    """
+    try:
+        lines = inrelease.read_text(encoding="utf8").splitlines()
+        blank = lines.index("", 1)
+        signed_end = lines.index("-----BEGIN PGP SIGNATURE-----", blank + 1)
+    except (UnicodeError, ValueError) as error:
+        raise ValueError("Signed APT index has a malformed cleartext envelope") from error
+    if (not lines or lines[0] != "-----BEGIN PGP SIGNED MESSAGE-----"
+            or "Hash: SHA256" not in lines[1:blank]
+            or signed_end <= blank + 1
+            or "-----END PGP SIGNATURE-----" not in lines[signed_end + 1:]):
+        raise ValueError("Signed APT index has a malformed cleartext envelope")
+
+    required = {
+        "main/binary-amd64/Packages": index / "Packages",
+        "main/binary-amd64/Packages.gz": index / "Packages.gz",
+    }
+    found = {}
+    in_sha256 = False
+    saw_sha256 = False
+    for line in lines[blank + 1:signed_end]:
+        if line == "SHA256:":
+            if saw_sha256:
+                raise ValueError("Signed APT index repeats SHA256 section")
+            saw_sha256, in_sha256 = True, True
+            continue
+        if not in_sha256:
+            continue
+        if not line.startswith((" ", "\t")):
+            in_sha256 = False
+            continue
+        match = re.fullmatch(r"\s+([a-fA-F0-9]{64})\s+([0-9]+)\s+(\S+)\s*", line)
+        if match is None:
+            raise ValueError("Signed APT index has a malformed SHA256 row")
+        expected_sha, size, name = match.groups()
+        if name in required:
+            if name in found:
+                raise ValueError("Signed APT index repeats a package-index entry")
+            found[name] = (expected_sha.lower(), int(size))
+    if not saw_sha256 or set(found) != set(required):
+        raise ValueError("Signed APT index lacks the required SHA256 entries")
+    for name, package_index in required.items():
+        if not package_index.is_file():
+            raise ValueError("Signed APT index is missing a referenced file")
+        signed_sha, signed_size = found[name]
+        if signed_size != package_index.stat().st_size or signed_sha != digest(package_index):
+            raise ValueError("Signed APT index SHA256 or size does not match the file")
+
+
 def apt_files(apt, linux_deb, version):
     if apt.is_symlink() or not apt.is_dir():
         raise ValueError("Incomplete signed APT directory")
@@ -117,6 +172,7 @@ def apt_files(apt, linux_deb, version):
     # Verify actual signed metadata, not merely an InRelease filename.
     subprocess.run(["gpgv", "--keyring", str(keyring), str(inrelease)],
                    check=True, stdout=subprocess.DEVNULL)
+    verify_signed_apt_indexes(inrelease, index)
     if b"pool/main/c/cf-vigil/" not in packages.read_bytes():
         raise ValueError("APT package index points outside CFVigil pool")
     immutable = {}
