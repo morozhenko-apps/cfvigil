@@ -1,3 +1,88 @@
+# Approved distribution redesign — 2026-10-27 (authoritative)
+
+**Mode A — release-pipeline architecture refactor.** Owner selected flat
+distribution, with **only platform directories**, common existing
+Cloudflare R2 bucket `app-dist`, one versioned binary object per platform
+artifact, no per-app download Worker, and deferred download rate limits/WAF.
+This section supersedes all older `cfvigil-dist`, `apt/pool`,
+`apt/dists/stable`, `releases/v...` and dedicated Worker
+instructions still present later in historical notes. Those earlier
+sections describe the previous, **not yet deployed**, candidate architecture.
+No Cloudflare resource, website or live R2 object is changed by source edits.
+
+**Public R2 key namespace** `dist/CFVigil/` only, on existing
+`https://download.morozhenko.com` R2 Custom Domain:
+
+```text
+dist/CFVigil/latest.json
+dist/CFVigil/linux/cfvigil_VERSION_amd64.deb
+dist/CFVigil/linux/cfvigil_VERSION_amd64.deb.sha256
+dist/CFVigil/linux/CFVigil-VERSION-linux-x64.AppImage
+dist/CFVigil/linux/CFVigil-VERSION-linux-x64.AppImage.sha256
+dist/CFVigil/linux/Packages
+dist/CFVigil/linux/Packages.gz
+dist/CFVigil/linux/InRelease
+dist/CFVigil/linux/cfvigil-archive-keyring.gpg
+dist/CFVigil/windows/CFVigil-Setup-VERSION-win-x64.exe
+dist/CFVigil/windows/CFVigil-Setup-VERSION-win-x64.exe.sha256
+```
+
+Versioned installers, checksum sidecars and public key are immutable;
+`Packages`, `Packages.gz`, `InRelease`, and `latest.json`
+are mutable with no-store cache policy. CI generates the
+flat signed `Packages.gz` index pointing directly to
+`./cfvigil_VERSION_amd64.deb` in that **same** Linux directory.
+No second DEB pool copy, `by-hash`, or `stable/main` hierarchy.
+The APT source is
+`deb [arch=amd64 signed-by=/usr/share/keyrings/cfvigil.gpg] https://download.morozhenko.com/dist/CFVigil/linux/ ./`.
+APT relies on signed `InRelease` and exact checksums of the index
+and DEB. `Packages` and `Packages.gz` are independently hashed
+inside `InRelease`, and their byte contents must agree.
+
+**Publication order:** validate both platform candidates and signed
+flat repository offline before S3 writes; upload/check all immutable
+platform files and public key; then upload/read back both mutable
+indexes; then upload/read back `linux/InRelease` as the APT commit
+point; finally upload/read back schema-checked `latest.json`
+as the website's **last** commit point. Receipt is emitted only
+after full public HTTP body/size/hash readback including both
+commit points. Existing exact GitHub Actions handoff cleanup is
+authorized solely by that verified receipt; text-only GitHub Release
+comes after successful cleanup. Failed/stale/malformed public
+readback MUST NOT advance or emit a receipt.
+
+The `latest.json` contains the approved version/tag/commit and
+immutable platform URLs. The website resolves those URLs at
+runtime, so no duplicate `*-latest-*` binaries or new Cloudflare
+Worker are necessary. `latest.json` itself is a public pointer,
+not an independent signed software-update authority. The app never
+installs files on the basis of this metadata without other trust
+checks. Candidate CI never advances this pointer.
+
+**Trade-offs explicitly accepted:** dropping APT by-hash means
+clients concurrently downloading during an index switch may see
+a transient hash mismatch and safely retry. Do not weaken
+`signed-by`, checksums or `gpgv` to hide that failure. The
+`app-dist` R2 bucket shares the bucket-level credential boundary
+with Picturix; ensure the CI credential is deliberately provisioned
+for that scope. Keep all private/debug/build artifacts **outside**
+the public bucket. WAF/rate limits are an **owner-deferred**
+post-implementation task: never globally challenge/deny native APT
+or curl, which are nonbrowser clients.
+
+**Implementation sequence & rollback:** (1) document before code,
+(2) update signed APT generation/verification, (3) adapt publisher,
+receipt and ordering, (4) adapt workflow and offline contracts;
+(5) run a **single final** complete hosted source CI, record exact
+SHA and counts. Revert the scoped implementation commits if the
+gate fails; no production rollback needed because this task does
+not execute a tag or upload files. Keep historical
+`infra/download-worker/` source until migration acceptance but
+stop configuring/deploying it; remove obsolete Worker assertions
+from active tests. Protect the `main`/tag/environment gate. Final
+real R2 readback and signing still require owner-configured secrets,
+approved tag and a separate explicitly authorized release.
+
 # CFVigil isolated distribution (not deployed)
 
 Status: release implementation staged on dev; NO live R2 publication,
