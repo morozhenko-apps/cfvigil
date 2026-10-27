@@ -17,6 +17,17 @@ struct Loopback {
 }
 impl Loopback {
     fn start(respond: impl Fn(&str) -> (u16, String) + Send + 'static) -> Self {
+        Self::with_retry_header(move |path| {
+            let (status, body) = respond(path);
+            let retry = (status == 429).then(|| "75".to_owned());
+            (status, body, retry)
+        })
+    }
+    // Specific malformed/missing Retry-After variants are tested by changing
+    // the external HTTP response, not by mocking ApiBudget::observe.
+    fn with_retry_header(
+        respond: impl Fn(&str) -> (u16, String, Option<String>) + Send + 'static
+    ) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let address = listener.local_addr().unwrap();
         let requests = Arc::new(Mutex::new(Vec::<String>::new()));
@@ -44,13 +55,15 @@ impl Loopback {
                 // cannot accidentally introduce a mutating request.
                 assert_eq!(method, "GET");
                 captured.lock().unwrap().push(path.to_owned());
-                let (status, body) = respond(path);
+                let (status, body, retry_seconds) = respond(path);
                 let reason = match status {
                     200 => "OK", 400 => "Bad Request", 401 => "Unauthorized",
-                    403 => "Forbidden", 429 => "Too Many Requests",
-                    500 => "Internal Server Error", _ => "Unexpected",
+                    403 => "Forbidden", 404 => "Not Found", 429 => "Too Many Requests",
+                    500 => "Internal Server Error", 503 => "Service Unavailable",
+                    _ => "Unexpected",
                 };
-                let retry = if status == 429 { "Retry-After: 75\r\n" } else { "" };
+                let retry = retry_seconds.map(|value|
+                    format!("Retry-After: {value}\r\n")).unwrap_or_default();
                 write!(stream,
                     "HTTP/1.1 {status} {reason}\r\nContent-Type: application/json\r\nConnection: close\r\nContent-Length: {}\r\n{retry}\r\n{}",
                     body.len(), body).unwrap();
@@ -347,4 +360,222 @@ async fn given_rate_limit_in_first_pages_batch_then_next_batch_never_issues_http
     let paths=server.paths();
     assert_eq!(paths.len(),6,"two catalogs and at most first four detail requests");
     assert!(!paths.iter().any(|p|p.contains("/pages/projects/fifth/deployments")));
+}
+
+
+#[tokio::test]
+async fn given_rest_success_envelopes_when_read_then_only_true_boolean_success_is_accepted() {
+    for (body, expected) in [
+        (r#"{"success":true,"result":[{"name":"safe"}]}"#,None),
+        (r#"{"success":false,"result":[]}"#,Some(msg::CF_UNSUCCESSFUL)),
+        (r#"{"success":"true","result":[]}"#,Some(msg::CF_UNSUCCESSFUL)),
+        (r#"{"result":[]}"#,Some(msg::CF_UNSUCCESSFUL)),
+        (r#"[{"success":true}]"#,Some(msg::CF_UNSUCCESSFUL)),
+        (r#"{"success":true,"result":null}"#,None),
+        ("not JSON",Some(msg::CF_BAD_JSON)),
+        ("",Some(msg::CF_BAD_JSON)),
+        (r#"{"success":true,"result":"#,Some(msg::CF_BAD_JSON)),
+    ] {
+        let payload=body.to_owned();
+        let server=Loopback::start(move |_| (200,payload.clone()));
+        let budget=ApiBudget::new();
+        let result=server.client().get("test-only-token","/fixture",&budget).await;
+        match expected {
+            Some(reason) => assert_eq!(result.err().as_deref(),Some(reason),
+                "untrusted REST envelope {body:?}"),
+            None => {
+                let (value,pages)=result.unwrap();
+                assert_eq!(pages,1);
+                assert_eq!(value.is_null(),body.contains(r#""result":null"#));
+            }
+        }
+        assert_eq!(server.paths(),["/fixture"]);
+        assert_eq!(budget.retry_after_seconds(),0);
+    }
+}
+
+#[tokio::test]
+async fn given_rest_payload_at_two_megabytes_boundary_when_read_then_max_is_inclusive() {
+    const MAX:usize=2*1024*1024;
+    let prefix=r#"{"success":true,"result":[]}"#;
+    for (size,accepted) in [(MAX-1,true),(MAX,true),(MAX+1,false)] {
+        let mut body=String::with_capacity(size);
+        body.push_str(prefix);
+        body.push_str(&" ".repeat(size-prefix.len()));
+        assert_eq!(body.len(),size);
+        let server=Loopback::start(move |_| (200,body.clone()));
+        let result=server.client().get("test-only-token","/large",&ApiBudget::new()).await;
+        if accepted {
+            let (value,_) = result.expect("exact bounded JSON should be accepted");
+            assert_eq!(value,json!([]));
+        } else {
+            assert_eq!(result.err().as_deref(),Some(msg::CF_TOO_LARGE));
+        }
+        assert_eq!(server.paths(),["/large"]);
+    }
+}
+
+#[tokio::test]
+async fn given_untrusted_http_errors_when_read_then_only_status_and_numeric_code_escape() {
+    const PRIVATE:&str="secret-token-and-account-abcdef";
+    for (status,body,expected) in [
+        (400,format!(r#"{{"errors":[{{"code":8000024,"message":"{PRIVATE}"}}]}}"#),
+            "Cloudflare HTTP 400 (code 8000024)".to_owned()),
+        (401,format!(r#"{{"errors":[{{"code":"10000","message":"{PRIVATE}"}}]}}"#),
+            "Cloudflare HTTP 401".to_owned()),
+        (403,format!(r#"{{"errors":[{{"code":10000,"message":"{PRIVATE}"}}]}}"#),
+            "Cloudflare HTTP 403 (code 10000)".to_owned()),
+        (404,format!(r#"{{"message":"{PRIVATE}"}}"#),
+            "Cloudflare HTTP 404".to_owned()),
+        (500,format!(r#"{{"errors":[{{"code":null,"message":"{PRIVATE}"}}]}}"#),
+            "Cloudflare HTTP 500".to_owned()),
+        (503,"not-json".to_owned(),"Cloudflare HTTP 503".to_owned()),
+        (403,format!(r#"{{"errors":[{{"code":123,"message":"{}"}}]}}"#,
+            "x".repeat(9000)),
+            "Cloudflare HTTP 403".to_owned())
+    ] {
+        let server=Loopback::start(move |_|(status,body.clone()));
+        let result=server.client().get(PRIVATE,"/safe",&ApiBudget::new()).await;
+        let err=result.err().expect("HTTP error must not return success");
+        assert_eq!(err,expected,"HTTP {status}");
+        assert!(!err.contains(PRIVATE));
+        assert!(!err.contains("message"));
+        assert_eq!(server.paths(),["/safe"]);
+    }
+}
+
+#[tokio::test]
+async fn given_429_without_usable_retry_after_when_read_then_default_delay_stops_next_request() {
+    for retry in [None,Some("not-seconds"),Some("18446744073709551616")] {
+        let retry=retry.map(str::to_owned);
+        let server=Loopback::with_retry_header(move |_| {
+            (429,json!({"errors":[{"code":1015,
+                "message":"do not leak token"}]}).to_string(),retry.clone())
+        });
+        let budget=ApiBudget::new();
+        let client=server.client();
+        assert_eq!(client.get("secret","/limit",&budget).await.err().as_deref(),
+            Some("Cloudflare HTTP 429 (code 1015)"));
+        assert_eq!(budget.retry_after_seconds(),300);
+        assert!(budget.exhausted());
+        assert_eq!(client.get("secret","/forbidden-after",&budget).await.err().as_deref(),
+            Some(msg::BUDGET_RATE_LIMIT));
+        assert_eq!(server.paths(),["/limit"]);
+    }
+}
+
+#[tokio::test]
+async fn given_0_1_256_257_workers_when_read_then_strict_limit_has_no_unsupported_query() {
+    for (count,expected) in [(0,true),(1,true),(256,true),(257,false)] {
+        let rows=(0..count).map(|i|json!({"id":format!("worker{i}")}))
+            .collect::<Vec<_>>();
+        let server=Loopback::start(move |_|okay(json!(rows)));
+        let result=server.client().list_workers("token","/accounts/valid",
+            &ApiBudget::new()).await;
+        if expected {
+            assert_eq!(result.unwrap().len(),count);
+        } else {
+            assert_eq!(result.err().as_deref(),Some(msg::CF_WORKERS_TOO_MANY));
+        }
+        assert_eq!(server.paths(),["/accounts/valid/workers/scripts"],
+            "Worker Scripts List must not invent unsupported page/per_page");
+    }
+}
+
+#[tokio::test]
+async fn given_worker_list_as_nonarray_when_read_then_schema_is_rejected() {
+    for shape in [json!(null),json!({}),json!("worker"),json!(false)] {
+        let server=Loopback::start(move |_|okay(shape.clone()));
+        assert_eq!(server.client().list_workers("token","/accounts/valid",
+            &ApiBudget::new()).await.err().as_deref(),Some(msg::CF_WORKER_LIST));
+        assert_eq!(server.paths().len(),1);
+    }
+}
+
+#[tokio::test]
+async fn given_pages_catalog_0_1_50_51_pages_when_read_then_upper_bound_rejects_before_request_storm() {
+    for total in [0,1,50,51] {
+        let server=Loopback::start(move |path| {
+            if path=="/pages" {
+                pages(json!([{"name":"first"}]),total)
+            } else if let Some(page)=path.strip_prefix("/pages?page=") {
+                let page=page.parse::<usize>().unwrap();
+                assert!(page>1 && page<=50);
+                pages(json!([{"name":format!("page{page}")}]),total)
+            } else { panic!("unexpected endpoint {path}"); }
+        });
+        let result=server.client().list_paginated("token","/pages",&ApiBudget::new()).await;
+        if total==51 {
+            assert_eq!(result.err().as_deref(),Some(msg::CF_PAGES_PAGINATION));
+            assert_eq!(server.paths().len(),1);
+        } else {
+            assert_eq!(result.unwrap().len(),total.max(1));
+            assert_eq!(server.paths().len(),total.max(1));
+        }
+    }
+}
+
+#[tokio::test]
+async fn given_cumulative_pages_count_at_256_257_when_read_then_over_limit_is_rejected() {
+    for (total,expected) in [(256,true),(257,false)] {
+        let first=(0..255).map(|i|json!({"name":format!("page{i}")}))
+            .collect::<Vec<_>>();
+        let second=(255..total).map(|i|json!({"name":format!("page{i}")}))
+            .collect::<Vec<_>>();
+        let server=Loopback::start(move |path| {
+            match path {
+                "/pages" => pages(json!(first),2),
+                "/pages?page=2" => pages(json!(second),2),
+                _ => panic!("unexpected endpoint {path}"),
+            }
+        });
+        let result=server.client().list_paginated("token","/pages",
+            &ApiBudget::new()).await;
+        if expected {
+            assert_eq!(result.unwrap().len(),256);
+        } else {
+            assert_eq!(result.err().as_deref(),Some(msg::CF_PAGES_TOO_MANY));
+        }
+        assert_eq!(server.paths(),["/pages","/pages?page=2"]);
+    }
+}
+
+#[tokio::test]
+async fn given_malformed_later_pages_when_read_then_partial_catalog_never_returns_success() {
+    for body in [
+        r#"{"success":true,"result":null}"#,
+        r#"{"success":true,"result":{}}"#,
+        r#"{"success":false,"result":[]}"#,
+        "malformed JSON"
+    ] {
+        let broken=body.to_owned();
+        let server=Loopback::start(move |path| {
+            if path=="/pages" {
+                pages(json!([{"name":"first"}]),2)
+            } else {
+                assert_eq!(path,"/pages?page=2");
+                (200,broken.clone())
+            }
+        });
+        assert!(server.client().list_paginated("token","/pages",
+            &ApiBudget::new()).await.is_err());
+        assert_eq!(server.paths(),["/pages","/pages?page=2"]);
+    }
+}
+
+#[tokio::test]
+async fn given_existing_query_in_pages_path_when_appending_page_then_use_ampersand_once() {
+    let server=Loopback::start(|path| {
+        match path {
+            "/pages?filter=active" => pages(json!([{"name":"a"}]),2),
+            "/pages?filter=active&page=2" => pages(json!([{"name":"b"}]),2),
+            _ => panic!("unexpected query {path}")
+        }
+    });
+    let result=server.client().list_paginated("token","/pages?filter=active",
+        &ApiBudget::new()).await.unwrap();
+    assert_eq!(result.len(),2);
+    assert_eq!(server.paths(),[
+        "/pages?filter=active","/pages?filter=active&page=2"
+    ]);
 }
