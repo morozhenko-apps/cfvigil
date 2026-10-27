@@ -732,3 +732,28 @@ production mutations. No separate native acceptance or
 human-language reviewers need to be solicited for this
 offline source-only change. This documentation-only
 receipt requires no duplicate CI trigger.
+
+## 2026-10-27 signed flat APT local acceptance
+
+An isolated, test-only flat APT repository was exercised with real
+`dpkg-deb`, `dpkg-scanpackages`, GPG clear-signing and
+`apt-get update` using private temporary APT source/list/cache
+directories and a disposable test public key. The test package was
+`cf-vigil_0.1.0_amd64.deb`, where the generated control-index
+`Filename` was exactly `./cfvigil_0.1.0_amd64.deb`.
+APT successfully fetched the signed flat `InRelease` and
+`Packages` and reported the `cf-vigil 0.1.0` candidate at
+`file:/...` distribution `./`. No host APT sources or installed
+packages were changed and the temporary package/GPG home was removed.
+The test emitted a nonfatal `_apt` sandbox warning due to the
+owner-private temporary directory; the resolver still confirmed the
+signed source. This proves the **flat format in real APT**, not
+the latest CFVigil application build, live R2/Cloudflare routing
+or an end-user install/upgrade.
+
+Final source-run marker `9fd77fa64b600c7c333039273dc7b8a151bbf811`
+requested GitHub Actions Preflight
+[run 40585813847](https://github.com/morozhenko-apps/cfvigil/actions/runs/40585813847).
+The run remains in progress at this documentation checkpoint.
+No passing CI outcome is inferred until terminal status and logs
+are independently inspected.
