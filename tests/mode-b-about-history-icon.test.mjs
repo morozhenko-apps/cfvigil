@@ -66,12 +66,13 @@ test("Given twenty locales When localizing About Close Then there is no English 
 });
 
 test("Given installed DEB theme icon When history opens Then GTK requests matching icon name",()=>{
-  const installedIcon = "cfvigil-desktop";
-  const occurrences=native.match(/native\.set_icon_name\(Some\("cfvigil-desktop"\)\)/g) ?? [];
+  const installedIcon = "cfvigil";
+  const occurrences=native.match(/native\.set_icon_name\(Some\("cfvigil"\)\)/g) ?? [];
   assert.equal(occurrences.length,2,"startup icon and show-time icon");
+  assert.doesNotMatch(native,/native\.set_icon_name\(Some\("cfvigil-desktop"\)\)/);
   assert.match(native,/for label in \["main", "settings", "history", "about"\]/);
   assert.match(native,/window\.gtk_window\(\)/);
-  assert.equal(installedIcon,"cfvigil-desktop");
+  assert.equal(installedIcon,"cfvigil");
 });
 
 test("Given Windows and Linux History When opening Then native icon is asserted and window remains decorated",()=>{

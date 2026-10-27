@@ -115,6 +115,9 @@ export function validateDebLauncherLayout(desktopContents, relativeIconPaths) {
   if (!/^[A-Za-z0-9_.-]+$/.test(name) || name === "." || name === "..") {
     throw Error("DEB launcher Icon= must be a safe themed icon name");
   }
+  if (name !== "cfvigil") {
+    throw Error("DEB launcher must use canonical CFVigil icon name");
+  }
   const matches = relativeIconPaths.filter(relative => {
     const segments = relative.split("/");
     return segments.length === 3 && /^\d+x\d+$/.test(segments[0]) &&
