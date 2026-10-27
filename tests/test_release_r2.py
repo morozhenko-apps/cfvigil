@@ -301,7 +301,7 @@ class PublicationFixture(unittest.TestCase):
             self.assertEqual(good["readback_size"], file.stat().st_size)
             with self.assertRaisesRegex(ValueError, "does not match"):
                 release.public_readback(
-                    file, "releases/v0.1.0/linux/" + file.name,
+                    file, "linux/" + file.name,
                     lambda url, timeout: Reply(b"corrupted"))
 
     def test_latest_manifest_points_only_to_immutable_approved_artifacts(self):
