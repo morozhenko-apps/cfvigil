@@ -57,7 +57,6 @@ class PublicationFixture(unittest.TestCase):
         pool.write_bytes((self.bundle / "linux" / pool.name).read_bytes())
         (self.apt / "cfvigil-archive-keyring.gpg").write_bytes(b"public test key")
         index = self.apt
-        index.mkdir(parents=True)
         package_bytes = pool.read_bytes()
         control = (
             "Package: cf-vigil\n"
