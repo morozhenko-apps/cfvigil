@@ -117,6 +117,43 @@ class ReleaseReadinessTests(unittest.TestCase):
         ))
         self.assertFalse(any("secret" in str(v).lower() for v in writes))
 
+    def test_readiness_fails_on_partial_secrets_and_policy_listing(self):
+        def github(path, **kwargs):
+            if path == ready.ENV:
+                return self.environment
+            if path.endswith("/deployment-branch-policies?per_page=100"):
+                return {"total_count": 2, "branch_policies": self.policies}
+            raise AssertionError("Must reject incomplete policy page before reading secrets")
+        with patch.object(ready, "gh_api", side_effect=github):
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertFalse(ready.assess_remote())
+        with patch.object(ready, "gh_api", return_value={
+            "total_count": 3, "secrets": [{"name": "some-secret"}]
+        }):
+            with self.assertRaises(ready.GitHubUnavailable):
+                ready.read_names("path", "secrets")
+
+    def test_different_main_and_dev_never_count_as_release_ready(self):
+        def github(path, **kwargs):
+            if path.endswith("/branches/dev"):
+                return {"commit": {"sha": "a" * 40}}
+            if path.endswith("/branches/main"):
+                return {"commit": {"sha": "b" * 40}}
+            raise AssertionError(path)
+        with patch.object(ready, "gh_api", side_effect=github):
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                self.assertFalse(ready.branch_state())
+        self.assertIn("only owner-approved", out.getvalue())
+
+    def test_explicit_setup_is_never_called_from_default_cli(self):
+        with patch.object(ready, "init_environment") as initializer, \
+             patch.object(ready, "branch_state", return_value=False), \
+             patch.object(ready, "assess_remote", return_value=False):
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(ready.main([]), 2)
+        initializer.assert_not_called()
+
     def test_missing_full_environment_list_refuses_creation(self):
         def github(path, **kwargs):
             if path == ready.ROOT:
