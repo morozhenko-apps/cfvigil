@@ -467,3 +467,31 @@ pool-binary SHA256 parity and by-hash equality checks are preserved.
 This is a **source-level safety improvement**, not evidence of
 production APT signing or live R2 readback. Its final CI results
 must be documented below after the post-change verification run.
+
+### Verified signed-index publisher source gate (2026-10-27)
+
+[Hosted Preflight #40571683067](https://github.com/morozhenko-apps/cfvigil/actions/runs/40571683067)
+completed **SUCCESS** at exact commit
+`7d9e24c4996b378a6d68d5c41b17d5b01dc3cf5b`.
+Its log confirms all source check steps passed, Node **167/167**,
+Python release **16/16**, Python icon **3/3**, and Rust
+**164/164**, zero failures/ignored Rust: **350 tests passed**.
+All three newly added Python signed-index test methods passed
+inside the 16-test release suite. This supersedes the earlier
+"CI pending" label for the signed-index step.
+
+Distribution source gate: ACCEPTED for publisher checksum,
+signed-index consistency, exact receipt file inventory, and
+cross-platform cleanup preflight. This is a bounded code-level
+acceptance, not evidence of actual provisioned key, genuine
+GPG signing exercise, production R2 upload, public Worker
+reachability, real public SHA256 readback, GitHub archive
+deletion or a publicly available release. Those separate
+externally protected operations still require authorization
+and actual execution with owner-provisioned CFVigil-only
+credentials. Do not conflate the mocked offline GPG validation
+with signing a real production APT repository.
+
+No extra test trigger was run for this documentation-only
+status update, and no user machine, main branch, production
+Cloudflare object or GitHub release was changed.
