@@ -1124,3 +1124,55 @@ Cloudflare/Worker/R2 mutation was performed in this batch.
 tests added in `9ef81d3`; documentation commits and single CI marker
 remain separately revertible. No production code, public contract,
 stored data, credentials or runtime config changed.
+
+## 2026-10-27 — owner-directed Mode B closeout, provider fault simulation and i18n gate
+
+**Primary mode:** B (Testing). **Owner instruction supersedes the previous
+open-ended requests for physical platform rechecks:** native Linux/Windows
+verification has already been performed by the owner; do not repeatedly
+require it for each new test-only increment. Do not fabricate any additional
+native observation, nor silently promote earlier scoped evidence to a full
+platform matrix.
+
+**Order:** (1) Cloudflare failure/recovery acceptance through deterministic,
+localhost-only HTTP fixtures and pure-state tests, no forced production errors;
+(2) complete a reproducible source/runtime contract audit of all 20
+locales, no external native-speaking reviewers; (3) finish code-level
+Mode B inventory and tests AFTER the product repairs rather than signing
+off on an outdated code baseline; (4) inspect and validate offline protected
+distribution invariants, WITHOUT invoking production release.
+
+**Cloudflare test branch plan:** API 401/403/429/500, partial Workers/Pages
+discovery and independent working provider, WAF error versus recovery,
+Analytics unavailable/partial versus new spike, stale incident dedup,
+settings revision/account change, no unauthorized mutation or error-body
+leak. Existing tests already cover much of this: add targeted missing
+combinations, not redundant one-test-per-status samples.
+
+**20-locale test branch plan:** English key/type/CLDR parity; each locale
+with all message keys; stable Cloudflare numeric status and six literal
+permission scopes; failed/active/success/unverified meanings; RTL Arabic
+FSI/PDI scope isolation and WebView dir; pt=pt-PT, zh-Hant preserved,
+localized timestamps including DST edges and invalid dates; unsafe
+provider content opaque; format interpolation and host text boundaries.
+Test actual production localization functions with deterministic inputs.
+The user accepts an engineering linguistic audit without a 20-person
+external editorial checkpoint; report semantic uncertainty transparently
+rather than claiming certified idiomaticity.
+
+**Release test plan after code gate:** inspect protected workflow, release
+script and Worker source for checksummed R2-only publication,
+main/tag/environment approvals, upload/readback ordering and deletion
+safety. Add deterministic offline tests only where current contracts lack
+specific assertions. Real owner-credential publication, Authenticode
+procurement, production R2 mutation and tag/main promotion remain outside
+this authorized test phase.
+
+**Risk, rollback, acceptance:** avoid changed runtime semantics, account
+credentials, network access and OS state. Keep documentation and test
+commits separate, a single explicit CI marker only after the final
+tested batch. Verify latest `dev` first; if another agent advances it,
+switch to a temporary integration branch, not force push.
+Document exact execution evidence and open implementation/mutation
+branches. No arbitrary global numeric coverage target or false
+completion from the existing broad matrix's original `?` cells.
