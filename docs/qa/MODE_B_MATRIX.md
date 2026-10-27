@@ -1076,3 +1076,51 @@ These classify coverage intent, not a numeric mutation or branch score.
 Stage 10 assertions and the full stable gate still require CI proof
 at the matching source SHA; documentation must not count an authored
 test as an executed PASS.
+
+### Stage 11 verified and Stage 12 outcome (2026-10-27)
+
+**Exact STABLE run:** [Preflight #40547885489](https://github.com/morozhenko-apps/cfvigil/actions/runs/40547885489)
+completed SUCCESS for source/CI marker SHA
+`b2e9f319818f66bf0b2f41317488d3dae4ad9f42`.
+The job log confirms:
+
+| Required stage | Evidence |
+| --- | --- |
+| Node syntax / i18n / original icon parity | PASS, each separate CI step |
+| `node --test tests/*.test.mjs` | **157 passed / 0 failed** |
+| Offline Python release contracts | **13 passed** |
+| Python icon normalization | **3 passed** |
+| `cargo check --locked -p cfvigil` | PASS |
+| `cargo test --locked -p cfvigil` | **160 passed / 0 failed / 0 ignored** |
+| Newly added HTTP tests | **3/3 PASS**, individually named in Rust job log |
+
+Total directly observed unit/contract tests: **333 passed**
+(157 Node + 16 Python + 160 Rust). This is a count of executed
+tests, not a branch, mutation or E2E coverage percentage.
+There is **no configured independently runnable known-FLAKY
+suite**; none was executed separately. This does not prove future
+absence of intermittency.
+
+**Stage 12: PARTIAL**, not a release sign-off. This tranche
+closes the targeted actual-response `ApiBudget::observe` tests
+and their planned mutation-sensitive assertions. The master
+artifact-by-N1–N12 matrix still has open applicable cells; no
+complete branch map or automated mutation run has been proven.
+Windows candidate #40534964001 succeeded for the previous
+production-identical SHA `239ab1457f` (165 Windows Rust tests),
+but it did not exercise these new three tests. No Windows machine
+inspection is claimed for this test-only change.
+
+Remaining release gates: physical Windows/KDE installation and
+upgrade lifecycle; real-account Cloudflare permission, keyring,
+offline/online and incident recovery; full 20-locale editorial and
+RTL/native text review; protected signed APT and Authenticode
+signing decisions; CFVigil-only R2 live upload, public SHA-256
+readback and GitHub artifact cleanup; owner approval before
+`main`, tag, and protected publication. No production
+Cloudflare/Worker/R2 mutation was performed in this batch.
+
+**Rollback:** the source change is isolated to three unit/integration
+tests added in `9ef81d3`; documentation commits and single CI marker
+remain separately revertible. No production code, public contract,
+stored data, credentials or runtime config changed.
