@@ -1,3 +1,40 @@
+## 2026-10-27: owner selects first public release v1.0.0 (source preparation)
+
+The owner explicitly chose `v1.0.0` rather than an initial
+`v0.1.0` public release. No previous public GitHub Release
+exists. This is **version selection**, not a direction to
+override the separate mandatory exact-main, protected-environment,
+native/Mode-B and owner-approval gates. The environment includes
+two approved signing secrets, two bucket-access secrets, an APT
+primary fingerprint variable and a Cloudflare R2 account ID.
+`CFVIGIL_RELEASE_APPROVED_TAG` remains intentionally unset.
+
+Prepare release identity in the single Rust package
+`apps/desktop/src-tauri/Cargo.toml`, generated root
+`Cargo.lock` CFVigil stanza, and
+`apps/desktop/src-tauri/tauri.conf.json`. Do not change the
+package name `cf-vigil`, executable `cfvigil`,
+bundle identifier `com.morozhenko.cfvigil`,
+OS keyring namespace or application data paths.
+Upgrade candidate-version gate and product identity
+tests to require all three versions agree and reject
+a mismatched local Cargo.lock stanza. Leave
+`0.1.0` in deliberately synthetic older-version
+fixtures and historical QA evidence; those values
+are not declarations of the current app version.
+
+One complete source Preflight on a final exact
+SHA must confirm the updated stable JavaScript,
+Python and locked Rust gates. After that, document
+observed counts and exact commit SHA. The
+release pipeline's `node scripts/candidate-version.mjs
+--check-tag v1.0.0` must pass, and old `v0.1.0`
+must fail. Do not run public release workflow,
+tag/merge main, write R2, mutate shared credentials,
+or fabricate `latest.json` before owner release
+authorization and live acceptance. Rollback is a
+scoped source revert, not R2 deletion.
+
 ## 2026-10-27: optional reuse of an existing APT signing authority
 
 Owner's authenticated CLI confirmed that `cfvigil-release` was
