@@ -54,10 +54,8 @@ jobs:
         run: node scripts/check-icon-assets.mjs
       - name: Run stable JavaScript tests
         run: node --test tests/*.test.mjs
-      - name: Run offline release/Cloudflare distribution tests
-        run: python3 -m unittest discover -s tests -p 'test_release_*.py'
       - uses: dtolnay/rust-toolchain@stable
-      - name: Install Tauri 2 Linux dependencies
+      - name: Install Linux desktop and real signed-APT test dependencies
         shell: bash
         run: |
           set -euo pipefail
@@ -67,7 +65,10 @@ jobs:
             libwebkit2gtk-4.1-dev libgtk-3-dev \
             libayatana-appindicator3-dev libgtk-layer-shell-dev \
             libxdo-dev librsvg2-dev libwayland-dev \
-            libwayland-bin wayland-protocols python3-pil
+            libwayland-bin wayland-protocols python3-pil \
+            dpkg-dev gnupg gpgv
+      - name: Run offline release and real signed flat APT tests
+        run: python3 -m unittest discover -s tests -p 'test_release_*.py'
       - name: Check alpha-tight icon normalization on synthetic images
         run: python3 -m unittest discover -s tests -p 'test_icon_import.py'
       - name: Check Rust desktop
