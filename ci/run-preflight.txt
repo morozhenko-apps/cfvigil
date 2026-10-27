@@ -421,3 +421,14 @@ test execution; all existing offline security and 20-locale cases.
 One full hosted Node, Python and locked Rust Preflight.
 No main/tag, GitHub environment approval, R2 objects, WAF or
 external installer publication changed.
+
+2026-10-27: correct real Windows v1.0.0 candidate CRLF regression.
+Old matched candidate SHA 68ce88cd04eea7ecc5a0adcbf42327651a2d7137: Windows
+#40598981104 failed one Node assertion before packaging because the
+test's lockfile replacement matched LF only; not a product runtime failure.
+Updated test uses a single CFVigil stanza regex supporting CRLF and LF,
+asserts the fixture actually changes, and preserves the closing quote.
+Stable Linux source was previously PASS (368/368) at ad32baa; this
+is the only post-candidate source edit. Rerun full stable once before
+generating new matched Linux + Windows candidates.
+No main/tag/release/R2/environment mutation.
