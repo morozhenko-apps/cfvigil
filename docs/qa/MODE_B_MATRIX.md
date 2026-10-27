@@ -1327,3 +1327,30 @@ repos and installed binaries are unchanged. A new full final
 Preflight is still REQUIRED before marking this source tranche PASS.
 The previous 353/353 test result predates this refactor and is not
 its acceptance evidence.
+
+### Flat signed APT, public-manifest and archive-finalizer regression — PASS
+
+[GitHub Preflight #40585813847](https://github.com/morozhenko-apps/cfvigil/actions/runs/40585813847)
+at exactly `9fd77fa64b600c7c333039273dc7b8a151bbf811`
+completed SUCCESS: Node **162/162**, Python release
+**22/22**, Python icon **3/3**, Rust **164/164**,
+**351/351 PASS**, 0 failures. Signed flat APT support
+was independently checked with disposable real Debian
+package, GPG key, `InRelease`, isolated APT lists and
+`apt-get update`; `apt-cache policy` found
+`cf-vigil 0.1.0` through suite `./`.
+That test did not touch any real system package source.
+
+Source checks cover the single DEB object, exact versioned
+asset paths, valid/rejected signed package metadata,
+gzip parity, latest.json manifest fields/URLs, final
+publication/readback sequencing, failure at the final
+pointer and cleanup fail-closed. No worker runtime or
+Cloudflare WAF test is applicable to the new direct-R2
+layout; tests specifically targeting the deleted,
+never-deployed per-app Worker were intentionally removed.
+This is not evidence of full coverage, live R2 signing,
+Cloudflare public readback, actual end-user APT upgrade,
+or a published tagged release. The release security,
+environment, main/tag approval and website CORS gates
+remain distinct.
