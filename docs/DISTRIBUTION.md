@@ -603,3 +603,38 @@ final full hosted CI on the changed Python code. The prior
 350-test run predates this package-catalog safety change
 and must not be cited as its validation. No public release
 operation authorized or performed.
+
+### Verified APT package catalog source gate (2026-10-27)
+
+[Hosted Preflight #40574280521](https://github.com/morozhenko-apps/cfvigil/actions/runs/40574280521)
+completed **SUCCESS** on exact source-and-CI SHA
+`cd49390dc9b38585509a2f5ff695b8914de7b382`.
+Observed CI job log: Node **167/167** (0 failed),
+Python release **19/19**, Python icon **3/3**,
+Rust **164/164** (0 failed, 0 ignored); locked Rust check,
+JavaScript syntax, all 20 i18n source checks and icon
+consistency steps passed. **353/353 tests passed, zero failures.**
+This run includes all three new APT catalog contract test
+methods and their table-driven negative cases.
+
+**Scoped gate CLOSED:** the signed APT Packages control stanza
+now binds exactly one CFVigil amd64 package to the validated
+DEB pool's canonical file path, version, size and SHA256.
+`Packages.gz` must expand to the exact signed `Packages`
+bytes. The mismatch, duplicate, smuggled pathname, truncated
+and concatenated gzip cases are rejected before publication.
+No real key signing or S3 publication was exercised; fixture
+GPG verification was intentionally mocked, and R2 storage
+remained untouched.
+
+**Remaining protected release prerequisites:** actual separately
+provisioned bucket/Worker route/secrets, valid owner-supplied
+APT subkey and passphrase, protected environment and approved
+main tag, public GET body SHA256 readback and exact Actions
+archive cleanup. The code-level release package validation
+PASS does NOT assert deployed service availability or grant
+authorization for tag/main, release, credential or Cloudflare
+production mutations. No separate native acceptance or
+human-language reviewers need to be solicited for this
+offline source-only change. This documentation-only
+receipt requires no duplicate CI trigger.
