@@ -32,7 +32,7 @@ test("version or bundle metadata drift cannot pass the package gate", () => {
 test("generated Cargo.lock is valid with Linux LF and Windows CRLF", () => {
   const lock = source("Cargo.lock");
   assert.doesNotThrow(() => validateCargoLock(lock));
-  assert.match(lock, /^\[\[package\]\]\nname = "cfvigil"\nversion = "/m);
+  assert.match(lock, /^\[\[package\]\]\r?\nname = "cfvigil"\r?\nversion = "/m);
   const crlf = lock.replace(/\r?\n/g, "\r\n");
   assert.doesNotThrow(() => validateCargoLock(crlf));
   assert.throws(() => validateCargoLock(lock.replace("version = 4", "version = 3")), /Invalid Cargo.lock/);
