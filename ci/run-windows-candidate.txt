@@ -63,3 +63,8 @@ candidate shares ONE dev commit with Linux (only both marker paths differ).
 Recheck changed-only Settings OK/Cancel, native tray locale, cache, pointer
 scrollbar, About/icon, unsigned Chrome warning. SHA256 verification required.
 No main, release tag, R2, production publish, or owner runners.
+
+2026-10-27: canonical CFVigil identity retest same commit as Linux.
+Source crate/binary cfvigil, productName CFVigil and identifier unchanged.
+Verify NSIS PE and checksums; owner Windows in-place upgrade/startup check
+remains pending. Unsigned candidate 1 day; never publish or use owner runners.

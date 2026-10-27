@@ -96,3 +96,9 @@ candidate shares ONE dev commit with Windows (only both marker paths differ).
 Recheck cached grey roster, bounded Cloudflare reads, KSNI updated labels,
 pointer scrollbar, branded About/History and KDE packaged icons.
 Unsigned, unreleased 1-day artifacts; no main, release tag, R2, or owner runners.
+
+2026-10-27: canonical CFVigil identity retest against Mode B stable #40484906417.
+Source crate/binary cfvigil, Debian remains cf-vigil. Package must prove
+launcher Name=CFVigil, Exec=cfvigil and Icon=cfvigil with installed PNG.
+Owner KDE physical upgrade/autostart/icon smoke not included. Artifact 1 day;
+no main/tag/R2/release or user self-hosted runners.
