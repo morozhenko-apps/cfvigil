@@ -299,3 +299,8 @@ KDE icon and DEB launcher Name/Exec/Icon must all be cfvigil/CFVigil.
 Bundle identifier com.morozhenko.cfvigil and keyring service unchanged.
 Run 20-locale, JS identity/mutation/contract, Python and locked Rust tests.
 Do NOT publish/tag/release or use owner's self-hosted machines.
+
+2026-10-27: bounded CI identity rerun. #40484639241: 156/157 JS
+passed, one obsolete tests/ci-trigger.test.mjs regex still demanded
+cfvigil-desktop. Updated contract now verifies canonical -p cfvigil.
+Need fresh Node+Python+locked Rust check/test. No release or owner runners.
