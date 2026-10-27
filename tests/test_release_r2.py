@@ -114,7 +114,7 @@ class PublicationFixture(unittest.TestCase):
         index = self.apt / "dists/stable/main/binary-amd64"
         release.verify_signed_apt_indexes(inrelease, index)
         initial = inrelease.read_bytes()
-        inrelease.write_bytes(initial.replace(b"\\n", b"\\r\\n"))
+        inrelease.write_bytes(initial.replace(b"\n", b"\r\n"))
         release.verify_signed_apt_indexes(inrelease, index)
         self.planned()
 
@@ -141,9 +141,9 @@ class PublicationFixture(unittest.TestCase):
                 f" {digest} {int(size) + 1} {path}"),
             "wrong-digest": original.replace(checksum_line,
                 f" {'f' if digest[0] != 'f' else 'e'}{digest[1:]} {size} {path}"),
-            "missing-index": original.replace(checksum_line + "\\n", ""),
-            "duplicate-index": original.replace(checksum_line + "\\n",
-                checksum_line + "\\n" + checksum_line + "\\n"),
+            "missing-index": original.replace(checksum_line + "\n", ""),
+            "duplicate-index": original.replace(checksum_line + "\n",
+                checksum_line + "\n" + checksum_line + "\n"),
             "missing-sha256": original.replace("SHA256:", "SHA999:"),
             "malformed-hash": original.replace(checksum_line,
                 f" corrupt {size} {path}"),
