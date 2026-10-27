@@ -319,3 +319,9 @@ Cloudflare, production R2, main or candidate marker.
 language tests for 20 locales (100 actions, titles, invalid preference
 and persisted language) + full Node/i18n/Python/icon/Rust suite.
 Windows-only anchor code is not runnable on Ubuntu. No production R2.
+
+2026-10-27: Mode B final validation after Ubuntu #40513445192 failed
+155/156 on JSON language [] accepted by generic serde derive. Require
+object-only language preference, preserve valid {} default and actual
+storage quarantine/rewrite. Run full Node, Python, 20-locale, assets,
+cargo check --locked and Rust tests. Same SHA as Windows build.

@@ -78,3 +78,9 @@ as Ubuntu: 6 new Windows Rust tests for anchored card height 0/1/92/510,
 physical overflow, malformed/restarted saved position and independent
 native card state, plus 7 new native language Rust tests and existing
 Node and packaging checks. Unsigned candidate only; no release or R2.
+
+2026-10-27: Mode B Windows validation after #40513445237 failed
+161/163 on language [] and absent Windows anchor {}. Object-only
+parser must preserve valid anchor:null and valid signed positions.
+Run Windows Rust including quarantine restore tests, then unsigned NSIS
+candidate on SAME SHA as Ubuntu. No production release or R2.
