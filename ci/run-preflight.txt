@@ -373,3 +373,12 @@ preflight and earlier provider, localization, offline release tests.
 Run the complete stable GitHub-hosted Ubuntu Node/Python/Rust suite
 only, once after production fix. No user machine, signing key,
 main/tag, Cloudflare live access or R2 publication.
+
+2026-10-27: final release Mode A package-catalog consistency verification.
+Source baseline 2202c772ab08dadb96a796c774b3516dcaab4264. Check exact one CFVigil amd64
+DEB Packages stanza Version/Filename/Size/SHA256, reject forged
+pool substring and duplicate fields; verify signed Packages.gz
+actually inflates to signed Packages with bounded reads, including
+truncated, malformed and concatenated gzip. Run one complete
+GitHub-hosted stable JS/Python/Rust suite, no native, live Cloudflare,
+release publication, signed keys, main or tag.
