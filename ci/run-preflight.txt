@@ -389,3 +389,9 @@ Flat APT Packages/Packages.gz/InRelease alongside Linux versioned
 DEB, one R2 .deb object, no download Worker, last readback latest.json
 website pointer, exact public receipt and Actions cleanup fail-close,
 WAF/R2 production untouched. Validate full Node/Python/Rust stable suite.
+
+2026-10-27: final source-only real flat-APT security integration.
+Docs/source baseline 987a9a55e2d37d9086a5dce8ae11d6f709c64972. New real dpkg-deb + disposable GPG signing
++ isolated apt-get update / apt-cache policy + corrupted InRelease denial.
+Run complete Node, Python release + icon, Rust locked gates exactly once.
+No production R2, GitHub main/tag, live Keys, CF Worker or WAF change.
