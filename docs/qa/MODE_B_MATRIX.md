@@ -1199,3 +1199,29 @@ not pre-implementation. The user has completed native platform
 acceptance and does not request repeated machine smoke for every
 new isolated source test. Unknown literal provider text stays opaque,
 and protected release remains separately gated.
+
+### Code-level Stage 11 receipt after owner-ordered provider and locale package
+
+[Preflight #40562000345](https://github.com/morozhenko-apps/cfvigil/actions/runs/40562000345)
+at `7738dbcd4c4cc6850338b26d8c37c7e970889b92`:
+Node 163/163, Python release 13/13, Python icon 3/3,
+Rust 164/164 (0 ignored); JS syntax, 20-locale source checks,
+icon parity and locked Rust check all PASS. The four new Rust and
+six new JS tests are individually included in the passing final
+source check, after implementation rather than before.
+
+The current user-approved release testing profile accepts
+deterministic Cloudflare failure simulation (no induced production
+errors), documented per-locale technical/context acceptance without
+native-speaker recruitment, and earlier owner-confirmed Linux/Windows
+native acceptance without repeated installed-app checks.
+
+Mutation-sensitive negative branches newly exercised include the
+six Pages HTTP status variants, fail/repoll recovery, alert identity
+dedup during offline transitions and WAF outage, all 20 permission
+scope strings, CLDR forms and RTL attributes. The legacy broad
+cross-module N-category table above retains `?` wherever exhaustive
+per-branch traceability was not established; do not silently promote
+them to claimed 100% branch coverage. No mutation engine run or
+separate registered FLAKY suite occurred. The entire test-only batch
+has no runtime application behavior change.
