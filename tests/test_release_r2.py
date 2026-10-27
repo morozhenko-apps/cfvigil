@@ -52,18 +52,18 @@ class PublicationFixture(unittest.TestCase):
                     "name": name, "sha256": checksum, "size": len(content)
                 })
             (directory / "candidate.json").write_text(json.dumps(manifest))
-        pool = self.apt / "pool/main/c/cf-vigil/cfvigil_0.1.0_amd64.deb"
-        pool.parent.mkdir(parents=True)
+        pool = self.apt / "cfvigil_0.1.0_amd64.deb"
+        self.apt.mkdir(parents=True)
         pool.write_bytes((self.bundle / "linux" / pool.name).read_bytes())
         (self.apt / "cfvigil-archive-keyring.gpg").write_bytes(b"public test key")
-        index = self.apt / "dists/stable/main/binary-amd64"
+        index = self.apt
         index.mkdir(parents=True)
         package_bytes = pool.read_bytes()
         control = (
             "Package: cf-vigil\n"
             f"Version: {VERSION}\n"
             "Architecture: amd64\n"
-            f"Filename: pool/main/c/cf-vigil/{pool.name}\n"
+            f"Filename: ./{pool.name}\n"
             f"Size: {len(package_bytes)}\n"
             f"SHA256: {sha(package_bytes)}\n"
             "Description: Minimal test package\n"
@@ -76,17 +76,14 @@ class PublicationFixture(unittest.TestCase):
         }
         for name, data in files.items():
             (index / name).write_bytes(data)
-            hashed = index / "by-hash/SHA256" / sha(data)
-            hashed.parent.mkdir(parents=True, exist_ok=True)
-            hashed.write_bytes(data)
         self.seal_offline_indexes()
 
     def seal_offline_indexes(self):
-        """Re-sign test-only metadata using fake GPG, plus coherent by-hash.
+        """Re-sign test-only flat metadata using fake GPG.
 
         This never exercises a private key, network or real signature.
         """
-        index = self.apt / "dists/stable/main/binary-amd64"
+        index = self.apt
         signed_lines = [
             "-----BEGIN PGP SIGNED MESSAGE-----",
             "Hash: SHA256",
@@ -96,10 +93,7 @@ class PublicationFixture(unittest.TestCase):
         ]
         for item in (index / "Packages", index / "Packages.gz"):
             data = item.read_bytes()
-            hashed = index / "by-hash/SHA256" / sha(data)
-            hashed.parent.mkdir(parents=True, exist_ok=True)
-            hashed.write_bytes(data)
-            relative = "main/binary-amd64/" + item.name
+            relative = item.name
             signed_lines.append(f" {sha(data)} {len(data)} {relative}")
         signed_lines.extend([
             "-----BEGIN PGP SIGNATURE-----",
@@ -107,13 +101,13 @@ class PublicationFixture(unittest.TestCase):
             "-----END PGP SIGNATURE-----",
             "",
         ])
-        (self.apt / "dists/stable/InRelease").write_text(
+        (self.apt / "InRelease").write_text(
             "\n".join(signed_lines), encoding="utf8"
         )
 
     def rewrite_package_indexes(self, plain, compressed=None):
         """Intentionally construct internally wrong but signed test catalogs."""
-        index = self.apt / "dists/stable/main/binary-amd64"
+        index = self.apt
         (index / "Packages").write_bytes(plain)
         (index / "Packages.gz").write_bytes(
             gzip.compress(plain, mtime=0) if compressed is None else compressed
@@ -129,10 +123,12 @@ class PublicationFixture(unittest.TestCase):
         self.assertEqual(set(platforms), {
             "cfvigil-release-linux", "cfvigil-release-windows"
         })
-        self.assertTrue(any(k.startswith("apt/pool/main/c/cf-vigil/") for k in immutable))
-        self.assertTrue(any("by-hash/SHA256/" in k for k in immutable))
-        self.assertIn("apt/dists/stable/InRelease", mutable)
-        self.assertNotIn("apt/dists/stable/InRelease", immutable)
+        self.assertIn("linux/cfvigil_0.1.0_amd64.deb", immutable)
+        self.assertIn("linux/cfvigil-archive-keyring.gpg", immutable)
+        self.assertEqual(set(mutable), {"linux/Packages", "linux/Packages.gz",
+                                        "linux/InRelease"})
+        self.assertEqual(sum(k.endswith(".deb") for k in immutable), 1)
+        self.assertFalse(any(k.startswith(("apt/", "releases/")) for k in immutable))
         self.assertEqual(len(platforms["cfvigil-release-linux"]), 4)
         self.assertEqual(len(platforms["cfvigil-release-windows"]), 2)
         for key in [*immutable, *mutable]:
@@ -141,30 +137,28 @@ class PublicationFixture(unittest.TestCase):
 
 
     def test_signed_apt_indexes_match_actual_sizes_and_digest_with_lf_and_crlf(self):
-        inrelease = self.apt / "dists/stable/InRelease"
-        index = self.apt / "dists/stable/main/binary-amd64"
+        inrelease = self.apt / "InRelease"
+        index = self.apt
         release.verify_signed_apt_indexes(inrelease, index)
         initial = inrelease.read_bytes()
         inrelease.write_bytes(initial.replace(b"\n", b"\r\n"))
         release.verify_signed_apt_indexes(inrelease, index)
         self.planned()
 
-    def test_old_signed_apt_index_must_reject_new_indexes_even_if_by_hash_matches(self):
-        index = self.apt / "dists/stable/main/binary-amd64"
+    def test_old_signed_apt_index_must_reject_new_indexes(self):
+        index = self.apt
         packages = index / "Packages"
         new_content = packages.read_bytes() + b"Version: unexpected\n"
         packages.write_bytes(new_content)
-        new_hash = index / "by-hash/SHA256" / sha(new_content)
-        new_hash.write_bytes(new_content)
         with self.assertRaisesRegex(ValueError, "Signed APT index"):
             self.planned()
 
     def test_signed_apt_index_rejects_wrong_size_digest_missing_and_duplicate(self):
-        signed = self.apt / "dists/stable/InRelease"
+        signed = self.apt / "InRelease"
         original = signed.read_text(encoding="utf8")
         lines = original.splitlines()
         checksum_line = next(
-            row for row in lines if row.endswith("main/binary-amd64/Packages.gz")
+            row for row in lines if row.endswith("Packages.gz")
         )
         digest, size, path = checksum_line.split()
         scenarios = {
@@ -192,8 +186,8 @@ class PublicationFixture(unittest.TestCase):
 
     def test_packages_control_exactly_binds_signed_index_to_approved_deb(self):
         """Realistic package fields and folded Description pass."""
-        index = self.apt / "dists/stable/main/binary-amd64"
-        pool = self.apt / "pool/main/c/cf-vigil/cfvigil_0.1.0_amd64.deb"
+        index = self.apt
+        pool = self.apt / "cfvigil_0.1.0_amd64.deb"
         control = (index / "Packages").read_bytes()
         self.assertIn(b" fixture continuation line\n", control)
         release.verify_apt_package_catalog(index / "Packages",
@@ -201,10 +195,10 @@ class PublicationFixture(unittest.TestCase):
         self.planned()
 
     def test_signed_but_wrong_package_control_fields_fail_before_publication(self):
-        index = self.apt / "dists/stable/main/binary-amd64"
+        index = self.apt
         original = (index / "Packages").read_text(encoding="utf8")
-        pool = self.apt / "pool/main/c/cf-vigil/cfvigil_0.1.0_amd64.deb"
-        expected_name = "pool/main/c/cf-vigil/" + pool.name
+        pool = self.apt / "cfvigil_0.1.0_amd64.deb"
+        expected_name = "./" + pool.name
         variants = {
             "foreign package": original.replace("Package: cf-vigil",
                                                   "Package: repoticker"),
@@ -213,7 +207,7 @@ class PublicationFixture(unittest.TestCase):
             "wrong architecture": original.replace("Architecture: amd64",
                                                     "Architecture: arm64"),
             "wrong filename": original.replace(f"Filename: {expected_name}",
-                                                "Filename: pool/main/c/cf-vigil/evil.deb"),
+                                                "Filename: ./evil.deb"),
             "traversal filename": original.replace(f"Filename: {expected_name}",
                                                    "Filename: ../../private.deb"),
             "wrong sha256": original.replace(f"SHA256: {sha(pool.read_bytes())}",
@@ -242,7 +236,7 @@ class PublicationFixture(unittest.TestCase):
                     self.planned()
 
     def test_separately_signed_gzip_must_expand_to_identical_packages(self):
-        index = self.apt / "dists/stable/main/binary-amd64"
+        index = self.apt
         plain = (index / "Packages").read_bytes()
         candidates = {
             "different signed gzip contents": gzip.compress(
@@ -286,10 +280,10 @@ class PublicationFixture(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unsafe release file"):
             self.planned()
 
-    def test_signed_apt_pool_must_match_validated_linux_deb(self):
-        pool = self.apt / "pool/main/c/cf-vigil/cfvigil_0.1.0_amd64.deb"
+    def test_staged_apt_deb_must_match_validated_linux_deb(self):
+        pool = self.apt / "cfvigil_0.1.0_amd64.deb"
         pool.write_bytes(b"tampered pool")
-        with self.assertRaisesRegex(ValueError, "APT pool"):
+        with self.assertRaisesRegex(ValueError, "staged DEB"):
             self.planned()
 
     def test_public_readback_verifies_full_body_and_size(self):
@@ -301,7 +295,7 @@ class PublicationFixture(unittest.TestCase):
             def __exit__(self, *args): pass
             def read(self, n): return self.data.read(n)
         with patch.object(release.time, "sleep"):
-            good = release.public_readback(file, "releases/v0.1.0/linux/" + file.name,
+            good = release.public_readback(file, "linux/" + file.name,
                                            lambda url, timeout: Reply(file.read_bytes()))
             self.assertEqual(good["readback_sha256"], good["sha256"])
             self.assertEqual(good["readback_size"], file.stat().st_size)
@@ -309,6 +303,27 @@ class PublicationFixture(unittest.TestCase):
                 release.public_readback(
                     file, "releases/v0.1.0/linux/" + file.name,
                     lambda url, timeout: Reply(b"corrupted"))
+
+    def test_latest_manifest_points_only_to_immutable_approved_artifacts(self):
+        immutable, mutable, _ = self.planned()
+        manifest = release.latest_manifest(immutable, VERSION, COMMIT)
+        self.assertEqual(manifest["version"], VERSION)
+        self.assertEqual(manifest["tag"], "v" + VERSION)
+        self.assertEqual(manifest["commit"], COMMIT)
+        values = [
+            manifest["files"]["linux"]["deb"],
+            manifest["files"]["linux"]["appimage"],
+            manifest["files"]["windows"]["installer"],
+        ]
+        self.assertEqual(len(values), 3)
+        for item in values:
+            self.assertIn(item["url"].removeprefix(release.BASE), immutable)
+            self.assertEqual(item["sha256"],
+                release.digest(immutable[item["url"].removeprefix(release.BASE)]))
+            self.assertGreater(item["size"], 0)
+            self.assertNotIn("/releases/", item["url"])
+        self.assertEqual(release.BUCKET, "app-dist")
+        self.assertNotIn("latest.json", mutable)
 
     def test_receipt_cannot_be_emitted_with_missing_credentials(self):
         with self.assertRaisesRegex(ValueError, "credentials"):
@@ -357,14 +372,14 @@ class UploadSafetyTests(unittest.TestCase):
         self.file = Path(self.temp.name) / "CFVigil-0.1.0-linux-x64.AppImage"
         self.file.write_bytes(b"isolated validated binary")
         self.client = self.FakeS3()
-        self.key = "releases/v0.1.0/linux/" + self.file.name
+        self.key = "linux/" + self.file.name
         self.object_key = release.PREFIX + self.key
 
     def test_missing_file_is_uploaded_to_isolated_bucket_and_sha_verified(self):
         release.upload(self.client, self.key, self.file, True)
         self.assertEqual(len(self.client.writes),1)
         bucket, key, options = self.client.writes[0]
-        self.assertEqual((bucket,key),("cfvigil-dist",self.object_key))
+        self.assertEqual((bucket,key),("app-dist",self.object_key))
         self.assertEqual(options["Metadata"]["sha256"],release.digest(self.file))
         self.assertIn("immutable",options["CacheControl"])
         self.assertEqual(self.client.objects[self.object_key][0],self.file.read_bytes())
