@@ -1354,3 +1354,22 @@ Cloudflare public readback, actual end-user APT upgrade,
 or a published tagged release. The release security,
 environment, main/tag approval and website CORS gates
 remain distinct.
+
+### Persistent real APT signed-index acceptance (2026-10-27)
+
+The prior temporary real APT exercise was not a retained CI
+regression. New `test_release_apt_integration.py` adds two
+read-only, disposable, real-command verification methods:
+(1) genuine dpkg-generated dummy package, generated GPG
+test key, real flat `apt_repository.assemble` output,
+`apt-get update` and candidate `0.1.0` discovery with
+canonical `./cfvigil_VERSION_amd64.deb` Filename;
+(2) a tampered `InRelease` must fail APT's own
+signature/metadata verification. Isolated directories
+replace all host APT source, lists, status and archives;
+no installation or production credential is involved.
+Hosted `checks.yml` explicitly provides Debian/GPG
+dependencies. No claims about physical app installation,
+public R2, WAF, website CORS or real release signing.
+Final hosted CI acceptance remains pending at this
+documentation checkpoint.
