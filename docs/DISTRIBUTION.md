@@ -898,3 +898,75 @@ require the owner-configured protected environment,
 real signed source release tag, Cloudflare publicly
 reachable `latest.json` and the eventual
 PersonalLanding consumer with safe fallback.
+
+### 2026-10-27: first protected release provisioning preflight (Mode A)
+
+Baseline: dev \`c4909c249d7595b206619c99ef03adab2642226b\`,
+main \`08328f75cb54d629b2ac33fb98a42027c4ab2a3c\`,
+the complete source Preflight #40589861497 PASS (353/353).
+Previously the owner's authenticated CLI returned GitHub REST 404
+for \`cfvigil-release\` environment and consequently its variables
+and secrets; 404 does not distinguish absent from inaccessible
+with certainty. The CLI lacked a globally installed Wrangler.
+No release was made. The protected tag workflow exists on dev only.
+
+**Selected architecture:** preserve the already-approved release
+workflow, flat signed APT, existing shared \`app-dist\` bucket,
+\`dist/CFVigil/\` prefix, direct R2 custom-domain downloads,
+Linux/Windows scope and final \`latest.json\` readback. Do not
+introduce a new bucket, Worker, duplicate binary, generic GitHub
+Actions branch bypass or unprotected release dispatch.
+
+**Root of current operational gap:** hosted CI cannot inspect
+the owner's GitHub environment secrets, Cloudflare bucket
+ownership and external key material, and our GitHub connector
+cannot create GitHub environments or query their private
+settings. The previous manual multiline audit was awkward to
+paste and did not clearly distinguish unknown from absent.
+
+**Implement source-controlled local one-command setup:**
+1. A Python stdlib-only \`scripts/release_readiness.py\`
+   that invokes the already authenticated \`gh api\`, **read-only by
+   default**. Check exact three variable NAMES and four secret
+   NAMES (never fetch, print or persist values), protection
+   requiring owner review and deployment tag policy \`v*\`;
+   show dev/main heads without modifying Git references.
+   A 404 or authorization denial must be reported as
+   "missing OR inaccessible", not as proven absent.
+2. An **explicit owner-invoked**
+   \`python3 scripts/release_readiness.py --init-environment\`
+   provisioning mode may create ONLY the missing
+   \`cfvigil-release\` GitHub Environment (not other
+   repositories) with the current authenticated owner as
+   required reviewer, \`prevent_self_review=false\` for
+   a solo maintainer and the sole \`v*\` tag deployment
+   restriction. Refuse to overwrite any existing environment;
+   refuse without confirmed repository admin rights;
+   never add credentials, create tags, promote main,
+   enable deployments, modify Cloudflare or implicitly
+   approve a version. Verify the result by a fresh name-only
+   readback. GitHub's API may deny required reviewers on
+   private repositories depending on plan; report failure
+   rather than silently weaken protection.
+3. Add deterministic offline unit tests for a ready environment,
+   absent/inaccessible environment, missing or misconfigured
+   reviewer/tag gate, missing variable/secret names, and
+   non-destructive init refusal. Mock subprocess/API, never
+   exercise a live token in hosted CI.
+4. Record concise owner instructions for populating the
+   three approved variables and four secrets separately
+   through GitHub's UI or CLI (values are user-controlled),
+   R2 bucket and custom-domain public GET confirmation,
+   CORS for eventual website browser use, and real
+   dedicated GPG signing subkey provenance. Preserve
+   all existing Picturix objects.
+5. One final complete source-only Preflight (Node, Python,
+   Rust) on exact code SHA; record observed result.
+   Do not run the protected publish job or tag/main change
+   without the owner separately authorizing that release.
+
+**Rollback:** revert just this helper and its synthetic tests;
+no live environment or R2 state is mutated by writing the code.
+\`--init-environment\` is an explicit external action to be
+run on the owner's machine and is *not* executed by this
+source-only implementation.
