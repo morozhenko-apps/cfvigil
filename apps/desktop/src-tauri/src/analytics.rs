@@ -56,16 +56,24 @@ fn read_aggregate(account: &Value, alias: &str) -> Result<Metrics, String> {
     Ok(Metrics { requests, errors })
 }
 
+// Cloudflare reports counts as JSON numbers. In IEEE-754, 0.1 * 3 can
+// exceed 0.3 by one ULP. Accept equality within representational noise,
+// not a materially lower rate. Valid aggregates represent ratios in [0,1].
+fn meets_rate(actual: f64, threshold: f64) -> bool {
+    actual.is_finite() && threshold.is_finite() &&
+        (actual >= threshold || (threshold - actual) <= 4.0 * f64::EPSILON)
+}
+
 pub fn is_spike(recent: Metrics, baseline: Metrics) -> bool {
     if recent.requests < 100.0 || recent.errors < 10.0 { return false; }
     let ratio = recent.errors / recent.requests;
     if ratio < 0.10 { return false; }
     if baseline.requests < 100.0 {
         // Unreliable baseline: demand stronger absolute evidence.
-        return recent.errors >= 20.0 && ratio >= 0.20;
+        return recent.errors >= 20.0 && meets_rate(ratio, 0.20);
     }
     let old_ratio = baseline.errors / baseline.requests;
-    ratio >= old_ratio * 3.0 && ratio >= old_ratio + 0.05
+    meets_rate(ratio, old_ratio * 3.0) && meets_rate(ratio, old_ratio + 0.05)
 }
 
 fn create_query(
@@ -312,6 +320,12 @@ mod tests {
                 Metrics{requests:100.0,errors:10.0},true),
             (Metrics{requests:100.0,errors:29.0},
                 Metrics{requests:100.0,errors:10.0},false),
+            (Metrics{requests:100.0,errors:29.999_99},
+                Metrics{requests:100.0,errors:10.0},false),
+            (Metrics{requests:200.0,errors:14.0},
+                Metrics{requests:1000.0,errors:20.0},true),
+            (Metrics{requests:200.0,errors:13.999_99},
+                Metrics{requests:1000.0,errors:20.0},false),
             (Metrics{requests:100.0,errors:10.0},
                 Metrics{requests:100.0,errors:0.0},true),
             (Metrics{requests:100.0,errors:10.0},
