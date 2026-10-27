@@ -1243,3 +1243,26 @@ N11=N/A, N12=0. This is not an automated mutation score,
 not exhaustive cross-module Mode B completion and not a
 production release sign-off. No known flaky suite is registered.
 Status: authored pending one full stable CI on final exact SHA.
+
+### Stage 11/12 — signed APT publisher gate evidence, 2026-10-27
+
+Verified final-source SHA:
+`7d9e24c4996b378a6d68d5c41b17d5b01dc3cf5b`.
+GitHub-hosted [Preflight #40571683067](https://github.com/morozhenko-apps/cfvigil/actions/runs/40571683067)
+SUCCEEDED: Node 167; offline Python release 16; icon Python 3;
+Rust 164, all PASS; locked Rust check, syntax, i18n,
+icon parity each PASS. **350 passing tests; 0 failed**.
+The new APT signed-index tests were included in that
+exact SHA's release test suite, not inferred from earlier
+runs. The tests do NOT exercise a real signing private key:
+gpgv is mocked only in the publication fixture while actual
+package-index file contents and sizes are read and compared.
+
+Scoped result: signed APT index-versus-published-bytes gap
+CLOSED for deterministic offline contract checks. Overall
+historical Mode B matrix still has other unverified applicable
+cells, no complete mutation-run score, and no assertion of
+100% branch coverage. Owner already confirmed native
+acceptance; do not repeatedly request it. All twenty
+locale contract checks remain green, without requiring
+external native-speaker recruitment.
