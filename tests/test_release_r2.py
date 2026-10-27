@@ -1,4 +1,5 @@
 """Offline R2 publisher integration tests. Never connect to Cloudflare."""
+import gzip
 import hashlib
 import io
 import json
@@ -57,9 +58,21 @@ class PublicationFixture(unittest.TestCase):
         (self.apt / "cfvigil-archive-keyring.gpg").write_bytes(b"public test key")
         index = self.apt / "dists/stable/main/binary-amd64"
         index.mkdir(parents=True)
+        package_bytes = pool.read_bytes()
+        control = (
+            "Package: cf-vigil\\n"
+            f"Version: {VERSION}\\n"
+            "Architecture: amd64\\n"
+            f"Filename: pool/main/c/cf-vigil/{pool.name}\\n"
+            f"Size: {len(package_bytes)}\\n"
+            f"SHA256: {sha(package_bytes)}\\n"
+            "Description: Minimal test package\\n"
+            " fixture continuation line\\n"
+            "\\n"
+        ).replace("\\\\n", "\\n").encode("utf8")
         files = {
-            "Packages": b"Filename: pool/main/c/cf-vigil/cfvigil_0.1.0_amd64.deb\n",
-            "Packages.gz": b"fake gzip for path validation",
+            "Packages": control,
+            "Packages.gz": gzip.compress(control, mtime=0),
         }
         for name, data in files.items():
             (index / name).write_bytes(data)
