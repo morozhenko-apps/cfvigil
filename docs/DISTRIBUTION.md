@@ -54,7 +54,17 @@ readback MUST NOT advance or emit a receipt.
 The `latest.json` contains the approved version/tag/commit and
 immutable platform URLs. The website resolves those URLs at
 runtime, so no duplicate `*-latest-*` binaries or new Cloudflare
-Worker are necessary. `latest.json` itself is a public pointer,
+Worker are necessary.
+Because the website origin (`morozhenko.com`) differs from
+`download.morozhenko.com`, browser-side retrieval of `latest.json`
+requires an explicit read-only R2 CORS rule for the owning website
+origin (GET/HEAD only), or a same-origin server-side proxy.
+Do not expose a write endpoint or bypass browser security by wildcard
+credentials. The manifest is served as `application/json` and
+`Cache-Control: no-store`; validate effective public headers before
+switching PersonalLanding to the live manifest. This source-only
+refactor does not silently mutate CORS or website code.
+ `latest.json` itself is a public pointer,
 not an independent signed software-update authority. The app never
 installs files on the basis of this metadata without other trust
 checks. Candidate CI never advances this pointer.
