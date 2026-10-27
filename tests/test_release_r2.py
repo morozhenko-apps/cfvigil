@@ -189,6 +189,77 @@ class PublicationFixture(unittest.TestCase):
         signed.write_text(original, encoding="utf8")
         self.planned()
 
+
+    def test_packages_control_exactly_binds_signed_index_to_approved_deb(self):
+        """Realistic package fields and folded Description pass."""
+        index = self.apt / "dists/stable/main/binary-amd64"
+        pool = self.apt / "pool/main/c/cf-vigil/cfvigil_0.1.0_amd64.deb"
+        control = (index / "Packages").read_bytes()
+        self.assertIn(b" fixture continuation line\n", control)
+        release.verify_apt_package_catalog(index / "Packages",
+                                           index / "Packages.gz", pool, VERSION)
+        self.planned()
+
+    def test_signed_but_wrong_package_control_fields_fail_before_publication(self):
+        index = self.apt / "dists/stable/main/binary-amd64"
+        original = (index / "Packages").read_text(encoding="utf8")
+        pool = self.apt / "pool/main/c/cf-vigil/cfvigil_0.1.0_amd64.deb"
+        expected_name = "pool/main/c/cf-vigil/" + pool.name
+        variants = {
+            "foreign package": original.replace("Package: cf-vigil",
+                                                  "Package: repoticker"),
+            "wrong version": original.replace(f"Version: {VERSION}",
+                                               "Version: 0.1.1"),
+            "wrong architecture": original.replace("Architecture: amd64",
+                                                    "Architecture: arm64"),
+            "wrong filename": original.replace(f"Filename: {expected_name}",
+                                                "Filename: pool/main/c/cf-vigil/evil.deb"),
+            "traversal filename": original.replace(f"Filename: {expected_name}",
+                                                   "Filename: ../../private.deb"),
+            "wrong sha256": original.replace(f"SHA256: {sha(pool.read_bytes())}",
+                                              "SHA256: " + "f" * 64),
+            "wrong size": original.replace(f"Size: {pool.stat().st_size}",
+                                            f"Size: {pool.stat().st_size+1}"),
+            "duplicate critical SHA256": original.replace(
+                "SHA256:", "SHA256: " + sha(pool.read_bytes()) + "\nSHA256:", 1),
+            "missing filename": original.replace(
+                f"Filename: {expected_name}\n", ""),
+            "extra second package stanza": original + (
+                "Package: cf-vigil\nVersion: 0.1.1\n"
+                "Architecture: amd64\nFilename: " + expected_name + "\n\n"
+            ),
+            "folder substring outside filename": original.replace(
+                f"Filename: {expected_name}",
+                f"X-Directory: {expected_name}\nFilename: external/replaced.deb"),
+            "continued filename": original.replace(
+                f"Filename: {expected_name}",
+                f"Filename: {expected_name}\n unexpected-extension"),
+        }
+        for label, value in variants.items():
+            with self.subTest(case=label):
+                self.rewrite_package_indexes(value.encode("utf8"))
+                with self.assertRaisesRegex(ValueError, "APT package catalog"):
+                    self.planned()
+
+    def test_separately_signed_gzip_must_expand_to_identical_packages(self):
+        index = self.apt / "dists/stable/main/binary-amd64"
+        plain = (index / "Packages").read_bytes()
+        candidates = {
+            "different signed gzip contents": gzip.compress(
+                plain.replace(b"Package: cf-vigil", b"Package: foreign!"),
+                mtime=0),
+            "truncated signed gzip": gzip.compress(plain, mtime=0)[:-6],
+            "invalid signed gzip": b"not-gzip",
+            "two concatenated signed gzip members": (
+                gzip.compress(plain, mtime=0) + gzip.compress(plain, mtime=0)
+            ),
+        }
+        for label, payload in candidates.items():
+            with self.subTest(case=label):
+                self.rewrite_package_indexes(plain, payload)
+                with self.assertRaisesRegex(ValueError, "APT package catalog"):
+                    self.planned()
+
     def test_corrupt_manifest_and_wrong_git_provenance_rejected(self):
         original = self.bundle / "windows" / "candidate.json"
         manifest = json.loads(original.read_text())
