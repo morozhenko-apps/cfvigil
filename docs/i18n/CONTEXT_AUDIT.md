@@ -423,3 +423,40 @@ not perform uptime/health probes, so the accessible grouping label can
 mislead assistive-technology users. Change English to `Resource status`
 and pin the displayed meaning with a regression assertion. Do not
 change native/internal `healthy` status IDs or UI counter semantics.
+
+## 2026-10-27 — deterministic 20-locale release audit (owner-approved scope)
+
+The owner explicitly requests completion without sourcing twenty native
+speakers. Engineering acceptance therefore consists of a reproducible
+language-contract and context review across all existing UI locales,
+including domain-specific status meaning, immutable Cloudflare permission
+identifiers, account ID validation guidance, Arabic bidirectional isolates,
+CLDR grammatical plural categories, date/time representations, untrusted
+provider payloads, and the four localizable WebView windows. This does
+**not** claim native-speaker certification. Any observed idiomatic
+uncertainty will be stated, not made a mandatory external-review blocker.
+
+Plan before test implementation:
+
+1. Read the complete twenty dictionaries and current production
+   localization functions, native Rust shell labels, existing tests,
+   dictionary validator and the previous high-risk semantics corrections.
+2. Add deterministic table-driven runtime tests for all locale codes:
+   domain-status golden labels (successful is NOT uptime), six exact
+   Cloudflare scopes, safe Error/Rate-Limit/Retry localization,
+   locale-specific CLDR categories, Unicode preservation, explicit
+   pt-PT/zh-Hant behavior, Arabic scoped-LTR and document dir, historic
+   event idempotence and safe untrusted text. Never modify persisted
+   event bytes, status identifiers, permissions or Cloudflare API.
+3. Verify the implemented tests once with the full Mode B stable
+   source check AFTER all test additions, along with release offline
+   contracts. Record exact results and remaining limitations.
+4. When green, record **source/runtime-contract ACCEPTED** across
+   twenty locales; no native speakers required. Any actual native
+   screenshot/font truncation defect still requires its own evidence,
+   but should not reopen already owner-accepted platform smoke.
+
+Rollback: revert only scoped new tests and this separate documentation
+milestone; product logic and dictionaries remain intact unless an
+actual failing assertion confirms a defect. No network, keyring,
+new fonts or binary-release operations.
