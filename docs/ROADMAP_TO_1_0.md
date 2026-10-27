@@ -56,12 +56,18 @@ not claims that a feature has passed acceptance.
 
 ### 0.6 — Distribution and developer documentation
 - Follow RepoTicker's Apache-2.0 and NOTICE terms.
-- Linux amd64 DEB and AppImage, signed APT publication, Windows x64
-  installer, dedicated CFVigil R2 bucket `cfvigil-dist` and scoped credentials,
-  controlled Cloudflare R2 path/key separation, deterministic
-  versioning and checksums. Tags and optional metadata-only GitHub Releases
-  reference R2-hosted downloads; GitHub Releases MUST NOT carry installers,
-  checksums, APT repository files or binary attachments.
+- Linux amd64 DEB and AppImage, signed **flat** APT publication, and Windows
+  x64 installer. The owner-approved release storage is existing R2 bucket
+  `app-dist`, with exclusively the `dist/CFVigil/` product prefix and
+  platform directories `linux/` and `windows/`. The same versioned Linux
+  DEB serves both direct download and APT. No CFVigil download Worker,
+  duplicate pool DEB or permanent latest-binary aliases are needed:
+  `latest.json` points the website to the immutable approved artifacts.
+  Signed APT indexes remain next to the Linux DEB. Deterministic versioning,
+  public checksums and exact readback remain mandatory. Tags and
+  metadata-only GitHub Releases reference R2-hosted downloads; GitHub
+  Releases MUST NOT carry binary attachments, package checksums or signed
+  APT repository files.
 - GitHub Actions binary artifacts may be used only as temporary handoffs.
   Following successful R2 publication and *public byte-for-byte SHA-256
   readback*, delete the matching GitHub artifacts with Actions:write,
@@ -69,10 +75,24 @@ not claims that a feature has passed acceptance.
   If upload/readback fails, do not delete the only validated copies.
   Candidate artifacts use the minimum one-day retention, not permanent
   GitHub storage. Never reuse RepoTicker's R2 key or signing credentials.
-- Bug-report-only Issue Form, private vulnerability link, no empty issues.
-  No third-party PR/feature contribution intake; independent forks allowed.
+- Two GitHub Issue Forms: reproducible bug reports and practical
+  improvement suggestions, with private vulnerability reporting and blank
+  Issues disabled. Feature requests are feedback, not guaranteed milestones.
+  No third-party upstream PRs, patches or outside maintainers; independent
+  Apache-2.0 forks remain allowed.
 - Physical installer/upgrade/removal scenarios can be explored here,
   but full release acceptance is after localization.
+
+### Future macOS distribution (outside current release scope)
+
+The flat storage model supports adding `dist/CFVigil/macos/` without
+changing the Linux APT structure, existing R2 bucket or other platform
+objects. When there is an actual macOS app, extend the publication
+allowlist, receipt, `latest.json`, site links and tests; add a macOS
+builder plus Apple signing, notarization and real installation checks.
+Do not publish empty macOS objects, fabricate macOS download URLs or
+use an Apple build as a condition for releasing Linux/Windows.
+The first release scope remains Linux and Windows only.
 
 ### 0.7 — Feature freeze and pre-localization readiness
 
