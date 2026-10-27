@@ -579,3 +579,86 @@ async fn given_existing_query_in_pages_path_when_appending_page_then_use_ampersa
         "/pages?filter=active","/pages?filter=active&page=2"
     ]);
 }
+
+#[tokio::test]
+async fn given_pages_catalog_http_error_matrix_when_workers_are_available_then_scope_and_readiness_are_exact() {
+    let account = "a".repeat(32);
+    for status in [400u16, 401, 403, 404, 500, 503] {
+        let code = if status == 400 { 8000024 } else { 10000 };
+        let server = Loopback::start(move |path| {
+            if path.ends_with("/workers/scripts") {
+                okay(json!([]))
+            } else if path.ends_with("/pages/projects") {
+                denied(status, code)
+            } else {
+                panic!("a failed Pages catalog must not make detail requests: {path}")
+            }
+        });
+        let budget = ApiBudget::new();
+        let result = server.client().discover(&account, "test-only-token", &budget)
+            .await.unwrap();
+        assert!(!result.complete, "HTTP {status} cannot prove full discovery");
+        assert!(result.workers_complete, "unaffected Workers catalog remains verified");
+        assert!(!result.pages_complete, "HTTP {status} Pages catalog is unverified");
+        assert!(result.resources.is_empty(), "no invented healthy deployment");
+        assert_eq!(result.warnings.len(), 1, "HTTP {status}");
+        assert!(result.warnings[0].contains(&format!("HTTP {status}")), "HTTP {status}");
+        assert!(result.warnings[0].contains(&format!("code {code}")), "HTTP {status}");
+        assert_eq!(result.warnings[0].contains("check Cloudflare Pages Read"),
+            status == 403, "only an authorization denial suggests an explicit scope");
+        assert!(!result.warnings[0].contains("never repeat private account or token"));
+        assert!(!result.warnings[0].contains("test-only-token"));
+        assert_eq!(server.paths().len(), 2, "HTTP {status} must not cause retries");
+        assert_eq!(budget.retry_after_seconds(), 0, "only 429 sets HTTP backoff");
+    }
+}
+
+#[tokio::test]
+async fn given_failed_pages_discovery_then_recovered_provider_when_repolled_then_success_is_fresh_only() {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    let catalog_reads = Arc::new(AtomicUsize::new(0));
+    let seen = Arc::clone(&catalog_reads);
+    let server = Loopback::start(move |path| {
+        if path.ends_with("/workers/scripts") {
+            okay(json!([]))
+        } else if path.ends_with("/pages/projects") {
+            if seen.fetch_add(1, Ordering::SeqCst) == 0 {
+                denied(503, 10001)
+            } else {
+                pages(json!([{"name":"recovered-page"}]), 1)
+            }
+        } else if path.ends_with("/pages/projects/recovered-page/deployments") {
+            okay(json!([{
+                "id":"attempt-2",
+                "created_on":"2026-10-27T12:00:00Z",
+                "latest_stage":{"status":"success","ended_on":"2026-10-27T12:03:00Z"}
+            }]))
+        } else {
+            panic!("unexpected recovery fixture request: {path}")
+        }
+    });
+    let first_budget = ApiBudget::new();
+    let first = server.client().discover(&"a".repeat(32),"test-only-token",&first_budget)
+        .await.unwrap();
+    assert!(!first.complete);
+    assert!(first.resources.is_empty());
+    assert!(first.workers_complete && !first.pages_complete);
+    assert_eq!(first.warnings.len(),1);
+    assert!(first.warnings[0].contains("HTTP 503"));
+    assert_eq!(first_budget.retry_after_seconds(),0);
+
+    let second_budget = ApiBudget::new();
+    let second = server.client().discover(&"a".repeat(32),"test-only-token",&second_budget)
+        .await.unwrap();
+    assert!(second.complete);
+    assert!(second.workers_complete && second.pages_complete);
+    assert!(second.warnings.is_empty());
+    assert_eq!(second.resources.len(),1);
+    assert_eq!(second.resources[0].key,"pages:recovered-page");
+    assert_eq!(second.resources[0].status,"healthy");
+    assert_eq!(second.resources[0].attempt_id,"attempt-2");
+    assert_eq!(second.resources[0].changed_at,"2026-10-27T12:03:00Z");
+    assert_eq!(catalog_reads.load(Ordering::SeqCst),2);
+    assert_eq!(server.paths().len(),5,"two catalogs per poll plus verified detail");
+    assert!(!server.paths().join(" ").contains("test-only-token"));
+}
