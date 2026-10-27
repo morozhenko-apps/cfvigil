@@ -20,7 +20,7 @@ test("Mode B identity: product, executable, package and main bundle agree",()=>{
   assert.equal(tauri.productName,"CFVigil");
   assert.equal(tauri.identifier,"com.morozhenko.cfvigil");
   assert.match(cargo,/^\[package\]\s*\nname = "cfvigil"\s*$/m);
-  assert.match(lock,/^\[\[package\]\]\s*\nname = "cfvigil"\s*\nversion = "0\.1\.0"/m);
+  assert.match(lock,/^\[\[package\]\]\s*\nname = "cfvigil"\s*\nversion = "1\.0\.0"/m);
   assert.doesNotMatch(cargo,/cfvigil-desktop/);
   assert.doesNotMatch(lock,/name = "cfvigil-desktop"/);
 });
