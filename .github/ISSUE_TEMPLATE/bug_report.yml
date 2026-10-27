@@ -1,18 +1,21 @@
 name: Bug report
-description: Report a reproducible CFVigil defect (no feature requests)
+description: Report something that does not work as expected in CFVigil
 title: "[Bug] "
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        CFVigil accepts reproducible bug reports only.
-        Before submitting, remove Cloudflare API tokens, account and zone IDs,
-        private Worker names, private domains, request headers, personal paths,
-        usernames and other sensitive data from logs and screenshots.
-        Report security vulnerabilities privately using the Security link.
-        Feature requests and external code contributions are not accepted upstream;
-        fork the repository if you want a different feature set.
+        This form is for bugs in CFVigil. Explain what you did, what you expected,
+        and what happened instead. A repeatable example helps, but you do not
+        need to debug the code yourself. Ideas for new features belong in the
+        separate Suggest an improvement form.
+
+        Remove Cloudflare API tokens, account and zone IDs, private Worker names,
+        private domains, request headers, personal paths, usernames and sensitive
+        details from any logs or screenshots. Report security vulnerabilities
+        privately using the Security link. The maintainer welcomes reports but
+        does not accept outside code contributions or pull requests.
 
   - type: dropdown
     id: area
@@ -85,6 +88,19 @@ body:
       label: Actual behavior
     validations:
       required: true
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: How often does this happen?
+      options:
+        - Every time
+        - Often
+        - Sometimes
+        - Happened once
+        - Not tested again
+    validations:
+      required: false
 
   - type: textarea
     id: diagnostics
