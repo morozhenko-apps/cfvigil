@@ -1422,3 +1422,19 @@ that Cloudflare permits public GET, that the secret
 values work or that a tagged production release
 has happened. Full hosted source CI acceptance
 must be recorded on the exact changed code SHA.
+
+### Hosted protected environment preflight regression — PASS, 2026-10-27
+
+[Preflight #40591766631](https://github.com/morozhenko-apps/cfvigil/actions/runs/40591766631)
+SUCCESS at \`7f13fa072a59d0ab6a437af8a0c57dc0f78acabe\`.
+Counts from the actual job log: JavaScript 162/162,
+Python release 35/35, Python icon 3/3, Rust 164/164.
+**364/364 tests PASS, 0 failures.**
+The eleven new synthetic API cases verify no secret values,
+exact owner reviewer/tag gate, explicit admin-only setup,
+no mutation of existing settings, incomplete environment
+listing refusal, branch mismatch refusal and zero writes
+from default mode. No authenticated GitHub env, GPG
+signing service, R2 bucket or publicly deployed package
+was exercised by these tests; no production acceptance
+or broad Mode B completion is claimed.
