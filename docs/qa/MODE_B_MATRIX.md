@@ -1225,3 +1225,21 @@ per-branch traceability was not established; do not silently promote
 them to claimed 100% branch coverage. No mutation engine run or
 separate registered FLAKY suite occurred. The entire test-only batch
 has no runtime application behavior change.
+
+### Final release-oriented Mode B signed APT verification slice (authored)
+
+Scope: `r2_release.py::verify_signed_apt_indexes` and
+`apt_files`, tested by real local-file reads and the existing
+mocked-`gpgv` unit fixture in `test_release_r2.py`. New test
+functions cover positive LF/CRLF, old signed index versus new local
+index and a seven-scenario corruption matrix for SHA256, size,
+duplicate/missing and malformed clear-signed record shapes. The
+production function is called only after `gpgv` returns success,
+and no test makes network requests or uses owner keys.
+
+Coverage category intent (nonexclusive): P=3, N1=3, N2=0,
+N3=0, N4=1, N5=1, N6=2, N7=2, N8=1, N9=0, N10=3,
+N11=N/A, N12=0. This is not an automated mutation score,
+not exhaustive cross-module Mode B completion and not a
+production release sign-off. No known flaky suite is registered.
+Status: authored pending one full stable CI on final exact SHA.
