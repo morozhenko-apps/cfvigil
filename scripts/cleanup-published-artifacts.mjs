@@ -20,6 +20,16 @@ export function validateR2Receipt(receipt) {
       receipt.artifacts.some(item => !NAMES.has(item.name))) {
     throw Error("Invalid CFVigil publication receipt or artifact scope");
   }
+  // The mutable latest pointer is the final publication commit point.
+  // Without verified GET body/size/checksum, no temporary source archives
+  // can be deleted, even if platform binaries were already uploaded.
+  const latest=receipt.latest;
+  if (!latest || latest.url !== BASE + "latest.json" ||
+      !isSha(latest.sha256) || latest.readback_sha256 !== latest.sha256 ||
+      !Number.isSafeInteger(latest.size) || latest.size < 1 ||
+      latest.readback_size !== latest.size || latest.readback_status !== 200) {
+    throw Error("Missing verified final latest.json publication readback");
+  }
   // r2_release.py emits one GitHub release run for BOTH handoff
   // archives; a receipt cannot splice archives from unrelated workflows.
   if (new Set(receipt.artifacts.map(item => item.run_id)).size !== 1) {
@@ -31,14 +41,14 @@ export function validateR2Receipt(receipt) {
   const version = receipt.version;
   const approved = {
     "cfvigil-release-linux": [
-      "releases/v" + version + "/linux/cfvigil_" + version + "_amd64.deb",
-      "releases/v" + version + "/linux/cfvigil_" + version + "_amd64.deb.sha256",
-      "releases/v" + version + "/linux/CFVigil-" + version + "-linux-x64.AppImage",
-      "releases/v" + version + "/linux/CFVigil-" + version + "-linux-x64.AppImage.sha256"
+      "linux/cfvigil_" + version + "_amd64.deb",
+      "linux/cfvigil_" + version + "_amd64.deb.sha256",
+      "linux/CFVigil-" + version + "-linux-x64.AppImage",
+      "linux/CFVigil-" + version + "-linux-x64.AppImage.sha256"
     ],
     "cfvigil-release-windows": [
-      "releases/v" + version + "/windows/CFVigil-Setup-" + version + "-win-x64.exe",
-      "releases/v" + version + "/windows/CFVigil-Setup-" + version + "-win-x64.exe.sha256"
+      "windows/CFVigil-Setup-" + version + "-win-x64.exe",
+      "windows/CFVigil-Setup-" + version + "-win-x64.exe.sha256"
     ]
   };
   for (const item of receipt.artifacts) {
@@ -55,7 +65,7 @@ export function validateR2Receipt(receipt) {
     }
     for (const file of item.files) {
       if (typeof file.url !== "string" ||
-          !file.url.startsWith(BASE + "releases/v" + receipt.version + "/") ||
+          !file.url.startsWith(BASE + (item.name === "cfvigil-release-linux" ? "linux/" : "windows/")) ||
           !isSha(file.sha256) || file.readback_sha256 !== file.sha256 ||
           !Number.isSafeInteger(file.size) || file.size < 1 ||
           file.readback_size !== file.size || file.readback_status !== 200) {
