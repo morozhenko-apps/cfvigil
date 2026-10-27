@@ -66,7 +66,28 @@ class PublicationFixture(unittest.TestCase):
             hashed = index / "by-hash/SHA256" / sha(data)
             hashed.parent.mkdir(parents=True, exist_ok=True)
             hashed.write_bytes(data)
-        (self.apt / "dists/stable/InRelease").write_bytes(b"signed test placeholder")
+        # The test stubs only the GPG cryptographic check; the signed
+        # Release text itself must carry coherent index SHA256 records.
+        signed_lines = [
+            "-----BEGIN PGP SIGNED MESSAGE-----",
+            "Hash: SHA256",
+            "",
+            "Origin: CFVigil",
+            "SHA256:",
+        ]
+        for item in (index / "Packages", index / "Packages.gz"):
+            data = item.read_bytes()
+            relative = "main/binary-amd64/" + item.name
+            signed_lines.append(f" {sha(data)} {len(data)} {relative}")
+        signed_lines.extend([
+            "-----BEGIN PGP SIGNATURE-----",
+            "offline-fixture-signature; cryptography stubbed in tests",
+            "-----END PGP SIGNATURE-----",
+            "",
+        ])
+        (self.apt / "dists/stable/InRelease").write_text(
+            "\n".join(signed_lines), encoding="utf8"
+        )
 
     def planned(self):
         with patch.object(release.subprocess, "run"):
