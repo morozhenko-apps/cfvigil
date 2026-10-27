@@ -272,3 +272,9 @@ found 151/152 JS passing and one stale white-box revision regex;
 contract now checks BOTH superseded revision guard callsites and the
 shared AtomicU64 comparison. Verify Python and locked Rust stages,
 which were NOT reached by the first failed JavaScript gate.
+
+2026-10-27: bounded rerun after #40468277331: JS, Python, i18n/icon
+passed; Rust check E0277-style higher-ranked FnOnce lifetime mismatch
+at storage.rs:101. Replace generic fs::rename function item with
+explicit lifetime-polymorphic closure and align source contract. Need
+actual cargo check AND cargo test results before any green claim.
