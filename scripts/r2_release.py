@@ -29,6 +29,7 @@ MIMES = {
     ".gz": "application/gzip",
     ".gpg": "application/pgp-keys",
     ".sha256": "text/plain",
+    ".json": "application/json",
 }
 
 
