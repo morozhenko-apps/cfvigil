@@ -353,3 +353,13 @@ Run ALL stable JS, source i18n/icon, offline Python release tests,
 locked Rust check and Rust unit/integration tests on public hosted
 Ubuntu only. No actual R2/Cloudflare publication, no protected tag,
 main promotion, Windows candidate or owner-machine retest.
+
+2026-10-27: final release cleanup provenance preflight. Verify one
+publisher source run ID for Linux+Windows receipts; read-only inventory
+of both archives BEFORE any DELETE; reject second foreign commit,
+duplicate name, malformed ID or reused ID with zero destructive calls.
+Existing idempotency, exact complete six-file R2 receipt, post-delete
+confirmation, protected tag/main and read-only download Worker tests
+must continue to pass. Execute one complete STABLE hosted Ubuntu suite
+after all code and documentation changes; no real release, Windows
+native recheck, production Cloudflare/R2 or archive deletion.
