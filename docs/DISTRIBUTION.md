@@ -268,3 +268,25 @@ publish. Windows NSIS is intentionally unsigned; Authenticode signing
 cannot be represented as completed without credentials and an actual
 verified signature. This effort is an offline release hardening gate,
 not a public v1.0.0 release authorization.
+
+### Offline receipt invariant implemented (2026-10-27)
+
+The release-only cleanup validator now requires exactly four
+Linux file URL entries (DEB, AppImage and their SHA256 sidecars)
+and exactly two Windows entries (unsigned NSIS and its SHA256
+sidecar). URLs must match the correct version, platform and
+canonical public path exactly. Existing per-file SHA256, byte-size
+and public 200-readback proofs are retained.
+
+The offline fixture was corrected to represent the actual
+`r2_release.py` receipt, not synthetic incomplete one-file
+archives. A new table-driven negative test covers fourteen
+missing, duplicated, wrong-platform, extra, encoded and
+ambiguous URL shapes and asserts **zero GitHub requests**
+before validation. Code changes are confined to the release
+cleanup validator and its offline test fixture; production
+publisher and protected workflow remain unchanged.
+
+**Status: authored, final dedicated CI evidence pending.**
+No live R2 upload, release tag, branch promotion, GitHub
+artifact deletion, Worker deployment or signing occurred.
