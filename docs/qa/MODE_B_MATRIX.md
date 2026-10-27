@@ -1450,3 +1450,7 @@ A single final hosted Preflight is required to accept the new source test and he
 ### Optional shared GPG signing-subkey provision safety — CI PASS
 
 [Preflight #40594097832](https://github.com/morozhenko-apps/cfvigil/actions/runs/40594097832), source SHA `2f4e3315b6f19466e7b066b485f651af1a26868a`, completed SUCCESS: Node 162, Python release 38, icons 3, Rust 164: **367/367 PASS**, zero failures. New synthetic tests cover Bash syntax, required interactive terminal, unsupported mode and no side effects, scoped GH secret and variable writes, and the signing-subkey-only export contract. They are not proof of a real owner key import, GPG-agent passphrase, GitHub secret value or production release. Live signing and public R2 acceptance remain outside this source stage.
+
+### First v1.0.0 source version and protected-release readiness — PASS
+
+[Preflight #40598381215](https://github.com/morozhenko-apps/cfvigil/actions/runs/40598381215), code SHA `ad32baa710a5135393c354b317815804c444d5d5`, completed SUCCESS: **163 Node + 38 Python release + 3 icon + 164 Rust = 368/368 stable PASS**. Verified Tauri/Cargo/Cargo.lock `1.0.0` consistency, old tag refusal, lock-version mismatch mutation and release job GPG/APT tooling prerequisites. Historical `0.1.0` synthetic package fixtures are intentionally kept to test compatibility and not confused with the active release identity. Linux/Windows actual `1.0.0` package builds and any owner-native test are distinct gates. No signing secrets accessed, GitHub main/tag promotion or R2 publication occurred.
