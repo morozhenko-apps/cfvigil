@@ -314,3 +314,8 @@ Workers list 0/1/256/257, Pages pagination 0/1/50/51 and cumulative
 Node syntax/locales/assets/tests, offline Python release tests, icon
 tests, cargo check --locked and cargo test --locked. No external
 Cloudflare, production R2, main or candidate marker.
+
+2026-10-27: Mode B Stage 11 final Ubuntu STABLE: 7 new Rust native
+language tests for 20 locales (100 actions, titles, invalid preference
+and persisted language) + full Node/i18n/Python/icon/Rust suite.
+Windows-only anchor code is not runnable on Ubuntu. No production R2.
