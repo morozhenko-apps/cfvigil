@@ -76,10 +76,9 @@ receipt and ordering, (4) adapt workflow and offline contracts;
 (5) run a **single final** complete hosted source CI, record exact
 SHA and counts. Revert the scoped implementation commits if the
 gate fails; no production rollback needed because this task does
-not execute a tag or upload files. Keep historical
-`infra/download-worker/` source until migration acceptance but
-stop configuring/deploying it; remove obsolete Worker assertions
-from active tests. Protect the `main`/tag/environment gate. Final
+not execute a tag or upload files. Remove historical, never-deployed `infra/download-worker/` source
+and its Worker-only tests during this same source refactor; retain
+older Worker discussion only in explicitly superseded historical notes. Protect the `main`/tag/environment gate. Final
 real R2 readback and signing still require owner-configured secrets,
 approved tag and a separate explicitly authorized release.
 
