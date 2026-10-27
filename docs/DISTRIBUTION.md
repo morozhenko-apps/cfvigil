@@ -1069,3 +1069,51 @@ a manual owner review of the repo's Environments settings
 and tag policies; **never delete a pre-existing environment**
 just because this helper ran. The check-only command has
 no rollback requirements.
+
+### Completed source verification: owner-side release environment helper
+
+[GitHub Actions Preflight #40591766631](https://github.com/morozhenko-apps/cfvigil/actions/runs/40591766631)
+completed **SUCCESS** on the exact implementation/CI SHA
+\`7f13fa072a59d0ab6a437af8a0c57dc0f78acabe\`.
+Observed test log: **162/162 Node**, **35/35 Python
+release** (including eleven isolated release-readiness
+cases), **3/3 Python icon**, **164/164 Rust**. Total:
+**364/364 PASS**, 0 failures, together with JavaScript
+syntax, localization, original icon and locked Cargo
+verification. No production-privileged tests were
+executed. Documentation-only commits after that SHA
+do not require another source-gate run.
+
+Exact checked-in helper usage from a current \`dev\` checkout:
+
+\`\`\`bash
+python3 scripts/release_readiness.py
+\`\`\`
+
+The nonmutating default checks environment protection,
+required named variables and secrets and actual
+\`main\`/ \`dev\` SHA parity. When the owner explicitly
+chooses to provision GitHub environment, only on their
+authenticated machine:
+
+\`\`\`bash
+python3 scripts/release_readiness.py --init-environment
+\`\`\`
+
+Bootstrap is limited to creating a **previously absent**
+\`cfvigil-release\` GitHub environment, single owner
+reviewer and \`v*\` tag policy. Neither command adds
+credential values, signs a release, touches \`app-dist\`,
+updates Git refs or publishes installers. The owner must
+configure the four secrets and three variables out of
+band, retain a dedicated signing subkey, confirm shared
+bucket credentials and actual public Cloudflare GET.
+\`CFVIGIL_RELEASE_APPROVED_TAG\` remains unset until
+a specific final release is approved.
+
+This source gate **does not resolve** the previous
+owner-side GitHub 404 nor demonstrate secret validity.
+The workflow exists only on \`dev\`; \`main\` promotion
+and first \`v*\` tag remain separately owner-authorized.
+No site download buttons or WAF rules have been
+changed. The public distribution is still unreleased.
