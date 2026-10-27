@@ -989,3 +989,69 @@ Run same-SHA Ubuntu Preflight and Windows candidate workflows once;
 Windows native gate must reach Rust test PASS and NSIS packaging,
 while user-machine/Cloudflare/R2/signed release gates remain
 explicitly OPEN.
+
+## 2026-10-27 — Mode B HTTP quota observation contract (planned)
+
+**Baseline:** dev `239ab1457f`, Ubuntu Preflight #40534964282 and Windows
+candidate #40534964001 both SUCCESS. Previous malformed persisted JSON
+regressions are now build-verified, but that does not close native/live gates.
+Mode B remains IN PROGRESS.
+
+### Stage 1–2: risk and production owner
+
+The production `api_budget::ApiBudget::observe` consumes a real
+`reqwest::Response`, accepts only HTTP 429 as a throttling signal and
+applies a bounded Retry-After. Earlier tests reach the parsing helper
+directly and existing provider suites cover some 429 paths; this
+slice proves the **actual response-to-budget boundary**, without
+mocking the function under test.
+
+Invariant: 200/400/401/403/500/503 cannot trigger rate-limit
+state or a retry; a real 429 with Retry-After must block further
+admissions and expose no response-body secret; a new poll budget must
+not inherit another poll's rate-limit flag.
+
+### Stages 3–8: inventory, branch/negative and interaction matrix
+
+| Production path | P | N1 | N2 | N3 | N4 | N5 | N6 | N7 | N8 | N9 | N10 | N11 | N12 | Planned test |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `ApiBudget::observe` non-429 statuses through real HTTP | ✔ | ✖ | ✖ | ✔ | ✔ | ✖ | ✖ | ✔ | ✖ | ✖ | ✔ | ✖ | ✖ | 1 matrix test (6 response statuses) |
+| `ApiBudget::check/observe` on real HTTP 429 | ✔ | ✖ | ✔ | ✔ | ✔ | ✖ | ✖ | ✔ | ✖ | ✖ | ✔ | ✖ | ✖ | 1 contract test (admission, Retry-After, stop, redaction) |
+| Two distinct per-poll `ApiBudget` instances with 429/200 | ✔ | ✖ | ✖ | ✔ | ✔ | ✔ | ✖ | ✔ | ✖ | ✖ | ✔ | ✖ | ✖ | 1 isolation test |
+
+`✖` rationale: N1 invalid header and N2 malformed/overflow parsing are
+already addressed by the existing bounded `parse_retry_after` matrix;
+these particular HTTP probes deliberately supply valid response types.
+N6 persisted data, N8 locale/time, N9 UI and N12 disk faults are
+outside this in-memory HTTP-observer boundary. N11 is not applicable
+to this free product. N5 means *independent polling cycles*, not a claim
+to model all concurrent in-flight requests or native process scheduling.
+
+**Interaction plan:** issue reqwest GETs only to the existing
+127.0.0.1 `FixtureHttp` server; assert exact observed statuses,
+count, absence of speculative follow-up calls, `retry_after_seconds`,
+`exhausted`, native error constant, and independent budgets.
+No Cloudflare access, credentials, OS keyring, production behavior,
+public API or persistence changes.
+
+**Stage 9:** three new `#[tokio::test]` cases in
+`apps/desktop/src-tauri/src/api_budget.rs`; use existing HTTP fixture
+and actual reqwest client. Do not change `test_http.rs` or shared runtime.
+
+**Stage 10 mutation plan:** changing the 429-only predicate to
+4xx/5xx, ignoring Retry-After, forgetting to mark `limited`, returning
+OK from `check` after 429, or accidentally sharing budget state
+across polls must break at least one test. These are designed kills;
+no mutation runner or score is claimed.
+
+**Stage 11 validation:** after the single source-test commit, request
+exactly one dev Preflight by updating `ci/run-preflight.txt`.
+The full GitHub-hosted stable JS, Python and Rust gate must pass on the
+same head. Run no intermediate CI and no self-hosted runners.
+There is no declared separately executable flaky suite.
+
+**Stage 12 limitations:** even a green CI does not close real Cloudflare
+authorization, installed KDE/Windows smoke, per-locale human review,
+signed APT/R2 publication or release-owner approval. Rollback: revert
+the one test-only commit, the marker and this separate documentation
+commit as appropriate; no production or user-data restoration.
