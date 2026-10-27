@@ -69,6 +69,17 @@ not an independent signed software-update authority. The app never
 installs files on the basis of this metadata without other trust
 checks. Candidate CI never advances this pointer.
 
+**Future macOS extension (not released):** this flat scheme remains
+unchanged except for an additional `dist/CFVigil/macos/` platform
+directory. The actual release will need macOS binary naming/architecture
+and SHA256 sidecars, platform candidate provenance, protected workflow
+build/sign/notarize steps, independent macOS acceptance, new R2 source-map
+and receipt entries, an updated `latest.json` platform entry, plus
+website links/tests. Do not add an empty directory or claim that the
+current two-platform release receipt already accepts macOS. Apple
+credential custody and release approval are independent; Linux APT
+remains under `linux/` and does not acquire macOS package metadata.
+
 **Trade-offs explicitly accepted:** dropping APT by-hash means
 clients concurrently downloading during an index switch may see
 a transient hash mismatch and safely retry. Do not weaken
