@@ -1176,3 +1176,26 @@ switch to a temporary integration branch, not force push.
 Document exact execution evidence and open implementation/mutation
 branches. No arbitrary global numeric coverage target or false
 completion from the existing broad matrix's original `?` cells.
+
+### Implemented code-level closure package, awaiting one final STABLE run
+
+The owner-approved simulated-provider and 20-language source batch is
+authored on `dev`, without production code changes.
+
+| Artifact | New tests | Assertions and interaction cases |
+| --- | ---: | --- |
+| Real REST Workers/Pages discovery (`cloudflare_http_tests.rs`) | 2 | Six distinct HTTP catalog failures, one failure-then-verified recovery over two independent polls; response privacy, scoped 403 warning, no invented state, no retry storm |
+| Incident transition/dedup (`incident_policy.rs`) | 2 | Eight-step failed/unknown/retry/deploy/success sequence, 2 unique alerts, WAF unknown/return without second episode, recovery rearm only on confirmed resolution |
+| All 20 language catalogs + runtime (`tests/mode-b-20-locale-audit.test.mjs`) | 6 | 80 state-label goldens; 120 immutable permission scope occurrences; all keys and CLDR plural variants; 5 HTTP diagnostics, historical event mapping, DST-adjacent UTC formatting and 4 translated DOM attribute kinds per locale |
+
+Per-function category mapping (nonexclusive):
+P=10, N1=4, N2=2, N3=3, N4=3, N5=2,
+N6=3, N7=5, N8=6, N9=2, N10=3, N11=N/A, N12=0.
+These are authored counts only, **not yet executed**; no automated
+mutation score or blanket code coverage percentage is claimed.
+
+Mode B must be validated on the **final source SHA** after these fixes,
+not pre-implementation. The user has completed native platform
+acceptance and does not request repeated machine smoke for every
+new isolated source test. Unknown literal provider text stays opaque,
+and protected release remains separately gated.
