@@ -487,8 +487,6 @@ impl Cloudflare {
                         ("unknown".into(), String::new(), String::new(), msg::DETAIL_PAGES_UNAVAILABLE.into())
                     },
                 };
-                let mut url = format!("https://dash.cloudflare.com/{account}/pages/view/{name}");
-                if valid_uuid(&attempt) { url.push_str(&format!("/{attempt}")); }
                     let mut url = format!("https://dash.cloudflare.com/{account}/pages/view/{name}");
                     if valid_uuid(&attempt) { url.push_str(&format!("/{attempt}")); }
                     resources.push(Resource {
