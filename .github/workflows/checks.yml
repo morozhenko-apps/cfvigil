@@ -71,6 +71,6 @@ jobs:
       - name: Check alpha-tight icon normalization on synthetic images
         run: python3 -m unittest discover -s tests -p 'test_icon_import.py'
       - name: Check Rust desktop
-        run: cargo check --locked -p cfvigil-desktop
+        run: cargo check --locked -p cfvigil
       - name: Run Rust desktop unit and provider tests
-        run: cargo test --locked -p cfvigil-desktop
+        run: cargo test --locked -p cfvigil
