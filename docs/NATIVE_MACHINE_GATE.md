@@ -556,3 +556,19 @@ not a parallel CFVigil Desktop installation. No automatic purge or
 user-settings migration is intended.
 
 Status: source adjusted; **physical upgrade compatibility OPEN**.
+
+## 2026-10-27 — owner acceptance checkpoint, superseding repeated smoke requests
+
+The owner confirmed in conversation that the Linux/Windows native
+inspection item has **already been completed** and explicitly directed
+the remaining effort to Cloudflare fault simulation, technical review of
+all 20 locales, final code-level Mode B and controlled distribution.
+Treat that owner confirmation as the current platform-gate disposition;
+do not require another physical install/drag/Settings cycle solely
+because new source-only tests are added. The earlier scoped PASS/FAIL
+records above remain historical evidence, not a new defect report.
+
+This statement records an owner acceptance decision; it does **not**
+invent independent new screenshots or per-case runtime evidence for
+unspecified Windows/DPI/installer combinations. Any newly discovered
+regression still requires real evidence and normal defect handling.
