@@ -1,100 +1,59 @@
 # CFVigil
 
-Free, local-first desktop monitoring for Cloudflare Workers and Pages.
-Apache-2.0: [LICENSE](LICENSE), [NOTICE](NOTICE), [contribution policy](CONTRIBUTING.md).
+CFVigil is a small, free desktop app for keeping an eye on Cloudflare Workers and Pages deployments. It lives in the system tray, so you can see what's happening across your projects without keeping the Cloudflare dashboard open all day.
 
-## Development status
+## Why I built it
 
-`dev` is the active source branch; `main` remains the initial repository baseline.
-Current source includes monitoring, native tray/Settings, notifications,
-private local history, optional launch-at-sign-in and 20 draft locale catalogs.
-This is an unsigned, unreleased development candidate, not stable v1.0.
+I work on several apps and games, and quite a few of them use Cloudflare. When I ship an update, I want to know whether the new deployment is still running, finished successfully or failed. Opening every project in a browser to check that gets old quickly, especially when I'm already busy building or testing something else.
 
-| Evidence boundary | Recorded state | Owner |
-| --- | --- | --- |
-| KDE geometry/Settings/position | Scoped v5 owner PASS; earlier failures retained | [Native-machine checkpoint](docs/NATIVE_MACHINE_GATE.md) |
-| Connected Cloudflare | Worker rows/search/green lamps observed; Pages Read verified, HTTP 400 pagination correction awaits installed retest | [Connected smoke](docs/NATIVE_CLOUDFLARE_SMOKE.md) |
-| Languages | All 20 source dictionaries exist; editorial/context and physical acceptance pending | [Per-locale ledger](docs/i18n/CONTEXT_AUDIT.md) |
-| Whole machine gate, Windows and public release | Not accepted; broad coverage/Mode B follows owner machine acceptance | [Roadmap](docs/ROADMAP_TO_1_0.md), [delivery](docs/DELIVERY.md) |
+I made CFVigil to solve that problem for myself. I wanted one small card that tells me when something needs attention, with a quick way to open the right Cloudflare page when I need the details. It isn't meant to replace the dashboard or become a large monitoring platform.
 
-## What the current source implements
+## What it does
 
-- Compact tray card and upward resource drawer with search, Workers/Pages rows,
-  resource-specific links, native drag and persistent position/settings.
-- Read-only REST discovery and build/deployment status, serialized bounded
-  polling, shared API budget/429 handling and partial-provider warnings.
-- Worker-error and zone-scoped WAF aggregate detection in source; native
-  notifications, account-scoped durable deduplication and filtered local history.
-- Latest attempts determine the lamp: running takes precedence over earlier
-  failure; unknown/permission/stale outcomes must not be presented as success.
-  Counters count resources in a state, not lifetime builds or proven app uptime.
+CFVigil discovers the Workers and Pages projects available to your Cloudflare API token and shows their latest known deployment states in a compact tray card. You can expand the resource list upwards, search by name and open a specific resource in Cloudflare. A deployment that is queued or running shows as in progress, even if the previous deployment failed. A failed attempt shows as a problem, a successful attempt as healthy, and missing or unverified data as unknown.
 
-Read [product invariants](docs/PRODUCT.md) and the
-[current checkpoint](docs/DELIVERY.md#current-checkpoint-2026-10-25) before
-interpreting an older source/test count. A new successful build may leave the
-healthy count unchanged; a brief yellow interval can finish between polls.
+The app can also watch for unusual Worker error rates and zone-level WAF activity when the relevant Cloudflare analytics and permissions are available. It notifies you about detected incidents and keeps a small local event history, so you can look back at what happened. Those analytics are not available in every account, and a green deployment status does **not** mean that a website is guaranteed to be online. CFVigil checks Cloudflare's deployment and incident data, not arbitrary website health.
 
-## Localization readiness
+The app is read-only. It doesn't deploy Workers, change Cloudflare settings or manage your projects. Your API token stays in the operating system's credential store, and the event history is kept locally. You can choose how often it checks for updates and whether it starts with your computer. There is no separate CFVigil account, subscription or hosted monitoring backend.
 
-All 20 target dictionaries are draft source. Key/interpolation/CLDR/RTL checks
-do not establish editorial correctness, native language fit or full acceptance.
-Use [i18n architecture](docs/I18N_ARCHITECTURE.md) and the complete
-[locale ledger](docs/i18n/CONTEXT_AUDIT.md); no locale or context audit is waived.
+## Platforms and current status
 
-## Development
+CFVigil is still in development. Linux (especially KDE Plasma) and Windows are the current desktop targets, but the first public installer and full release acceptance have not happened yet. The GitHub `dev` branch contains working source and automated tests; that isn't the same as a finished, publicly supported release.
 
-Use Rust, Node.js 24 (matching Preflight), Git and Tauri 2 Linux/Windows platform
-dependencies. Cargo.lock stays committed. Existing stable source checks:
+macOS may be added later. The distribution layout is designed to add a `macos/` directory next to `linux/` and `windows/`, but actual macOS builds, Apple signing, notarization and native testing are separate work. Please don't treat macOS as available yet.
+
+The interface has 20 language catalogs in source. They are still draft translations undergoing context and desktop-layout checks, not 20 fully reviewed translations.
+
+When the first release is approved, downloads will be hosted under `https://download.morozhenko.com/dist/CFVigil/`. The planned layout keeps versioned installers in platform folders and uses a small `latest.json` file to point the website to the latest verified release. Linux will also have a signed APT repository using the same DEB as the direct download, without a second copy in an APT pool. Until a release is actually published, there are no official installer links to offer.
+
+## Bugs and ideas
+
+If you find something broken, please use the [bug report form](https://github.com/morozhenko-apps/cfvigil/issues/new?template=bug_report.yml). Include enough detail to reproduce it, but remove any private Cloudflare information before posting logs or screenshots.
+
+If you have an idea that would make the app easier to use, use the [improvement suggestion form](https://github.com/morozhenko-apps/cfvigil/issues/new?template=feature_request.yml). I'm interested in real workflows and problems, even if you don't have a technical solution. I can't promise to add every suggestion.
+
+**I don't accept outside pull requests or code fixes for the main project.** I develop and maintain CFVigil myself, but you're free to fork it under the Apache 2.0 license. More details are in [CONTRIBUTING.md](CONTRIBUTING.md). Please report security issues [privately](https://github.com/morozhenko-apps/cfvigil/security/advisories).
+
+## Building from source
+
+CFVigil uses Rust and Tauri 2, with a small WebView interface. You need the platform dependencies required by Tauri 2, a Rust toolchain and Node.js 24 for its repository checks. The source branch is `dev`.
 
 ```sh
-node scripts/check-i18n.mjs
+cargo check --locked -p cfvigil
+cargo test --locked -p cfvigil
 node --test tests/*.test.mjs
 python3 -m unittest discover -s tests -p 'test_release_*.py'
-cargo check --locked -p cfvigil-desktop
-cargo test --locked -p cfvigil-desktop
 ```
 
-JavaScript syntax checks are also defined by `.github/workflows/checks.yml`.
-To explicitly launch a development app: `cargo run -p cfvigil-desktop`.
-Housekeeping does not launch/install it, open a wallet, inspect a token or query
-a live account. Native/Windows acceptance requires its own recorded session.
+To start a development build locally, use `cargo run -p cfvigil` in a correctly configured development environment. This doesn't connect to your Cloudflare account until you choose to configure access. The application is not designed to make Cloudflare changes.
 
-## Principles and publication boundaries
+For the current feature details and known limits, see [PRODUCT.md](docs/PRODUCT.md), [development and acceptance status](docs/DELIVERY.md), [the roadmap](docs/ROADMAP_TO_1_0.md) and [the distribution design](docs/DISTRIBUTION.md).
 
-- Read-only Cloudflare integration; native Rust owns API tokens and network
-  requests. No GitHub deployment monitoring, health-URL probes or API mutations.
-- Missing Pages permission is distinct from a verified empty catalog. Preserve
-  verified Worker results while labeling failed coverage unknown; never invent
-  permissions, free-plan entitlements or successful incident detection.
-- No hosted product backend or paid tier. No broad test/Mode B expansion before
-  native-machine acceptance. Source/candidate CI does not grant release approval.
-- Normal dev code/docs/ignore commits do not request CI. Feature verification
-  uses the explicit marker once; cleanup leaves every CI/candidate marker intact.
-- Candidate packages are unsigned/unreleased. Stable binary distribution belongs
-  only in CFVigil's isolated R2 prefix after protected approval and public hash
-  readback; never permanent GitHub binary attachments. No live publication is
-  claimed by the source-only [distribution contract](docs/DISTRIBUTION.md).
+## License
 
-## Project and contribution policy
+CFVigil is open source under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for attribution and the [contribution policy](CONTRIBUTING.md) for feedback and fork rules.
 
-| Document | Responsibility |
-| --- | --- |
-| [AGENTS](AGENTS.md) / [CONTRIBUTING](CONTRIBUTING.md) | Working branch, efficient gates, bug reports, Apache forks and upstream policy |
-| [PRODUCT](docs/PRODUCT.md) / [ROADMAP](docs/ROADMAP_TO_1_0.md) | Existing contracts, feature/native/i18n/Mode B/release sequence |
-| [DELIVERY](docs/DELIVERY.md) | Dated implementation, CI evidence, gaps and release requirements |
-| [NATIVE MACHINE](docs/NATIVE_MACHINE_GATE.md) / [CONNECTED SMOKE](docs/NATIVE_CLOUDFLARE_SMOKE.md) | Actual owner/platform/provider evidence and pending retests |
-| [I18N ARCHITECTURE](docs/I18N_ARCHITECTURE.md) / [CONTEXT AUDIT](docs/i18n/CONTEXT_AUDIT.md) | Semantic messages and all 20 independent language audits |
-| [DISTRIBUTION](docs/DISTRIBUTION.md) | Separate bucket/credentials, exact-main/tag/protected publication and cleanup gates |
-
-## Historical root links
-
-The complete [previous root](docs/DELIVERY.md#imported-root-readme-before-october-25-housekeeping)
-is retained as dated provenance. Existing section bookmarks remain compatible:
-
+<!-- Older root README section links remain available for existing references. -->
 <a id="known-limitations-of-this-initial-implementation"></a>
-
-- [Known limitations of this initial implementation](docs/DELIVERY.md#known-limitations-of-this-initial-implementation)
-
 <a id="principles"></a>
-
-- [Principles](docs/DELIVERY.md#principles)
+[Earlier development notes and historical checkpoints](docs/DELIVERY.md).
