@@ -72,18 +72,26 @@ test("Debian menu entry must reference an installed themed CFVigil PNG", () => {
     "scalable/apps/unrelated.svg",
   ];
   assert.deepEqual(validateDebLauncherLayout(
-    "[Desktop Entry]\nName=CFVigil\nIcon=cfvigil\n", files), {
+    "[Desktop Entry]\nName=CFVigil\nExec=cfvigil\nIcon=cfvigil\n", files), {
     name:"cfvigil", paths:files.slice(0,3),
   });
   assert.throws(() => validateDebLauncherLayout(
-    "[Desktop Entry]\nIcon=old-default\n", files), /canonical CFVigil icon name/);
+    "[Desktop Entry]\nName=CFVigil Desktop\nExec=cfvigil\nIcon=cfvigil\n",files),
+    /display CFVigil/);
   assert.throws(() => validateDebLauncherLayout(
-    "[Desktop Entry]\nIcon=cfvigil-desktop\n", ["32x32/apps/cfvigil-desktop.png"]), /canonical CFVigil icon name/);
+    "[Desktop Entry]\nName=CFVigil\nExec=cfvigil-desktop\nIcon=cfvigil\n",files),
+    /execute canonical cfvigil binary/);
+  assert.doesNotThrow(() => validateDebLauncherLayout(
+    "[Desktop Entry]\nName=CFVigil\nExec=\/usr\/bin\/cfvigil %U\nIcon=cfvigil\n",files));
   assert.throws(() => validateDebLauncherLayout(
-    "[Desktop Entry]\nName=CFVigil\n", files), /exactly one Icon/);
+    "[Desktop Entry]\nName=CFVigil\nExec=cfvigil\nIcon=old-default\n", files), /canonical CFVigil icon name/);
   assert.throws(() => validateDebLauncherLayout(
-    "[Desktop Entry]\nIcon=../../outside\n", files), /safe themed icon/);
+    "[Desktop Entry]\nName=CFVigil\nExec=cfvigil\nIcon=cfvigil-desktop\n", ["32x32/apps/cfvigil-desktop.png"]), /canonical CFVigil icon name/);
   assert.throws(() => validateDebLauncherLayout(
-    "[Desktop Entry]\nIcon=cfvigil\nIcon=old-default\n", files),
+    "[Desktop Entry]\nName=CFVigil\nExec=cfvigil\n", files), /exactly one Icon/);
+  assert.throws(() => validateDebLauncherLayout(
+    "[Desktop Entry]\nName=CFVigil\nExec=cfvigil\nIcon=../../outside\n", files), /safe themed icon/);
+  assert.throws(() => validateDebLauncherLayout(
+    "[Desktop Entry]\nName=CFVigil\nExec=cfvigil\nIcon=cfvigil\nIcon=old-default\n", files),
     /exactly one Icon/);
 });

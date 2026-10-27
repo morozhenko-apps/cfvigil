@@ -118,6 +118,14 @@ export function validateDebLauncherLayout(desktopContents, relativeIconPaths) {
   if (name !== "cfvigil") {
     throw Error("DEB launcher must use canonical CFVigil icon name");
   }
+  const names = desktopContents.split(/\r?\n/).filter(x => x.startsWith("Name="));
+  if (names.length !== 1 || names[0] !== "Name=CFVigil") {
+    throw Error("DEB launcher must display CFVigil");
+  }
+  const commands = desktopContents.split(/\r?\n/).filter(x => x.startsWith("Exec="));
+  if (commands.length !== 1 || !/^(?:\/usr\/bin\/)?cfvigil(?:\s|$)/.test(commands[0].slice(5))) {
+    throw Error("DEB launcher must execute canonical cfvigil binary");
+  }
   const matches = relativeIconPaths.filter(relative => {
     const segments = relative.split("/");
     return segments.length === 3 && /^\d+x\d+$/.test(segments[0]) &&
