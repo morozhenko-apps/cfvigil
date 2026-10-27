@@ -1270,3 +1270,8 @@ Do not populate `CFVIGIL_RELEASE_APPROVED_TAG`, advance
 `main`, or tag a release until the separate native
 acceptance, distribution and review gates are satisfied.
 
+### Owner-selected v1.0.0 source identity acceptance (2026-10-27)
+
+GitHub [Preflight #40598381215](https://github.com/morozhenko-apps/cfvigil/actions/runs/40598381215) completed **SUCCESS** at exactly `ad32baa710a5135393c354b317815804c444d5d5`. Observed logs: Node 163/163, Python release 38/38, Python icon 3/3, Rust 164/164 — **368/368 passed, zero failures**. The release source metadata `Cargo.toml`, root `Cargo.lock` CFVigil package stanza, and Tauri config all report **1.0.0**. The Node release guard rejects `v0.1.0` against the current source, accepts `v1.0.0`, checks exact Cargo.lock parity including Windows CRLF, and the protected tag validation job now explicitly installs `dpkg-dev`, `gnupg`, `gpgv` before running the real APT integration tests.
+
+No production release occurred during the source gate. Main still has its older SHA; `CFVIGIL_RELEASE_APPROVED_TAG` is intentionally absent, and the existing `app-dist` bucket and signing environment are untouched by this version bump. Next validation is *unpublished* Linux/Windows candidate compilation from the same immutable source SHA. A build succeeding is not itself physical install, signing, public distribution or final owner release approval.
