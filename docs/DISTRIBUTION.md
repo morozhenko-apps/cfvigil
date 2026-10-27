@@ -1186,3 +1186,9 @@ The workflow exists only on \`dev\`; \`main\` promotion
 and first \`v*\` tag remain separately owner-authorized.
 No site download buttons or WAF rules have been
 changed. The public distribution is still unreleased.
+
+### Final source verification — optional shared signing subkey helper
+
+GitHub-hosted [Preflight #40594097832](https://github.com/morozhenko-apps/cfvigil/actions/runs/40594097832) completed **SUCCESS** on exact code/CI source SHA `2f4e3315b6f19466e7b066b485f651af1a26868a`. Full job log: Node **162/162**, Python release **38/38** (including three new signing helper safety checks), Python icon **3/3**, Rust **164/164**, total **367/367 PASS**, zero failures. Existing real flat GPG/APT integration tests remained successful.
+
+This is source and synthetic CLI acceptance, **not** evidence that the owner's existing GPG signing key is available locally, that their passphrase works or that GitHub release signing secrets have been provisioned. The new script has not been run with real key material by the agent, and no R2 or GitHub environment was modified. The owner must run `--check` then explicitly `--apply` for shared key use if the isolated signing preflight passes. Documentation-only commits after the tested code SHA require no second CI run.
