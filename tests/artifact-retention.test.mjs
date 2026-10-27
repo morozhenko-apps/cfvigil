@@ -194,3 +194,37 @@ test("Mode B: cleanup with no credentials or missing archived runs must fail clo
   const request=async()=>({status:200,json:async()=>({artifacts:[]})});
   assert.equal(await deletePublishedArtifacts(receipt(),"test-only-token",request),0);
 });
+
+test("Mode B complete platform receipts reject wrong file sets before any GitHub request",async()=>{
+  validateR2Receipt(receipt());
+  const rejected=[
+    ["missing Linux checksum",r=>r.artifacts[0].files.pop()],
+    ["missing Windows executable",r=>r.artifacts[1].files.shift()],
+    ["duplicated Linux entry",r=>r.artifacts[0].files[3].url=r.artifacts[0].files[0].url],
+    ["Linux artifact with Windows URL",r=>r.artifacts[0].files[0].url=r.artifacts[1].files[0].url],
+    ["Windows artifact with Linux URL",r=>r.artifacts[1].files[0].url=r.artifacts[0].files[0].url],
+    ["unexpected extra package",r=>r.artifacts[1].files.push({...r.artifacts[1].files[0],url:BASE+"windows/other.exe"})],
+    ["different version",r=>r.artifacts[1].files[0].url=
+      r.artifacts[1].files[0].url.replace("0.1.0-win","0.1.1-win")],
+    ["query string",r=>r.artifacts[0].files[0].url+="?download=1"],
+    ["URL fragment",r=>r.artifacts[0].files[0].url+="#fragment"],
+    ["user information",r=>r.artifacts[0].files[0].url=
+      r.artifacts[0].files[0].url.replace("https://","https://user@")],
+    ["alternate port",r=>r.artifacts[0].files[0].url=
+      r.artifacts[0].files[0].url.replace(".com/",".com:8443/")],
+    ["encoded filename",r=>r.artifacts[0].files[0].url=
+      r.artifacts[0].files[0].url.replace("cfvigil_","%63fvigil_")],
+    ["path traversal",r=>r.artifacts[0].files[0].url=
+      r.artifacts[0].files[0].url.replace("/linux/","/linux/../windows/")],
+    ["wrong file extension",r=>r.artifacts[1].files[0].url+=".zip"],
+  ];
+  for(const [label,mutate] of rejected){
+    const corrupted=structuredClone(receipt());
+    mutate(corrupted);
+    let requests=0;
+    await assert.rejects(deletePublishedArtifacts(
+      corrupted,"test-only-credential",async()=>{requests++;throw Error("forbidden");}
+    ),/Incomplete or mismatched CFVigil R2 platform receipt/,label);
+    assert.equal(requests,0,label+": malformed receipt must never access GitHub");
+  }
+});
