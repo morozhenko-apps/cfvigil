@@ -93,3 +93,14 @@ and Windows unsigned NSIS from ONE shared marker commit to verify
 v1.0.0 package identity, checksum and actual packaging.
 No main fast-forward, tag, approval, R2 publication, or self-hosted
 runner; artifacts expire after 1 day.
+
+2026-10-27: REPLACEMENT matched v1.0.0 package candidates.
+Fixed Windows-only LF/CRLF Cargo.lock mutation test at commit
+23c867aaecceb15ba87adfaae8e695ab928dc32c.
+Old Windows run #40598981104 FAILED one assertion before NSIS build;
+old Linux candidate #40598981099 is not a valid matching pair.
+Run both package workflows from exactly ONE new common SHA.
+Prior full stable v1.0.0 source baseline ad32baa passed 368/368;
+corrective full Preflight #40599368124 requested separately.
+These artifacts are unsigned, unreleased, retention one day:
+no main/tag/protected environment/R2/public release.
