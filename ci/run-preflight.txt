@@ -382,3 +382,10 @@ actually inflates to signed Packages with bounded reads, including
 truncated, malformed and concatenated gzip. Run one complete
 GitHub-hosted stable JS/Python/Rust suite, no native, live Cloudflare,
 release publication, signed keys, main or tag.
+
+2026-10-27: complete single final native-source gate for approved flat
+app-dist CFVigil distribution at code/doc baseline 5be640864fde597fc25e7eca0eca3289a5f3378e.
+Flat APT Packages/Packages.gz/InRelease alongside Linux versioned
+DEB, one R2 .deb object, no download Worker, last readback latest.json
+website pointer, exact public receipt and Actions cleanup fail-close,
+WAF/R2 production untouched. Validate full Node/Python/Rust stable suite.
