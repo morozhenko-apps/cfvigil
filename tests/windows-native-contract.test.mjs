@@ -36,7 +36,10 @@ test("Settings saves asynchronously with visible progress and masked token state
   const html = read("apps/desktop/ui/settings.html");
   assert.match(main, /async fn get_token_status\(\) -> Result<bool, String>/);
   assert.match(main, /config_revision: AtomicU64/);
-  assert.match(main, /state\.config_revision\.load\(Ordering::Acquire\) != revision/);
+  assert.match(main, /fn superseded_revision\(revision: &AtomicU64, captured: u64\) -> bool/);
+  assert.match(main, /revision\.load\(Ordering::Acquire\) != captured/);
+  assert.equal((main.match(/if superseded_revision\(&state\.config_revision, revision\)/g) ?? []).length,2,
+    "both error and successful provider replies must discard a superseded credential revision");
   assert.match(ui, /spinner\.hidden = !busy/);
   assert.match(ui, /if \(saving\) return/);
   assert.match(ui, /token\.placeholder = present \? "••••••••"/);
