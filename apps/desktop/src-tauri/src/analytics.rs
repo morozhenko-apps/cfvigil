@@ -322,10 +322,14 @@ mod tests {
                 Metrics{requests:100.0,errors:10.0},false),
             (Metrics{requests:100.0,errors:29.999_99},
                 Metrics{requests:100.0,errors:10.0},false),
+            // The absolute >=10% guard dominates the +5pp condition:
+            // a seven-percent rate is never a spike, however much it grew.
             (Metrics{requests:200.0,errors:14.0},
-                Metrics{requests:1000.0,errors:20.0},true),
-            (Metrics{requests:200.0,errors:13.999_99},
                 Metrics{requests:1000.0,errors:20.0},false),
+            (Metrics{requests:200.0,errors:19.0},
+                Metrics{requests:1000.0,errors:20.0},false),
+            (Metrics{requests:200.0,errors:20.0},
+                Metrics{requests:1000.0,errors:20.0},true),
             (Metrics{requests:100.0,errors:10.0},
                 Metrics{requests:100.0,errors:0.0},true),
             (Metrics{requests:100.0,errors:10.0},
