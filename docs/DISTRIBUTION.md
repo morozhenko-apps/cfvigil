@@ -1192,3 +1192,44 @@ changed. The public distribution is still unreleased.
 GitHub-hosted [Preflight #40594097832](https://github.com/morozhenko-apps/cfvigil/actions/runs/40594097832) completed **SUCCESS** on exact code/CI source SHA `2f4e3315b6f19466e7b066b485f651af1a26868a`. Full job log: Node **162/162**, Python release **38/38** (including three new signing helper safety checks), Python icon **3/3**, Rust **164/164**, total **367/367 PASS**, zero failures. Existing real flat GPG/APT integration tests remained successful.
 
 This is source and synthetic CLI acceptance, **not** evidence that the owner's existing GPG signing key is available locally, that their passphrase works or that GitHub release signing secrets have been provisioned. The new script has not been run with real key material by the agent, and no R2 or GitHub environment was modified. The owner must run `--check` then explicitly `--apply` for shared key use if the isolated signing preflight passes. Documentation-only commits after the tested code SHA require no second CI run.
+
+### Owner-provided real signing provisioning evidence — 2026-10-27
+
+The owner ran `scripts/provision_existing_apt_key.sh --check` and
+`--apply` against their existing RepoTicker public
+`FINGERPRINT` file. Both reported that the signing-subkey-only
+export imported into the isolated GPG home and signed, with
+`gpgv` successfully verifying the disposable signed message.
+The reported primary fingerprint is
+`757491684BE4A8ED51FB3668DF4D57DD6F1E7B22`.
+The `--apply` output confirms that the CLI accepted writes
+for `CFVIGIL_APT_SIGNING_SUBKEY_BASE64`,
+`CFVIGIL_APT_SIGNING_PASSPHRASE` and environment variable
+`CFVIGIL_APT_FINGERPRINT` in
+`morozhenko-apps/cfvigil / cfvigil-release`.
+These are names and public identity only; no secret values were
+observed, retrieved, or committed to source. This evidence
+covers owner-side key usability and CLI acknowledgement, not
+a GitHub-hosted protected-release import or public R2 publish.
+
+**Next operational gate:** confirm the GitHub Environment secret
+**names** with `gh secret list -R morozhenko-apps/cfvigil
+-e cfvigil-release`, provision an independent Cloudflare R2
+**Object Read & Write** token restricted to existing bucket
+`app-dist` (not account admin permissions), and set only
+`CFVIGIL_R2_ACCESS_KEY_ID`,
+`CFVIGIL_R2_SECRET_ACCESS_KEY` environment secrets and
+`CFVIGIL_R2_ACCOUNT_ID` variable. Cloudflare's R2 token
+scope is bucket-level, not `dist/CFVigil/` prefix-level;
+the publisher's prefix guard does not isolate a stolen R2 key
+from sibling objects in `app-dist`. Credentials for RepoTicker
+and Picturix must not be re-used by accident. The account ID
+must match the account owning `app-dist` and the S3 endpoint
+used by `scripts/r2_release.py`. If the bucket has a custom
+jurisdiction endpoint such as EU, current default-endpoint
+code must be revised and validated before a release.
+
+Do not populate `CFVIGIL_RELEASE_APPROVED_TAG`, advance
+`main`, or tag a release until the separate native
+acceptance, distribution and review gates are satisfied.
+
