@@ -203,3 +203,68 @@ https://learn.microsoft.com/windows/apps/package-and-deploy/smartscreen-reputati
 No exception has been added, no malware scan or Chrome/Windows
 security decision was remotely performed, and no production signing
 configuration was modified.
+
+## 2026-10-27 — protected-distribution offline finalization after Mode B source gate
+
+The immediately preceding source gate [#40562000345](https://github.com/morozhenko-apps/cfvigil/actions/runs/40562000345)
+succeeded at SHA `7738dbcd4c4cc6850338b26d8c37c7e970889b92`:
+163 Node, 16 Python and 164 Rust tests, zero failed; locked
+Rust check and source/localization/icon steps passed.
+This source evidence belongs to the owner-approved Cloudflare
+simulation / 20-locale package. Physical owner inspection is
+already accepted and is not to be repeatedly requested.
+
+### Root-cause and existing contract
+
+Before cleanup, `validateR2Receipt` verifies product, version,
+commit, R2 base, per-file SHA/size equality and 200 public readback,
+but currently accepts **any file URL below the version prefix**
+and **any nonempty platform file list**. As a result, a syntactically
+plausible but incomplete or cross-platform receipt can authorize
+deletion of temporary GitHub archives, even though the publisher
+should issue exactly two Linux installers with their sidecars and
+one Windows installer with its sidecar.
+
+Potential failure sources screened: broad prefix match; missing exact
+platform filename set; missing sidecar; duplicate receipt URL; swapped
+Linux/Windows path; GitHub artifact run/commit mismatch; incomplete
+public-byte verification. The last two already have separate checks,
+and the R2 publisher already emits complete exact platform manifests.
+The **first four receipt input-validation gaps** are this targeted
+repair. No evidence of an actual compromised publisher, deletion,
+or bad R2 upload was observed.
+
+### Implementation and branch/negative matrix
+
+1. Require exact literal path (scheme, origin, prefix, version,
+   platform, filename) for every expected Linux/Windows binary and
+   SHA256 sidecar. Require all four Linux and both Windows entries
+   exactly once. Retain current numeric size/hash/readback checks.
+2. Update the test fixtures to the **actual source_map publisher
+   shape**, never weaken the production requirement to keep synthetic
+   legacy test shortcuts.
+3. Parameterized negative tests: omitted/duplicate sidecar, filename
+   from wrong OS, unexpected extra filename, percent encoding,
+   user-info, query/fragment, traversal, alternate host/port and
+   receipt with mismatching provenance. Check zero requests before
+   any DELETE.
+4. Reuse existing offline Python publication and Worker tests; run
+   all stable Node/Python/Rust only once after implementation through
+   the explicit dev CI marker. No release tag, branch promotion,
+   production keyring, R2 object, Cloudflare Worker deploy or
+   GitHub artifact deletion.
+
+**Mutation review:** any substitution of exact URL equality with
+prefix matching, removal of expected-name equality, or acceptance of
+incomplete/duplicate file lists must fail a negative test. No mutation
+score is claimed. Rollback affects only the receipt validator, its
+offline fixture/tests and this separate documentation milestone.
+The valid protected publisher receipt format does not change.
+
+**External release gate:** Owner-approved isolated R2 bucket,
+download Worker route, dedicated secrets, valid subkey and signing,
+protected environment and public GET readback remain necessary to
+publish. Windows NSIS is intentionally unsigned; Authenticode signing
+cannot be represented as completed without credentials and an actual
+verified signature. This effort is an offline release hardening gate,
+not a public v1.0.0 release authorization.
