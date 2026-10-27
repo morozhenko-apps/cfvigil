@@ -31,7 +31,7 @@ const receipt = () => ({
   base_url:"https://download.morozhenko.com/dist/CFVigil/",
   artifacts:[
     record("cfvigil-release-linux",51,".deb"),
-    record("cfvigil-release-windows",52,".exe")
+    record("cfvigil-release-windows",51,".exe")
   ]
 });
 
@@ -42,7 +42,7 @@ test("cleanup requires verified public R2 receipt before any network call", asyn
     {...receipt(),base_url:"https://download.morozhenko.com/dist/RepoTicker/"},
     {...receipt(),commit:"bad"},
     {...receipt(),artifacts:[receipt().artifacts[0],receipt().artifacts[0]]},
-    {...receipt(),artifacts:[receipt().artifacts[0],record("repoticker-release",52,".exe")]},
+    {...receipt(),artifacts:[receipt().artifacts[0],record("repoticker-release",51,".exe")]},
     {...receipt(),artifacts:[receipt().artifacts[0],{...receipt().artifacts[1],
       files:[{...receipt().artifacts[1].files[0],readback_sha256:"f".repeat(64)}]}]}
   ]) {
@@ -57,8 +57,8 @@ test("cleanup requires verified public R2 receipt before any network call", asyn
 test("cleanup deletes only matching artifacts and independently confirms removal", async () => {
   const items = new Map([
     [51,[{id:101,name:"cfvigil-release-linux",workflow_run:{id:51,head_sha:COMMIT}},
-      {id:111,name:"unrelated-build",workflow_run:{id:51,head_sha:COMMIT}}]],
-    [52,[{id:102,name:"cfvigil-release-windows",workflow_run:{id:52,head_sha:COMMIT}}]]
+      {id:111,name:"unrelated-build",workflow_run:{id:51,head_sha:COMMIT}},
+      {id:102,name:"cfvigil-release-windows",workflow_run:{id:51,head_sha:COMMIT}}]]
   ]);
   const deleted=[];
   const request=async (url,options={})=>{
@@ -226,5 +226,58 @@ test("Mode B complete platform receipts reject wrong file sets before any GitHub
       corrupted,"test-only-credential",async()=>{requests++;throw Error("forbidden");}
     ),/Incomplete or mismatched CFVigil R2 platform receipt/,label);
     assert.equal(requests,0,label+": malformed receipt must never access GitHub");
+  }
+});
+
+test("Mode B mixed-run receipt cannot authorize cleanup of either archive",async()=>{
+  const bad=structuredClone(receipt());
+  bad.artifacts[1].run_id=52;
+  let calls=0;
+  await assert.rejects(deletePublishedArtifacts(
+    bad,"test-only-token",()=>{calls++;throw Error("network forbidden");}
+  ),/same source run/);
+  assert.equal(calls,0);
+});
+
+test("Mode B verify both archive provenances before deleting either",async()=>{
+  const scenarios=[
+    ["foreign second commit",
+      {id:102,name:"cfvigil-release-windows",
+        workflow_run:{id:51,head_sha:"f".repeat(40)}},/different build/],
+    ["duplicate second archive",
+      {id:102,name:"cfvigil-release-windows",
+        workflow_run:{id:51,head_sha:COMMIT}},/Ambiguous/],
+    ["malformed second archive identity",
+      {id:0,name:"cfvigil-release-windows",
+        workflow_run:{id:51,head_sha:COMMIT}},/different build/]
+  ];
+  for(const [name,second,expectedError] of scenarios){
+    const artifacts=[
+      {id:101,name:"cfvigil-release-linux",
+        workflow_run:{id:51,head_sha:COMMIT}},
+      second
+    ];
+    if(name==="duplicate second archive")
+      artifacts.push({...second,id:103});
+    const deleted=[];
+    let listingCalls=0;
+    const request=async(url,options={})=>{
+      if(options.method==="DELETE"){
+        const id=Number(url.match(/\/artifacts\/(\d+)$/)?.[1]);
+        deleted.push(id);
+        const pos=artifacts.findIndex(a=>a.id===id);
+        if(pos>=0)artifacts.splice(pos,1);
+        return {status:204};
+      }
+      listingCalls++;
+      assert.match(url,/\/actions\/runs\/51\/artifacts\?/);
+      return {status:200,json:async()=>({artifacts:[...artifacts]})};
+    };
+    await assert.rejects(
+      deletePublishedArtifacts(receipt(),"test-only-token",request),
+      expectedError,name
+    );
+    assert.deepEqual(deleted,[],name+": never delete Linux before inspecting Windows");
+    assert.equal(listingCalls,1,name+": fetch both records in a single read-only preflight");
   }
 });
