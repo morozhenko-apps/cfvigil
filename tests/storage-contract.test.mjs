@@ -24,7 +24,7 @@ test("all three local JSON records use the same atomic write and checked restore
 test("recovery never overwrites damaged JSON before backing it up", () => {
   assert.match(persistence,/pub struct Loaded<T>/);
   assert.match(persistence,/fs::rename\(path, backup\)/);
-  assert.match(persistence,/write_atomic_with_rename\(path, value, max_size, fs::rename\)/);
+  assert.match(persistence,/write_atomic_with_rename\(path, value, max_size, \|source, destination\| fs::rename\(source, destination\)\)/);
   assert.match(persistence,/rename\(&temp, path\)/);
   assert.match(persistence,/fn given_rename_failure_after_full_flush_when_replacing_history/);
   assert.match(persistence,/fn given_failed_first_rename_when_persisting/);

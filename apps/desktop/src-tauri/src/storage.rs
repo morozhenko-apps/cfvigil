@@ -98,7 +98,7 @@ pub fn read_or_default<T: DeserializeOwned + Default>(
 /// and atomically swaps into place. Interrupted writes cannot truncate the
 /// last complete JSON file. Secrets still belong only in the OS keychain.
 pub fn write_atomic<T: Serialize>(path: &Path, value: &T, max_size: u64) -> Result<(), String> {
-    write_atomic_with_rename(path, value, max_size, fs::rename)
+    write_atomic_with_rename(path, value, max_size, |source, destination| fs::rename(source, destination))
 }
 
 // Injectable rename seam makes the post-flush disk-failure branch testable
