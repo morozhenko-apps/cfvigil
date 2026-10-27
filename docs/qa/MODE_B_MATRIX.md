@@ -1055,3 +1055,24 @@ authorization, installed KDE/Windows smoke, per-locale human review,
 signed APT/R2 publication or release-owner approval. Rollback: revert
 the one test-only commit, the marker and this separate documentation
 commit as appropriate; no production or user-data restoration.
+
+### Implementation and verification request (2026-10-27)
+
+Stage 9 implemented at test-only commit `9ef81d3a65d10fb259951ec83cfa8a9a3cb730e6`.
+Three independent `#[tokio::test]` functions use the pre-existing
+`FixtureHttp` TCP server and real reqwest responses, with no external
+network. The non-429 table covers 6 statuses. The 429 case validates
+the actual `Retry-After: 75` header and no further admission; the
+independent-budget case ensures a 429 cannot poison another poll.
+Tests assert exact request count and 429 diagnostic constant without
+echoing untrusted response-body text.
+
+For this increment, **3 test functions and 8 HTTP response status cases
+(6 non-429 + 2 responses in isolation)** plus a separate 429
+single-request case are authored. Per-function category classification
+(overlapping) is P=3, N1=0, N2=1, N3=3, N4=3, N5=1,
+N6=0, N7=3, N8=0, N9=0, N10=1, N11=N/A, N12=0.
+These classify coverage intent, not a numeric mutation or branch score.
+Stage 10 assertions and the full stable gate still require CI proof
+at the matching source SHA; documentation must not count an authored
+test as an executed PASS.
