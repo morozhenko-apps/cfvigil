@@ -1292,3 +1292,38 @@ mutation percentage or complete cross-module branch
 coverage is claimed. No actual release publication,
 APT private-key operation, production R2 access, or
 new native install was tested or performed.
+
+
+### 2026-10-27 — approved flat shared R2 + APT release refactor (Mode A)
+
+Owner selected single existing `app-dist` bucket with exact
+`dist/CFVigil/` prefix, only `linux/` and `windows/` artifact
+directories, a single versioned DEB for both direct download and flat
+APT, a SHA256-verified latest.json website pointer, and no download
+Worker. Signed APT files live beside the Linux binary. The website
+may resolve the versioned download from latest.json without alias
+copies. The owner intentionally deferred WAF download limits; do
+not add global bot challenges that disrupt APT/curl.
+
+Implementation stage: `apt_repository.py` creates SHA256-only
+GPG-clear-signed flat metadata; `r2_release.py` validates the
+catalog identity, staged-to-platform DEB equality, two signed index
+hashes and gzip parity; publishes one direct bucket DEB; then
+indexed metadata, `InRelease`, and finally `latest.json`.
+`cleanup-published-artifacts.mjs` requires public readback of
+all platform binaries AND latest pointer before allowing exact
+GitHub Actions deletion. Old per-app Worker source and contract
+suite were removed from `dev`; regular CI no longer parses its
+removed source glob. Protected release still requires exact-main
+tag, owner review and isolated signing materials. Existing live
+sibling product prefixes/routes remain untouched.
+
+Regression inventory: offline single-DEB layout and signed index
+mutations; exact latest data/URL/digest; publication order and
+failure at final public pointer readback; matching receipt rejection
+without final manifest proof. Owner did not authorize a live
+release; production Cloudflare, keys, WAF, GitHub main/tag, sibling
+repos and installed binaries are unchanged. A new full final
+Preflight is still REQUIRED before marking this source tranche PASS.
+The previous 353/353 test result predates this refactor and is not
+its acceptance evidence.
