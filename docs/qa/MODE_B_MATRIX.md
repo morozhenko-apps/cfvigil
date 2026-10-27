@@ -1373,3 +1373,18 @@ dependencies. No claims about physical app installation,
 public R2, WAF, website CORS or real release signing.
 Final hosted CI acceptance remains pending at this
 documentation checkpoint.
+
+### Final hosted disposable GPG / actual APT source tests — PASS
+
+[Preflight #40589861497](https://github.com/morozhenko-apps/cfvigil/actions/runs/40589861497)
+was SUCCESS at source SHA `07d2eccbc611bade2e1187970bb86964ecb98fe0`.
+Exactly **162 Node + 24 Python release + 3 Python icon +
+164 Rust = 353 passing tests**, 0 failures. The two
+new actual-package-manager methods passed in hosted CI,
+not merely an author-side local rehearsal. Real
+`apt-get update` accepted the generated signed flat
+repository and `apt-cache` resolved its fake test
+package; modified signed metadata was correctly rejected.
+No live public APT download or installation of an actual
+CFVigil build was attempted; full provider and native
+Mode B coverage remain independently open.
