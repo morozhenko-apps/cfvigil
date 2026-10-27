@@ -495,3 +495,78 @@ with signing a real production APT repository.
 No extra test trigger was run for this documentation-only
 status update, and no user machine, main branch, production
 Cloudflare object or GitHub release was changed.
+
+### 2026-10-27 — signed APT package-to-DEB and gzip consistency (Mode A)
+
+**Baseline:** `dev` at `6bf807e58b7fec97accd253ef314d8e3d900be15`;
+most recent full Preflight #40571683067 at exact unchanged-code
+`7d9e24c4996b378a6d68d5c41b17d5b01dc3cf5b`:
+Node 167/167; Python 19/19; Rust 164/164; 350/350 PASS.
+This task does not assume live signing or production R2 publication.
+
+**Observed source defect:** `scripts/r2_release.py::apt_files`
+cryptographically validates the signed `InRelease` to local
+`Packages` and `Packages.gz`, and verifies that the APT pool DEB
+bytes equal the release's validated DEB. However, `Packages`
+is only checked for the occurrence of the pool directory substring.
+A signed index can name the wrong package, version or architecture,
+or claim a different `Filename`, `Size` or `SHA256`.
+Also, `Packages.gz` need not actually expand to the separately
+signed `Packages`. Either inconsistency yields unusable or
+contradictory package acquisition even when all existing signature,
+by-hash and R2 integrity tests succeed.
+
+**Root-cause analysis:** (a) signed metadata tamper is addressed by
+the previous index SHA256 verification; (b) binary pool mismatch is
+already checked; (c) internal Packages control fields, sole paragraph
+identity and gzip-to-plain equivalence have **no current verification**.
+Therefore add deterministic checks at the signed-index publishing
+boundary, after `gpgv` and before any external S3/public operation.
+No additional Cloudflare API, signing, HTTP or security boundary is
+introduced.
+
+**Implementation plan:**
+
+1. Build an explicit exact-single-package Debian control index
+   validator in `r2_release.py`. Require one and only one nonempty
+   package stanza; `Package=cf-vigil`,
+   `Version=<approved release version>`,
+   `Architecture=amd64`,
+   `Filename=pool/main/c/cf-vigil/cfvigil_<version>_amd64.deb`,
+   `SHA256=<actual pool digest>`, `Size=<actual pool size>`.
+   Reject malformed and duplicated control keys rather than taking
+   whichever field appears last. Permit legitimate folded
+   Description lines and unrelated standard control fields, but
+   never accept untrusted package names, extra package stanzas,
+   traversal or inline substring matches.
+2. Require `gzip.decompress(Packages.gz)` to equal `Packages`
+   byte-for-byte and reject invalid/truncated gzip, not merely
+   validate both independent SHA256 rows.
+3. Correct offline R2 publication fixtures to realistic
+   `dpkg-scanpackages`-style Packages bytes and real deterministic
+   gzip; regenerate the signed-index fixture SHA256 and by-hash
+   exactly as already done by fixture setup.
+4. Regression tests for valid matching package, folded descriptions,
+   wrong name/version/architecture/path/hash/size, duplicate
+   critical field, additional stanza, deceptive path substrings,
+   mismatched yet signed compressed index and invalid gzip.
+   Re-signing in tests is simulated by regenerating coherent
+   mocked signed-index fixture records after metadata changes,
+   so failures are proven at the package consistency layer,
+   not caused incidentally by stale SHA256 or by-hash.
+5. Final single full CI marker after implementation; independently
+   record actual Node/Python/Rust results and SHA. Do not run
+   production signing, R2, Worker, main promotion, release tag,
+   existing owner's KDE/Windows native check or human review.
+
+**Compatibility:** legitimate `apt_repository.py` output includes
+the fields above because it is produced by
+`dpkg-scanpackages` from an already identified CFVigil amd64
+DEB. This is a fail-closed validation of the preexisting one-DEB
+distribution contract; no public URL, package format, storage
+schema, API or UI change. This task does not grant a release
+authorization. **Rollback:** scoped revert of the Python validator
+and unit fixtures/tests; docs/CI marker are separate commits.
+**Completion evidence:** final hosted CI proof at exact code SHA,
+not a pre-change run. Partial signed apt/source checks should never
+be labeled a fully live validated public release.
