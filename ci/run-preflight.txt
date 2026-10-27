@@ -292,3 +292,10 @@ case was incorrectly expected green for 7% (< absolute 10% floor).
 Preserve the threefold case; assert 7%/9.5% are false and 10% true.
 No domain relaxation or 0.07 spike classification. Full stable gate
 must pass all 139 Rust tests and JS/Python before declaring source PASS.
+
+2026-10-27: verify canonical CFVigil identity consolidation.
+Rust workspace/lock package, Windows+Linux and protected CI selectors,
+KDE icon and DEB launcher Name/Exec/Icon must all be cfvigil/CFVigil.
+Bundle identifier com.morozhenko.cfvigil and keyring service unchanged.
+Run 20-locale, JS identity/mutation/contract, Python and locked Rust tests.
+Do NOT publish/tag/release or use owner's self-hosted machines.
