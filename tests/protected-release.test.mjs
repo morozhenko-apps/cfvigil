@@ -4,7 +4,6 @@ import {readFileSync} from "node:fs";
 
 const read=p=>readFileSync(new URL("../"+p,import.meta.url),"utf8").replace(/\r\n/g,"\n");
 const release=read(".github/workflows/protected-release.yml");
-const worker=read("infra/download-worker/wrangler.jsonc");
 const publisher=read("scripts/r2_release.py");
 
 test("no dev push or workflow dispatch can publish CFVigil",()=>{
@@ -43,23 +42,21 @@ test("publication scopes credentials, R2 prefix and GitHub write permissions",()
   assert.doesNotMatch(release,/REPOTICKER_|repoticker-release|self-hosted/);
   assert.equal((release.match(/actions: write/g)||[]).length,1);
   assert.match(publisher,/PREFIX = "dist\/CFVigil\/"/);
-  assert.match(publisher,/BUCKET = "cfvigil-dist"/);
+  assert.match(publisher,/BUCKET = "app-dist"/);
   assert.match(publisher,/base_url/);
   assert.match(publisher,/public_readback/);
-  assert.match(publisher,/apt\/dists\/stable\/InRelease/);
+  assert.match(publisher,/linux\/InRelease/);
+  assert.match(publisher,/latest_manifest/);
+  assert.match(publisher,/latest\.json/);
 });
 
-test("dedicated download Worker is read only and not a RepoTicker mirror",()=>{
-  const config=JSON.parse(worker);
-  assert.equal(config.name,"cfvigil-download");
-  assert.equal(config.workers_dev,false);
-  assert.equal(config.preview_urls,false);
-  assert.equal(config.r2_buckets[0].bucket_name,"cfvigil-dist");
-  assert.equal(config.routes[0].pattern,"https://download.morozhenko.com/dist/CFVigil/*");
-  assert.doesNotMatch(worker,/dist\/RepoTicker|repoticker-download/);
-  const source=read("infra/download-worker/src/worker.mjs");
-  assert.doesNotMatch(source,/\.put\(|\.delete\(|\.list\(/);
-  assert.match(source,/request\.method !== "GET" && request\.method !== "HEAD"/);
+test("release uses direct app-dist custom domain and no Worker dependency",()=>{
+  assert.match(publisher,/BUCKET = "app-dist"/);
+  assert.match(publisher,/PREFIX = "dist\/CFVigil\/"/);
+  assert.match(publisher,/BASE = "https:\/\/download\.morozhenko\.com\/"/);
+  assert.match(publisher,/upload\(client, "latest\.json"/);
+  assert.doesNotMatch(release,/wrangler deploy|cfvigil-download|cloudflare worker/);
+  assert.doesNotMatch(publisher,/cfvigil-dist|pool\/main\/|dists\/stable/);
 });
 
 test("release artifact handoff paths match the verified Linux and Windows staging directories", () => {
