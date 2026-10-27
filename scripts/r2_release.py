@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CFVigil-only signed R2 publication. Never invoked by candidate workflows.
+"""CFVigil flat signed R2 publication. Never invoked by candidate workflows.
 
 Publishing requires an owner-approved exact-main tag, a protected environment,
 a separately provisioned signing subkey, and scoped CFVigil R2 credentials.
@@ -17,7 +17,7 @@ import time
 import urllib.request
 import zlib
 
-BUCKET = "cfvigil-dist"
+BUCKET = "app-dist"
 PREFIX = "dist/CFVigil/"
 BASE = "https://download.morozhenko.com/" + PREFIX
 VERSION = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\Z")
@@ -92,7 +92,7 @@ def platform_files(release, platform, version, commit):
             raise ValueError("Candidate checksum sidecar mismatch: " + name)
         expected.update((name, name + ".sha256"))
         for item in (file, sidecar):
-            key = "releases/v" + version + "/" + platform + "/" + item.name
+            key = platform + "/" + item.name
             entries[key] = item
     if set(manifest_entries) != set(names[platform]) or {
         child.name for child in folder.iterdir()
@@ -121,8 +121,8 @@ def verify_signed_apt_indexes(inrelease, index):
         raise ValueError("Signed APT index has a malformed cleartext envelope")
 
     required = {
-        "main/binary-amd64/Packages": index / "Packages",
-        "main/binary-amd64/Packages.gz": index / "Packages.gz",
+        "Packages": index / "Packages",
+        "Packages.gz": index / "Packages.gz",
     }
     found = {}
     in_sha256 = False
@@ -202,7 +202,7 @@ def verify_apt_package_catalog(packages, compressed, pool, version):
         "Package": "cf-vigil",
         "Version": version,
         "Architecture": "amd64",
-        "Filename": f"pool/main/c/cf-vigil/cfvigil_{version}_amd64.deb",
+        "Filename": f"./cfvigil_{version}_amd64.deb",
         "Size": str(pool.stat().st_size),
         "SHA256": digest(pool),
     }
@@ -224,37 +224,27 @@ def verify_apt_package_catalog(packages, compressed, pool, version):
 
 def apt_files(apt, linux_deb, version):
     if apt.is_symlink() or not apt.is_dir():
-        raise ValueError("Incomplete signed APT directory")
-    pool = apt / f"pool/main/c/cf-vigil/cfvigil_{version}_amd64.deb"
+        raise ValueError("Incomplete signed flat APT directory")
+    # apt_repository.py stages a local copy for dpkg-scanpackages;
+    # the published object is only linux/cfvigil_VERSION_amd64.deb
+    # from the platform candidate, never this second staging file.
+    staged = apt / f"cfvigil_{version}_amd64.deb"
     keyring = apt / "cfvigil-archive-keyring.gpg"
-    root = apt / "dists/stable"
-    index = root / "main/binary-amd64"
-    packages = index / "Packages"
-    compressed = index / "Packages.gz"
-    inrelease = root / "InRelease"
-    files = [pool, keyring, packages, compressed, inrelease]
-    for file in files:
+    packages = apt / "Packages"
+    compressed = apt / "Packages.gz"
+    inrelease = apt / "InRelease"
+    for file in (staged, keyring, packages, compressed, inrelease):
         safe_file(file)
-    if digest(pool) != digest(linux_deb):
-        raise ValueError("Signed APT pool does not match validated CFVigil DEB")
-    # Verify actual signed metadata, not merely an InRelease filename.
+    if digest(staged) != digest(linux_deb):
+        raise ValueError("Flat APT staged DEB does not match validated CFVigil DEB")
     subprocess.run(["gpgv", "--keyring", str(keyring), str(inrelease)],
                    check=True, stdout=subprocess.DEVNULL)
-    verify_signed_apt_indexes(inrelease, index)
-    verify_apt_package_catalog(packages, compressed, pool, version)
-    immutable = {}
-    mutable = {}
-    for item in (pool, keyring):
-        immutable["apt/" + item.relative_to(apt).as_posix()] = item
-    for item in (packages, compressed):
-        hashed = index / "by-hash/SHA256" / digest(item)
-        safe_file(hashed)
-        if digest(hashed) != digest(item):
-            raise ValueError("APT by-hash corruption")
-        immutable["apt/" + hashed.relative_to(apt).as_posix()] = hashed
-        mutable["apt/" + item.relative_to(apt).as_posix()] = item
-    mutable["apt/dists/stable/InRelease"] = inrelease
-    return immutable, mutable
+    verify_signed_apt_indexes(inrelease, apt)
+    verify_apt_package_catalog(packages, compressed, linux_deb, version)
+    return ({"linux/" + keyring.name: keyring},
+            {"linux/" + packages.name: packages,
+             "linux/" + compressed.name: compressed,
+             "linux/" + inrelease.name: inrelease})
 
 
 def source_map(release, apt, version, commit):
@@ -262,12 +252,34 @@ def source_map(release, apt, version, commit):
         raise ValueError("Invalid signed-release version or commit")
     linux = platform_files(release, "linux", version, commit)
     windows = platform_files(release, "windows", version, commit)
-    package = linux["releases/v" + version + "/linux/cfvigil_" + version + "_amd64.deb"]
+    package = linux["linux/cfvigil_" + version + "_amd64.deb"]
     apt_immutable, apt_mutable = apt_files(apt, package, version)
     immutable = {**linux, **windows, **apt_immutable}
+    if set(immutable).intersection(apt_mutable):
+        raise ValueError("Overlapping R2 publication keys")
     return immutable, apt_mutable, {
         "cfvigil-release-linux": linux,
         "cfvigil-release-windows": windows,
+    }
+
+
+def latest_manifest(immutable, version, commit):
+    """A small mutable pointer; never a second binary or an update signature."""
+    def item(key):
+        file = immutable[key]
+        return {"url": BASE + key, "sha256": digest(file), "size": file.stat().st_size}
+    return {
+        "schema": 1, "product": "CFVigil",
+        "version": version, "tag": "v" + version, "commit": commit,
+        "files": {
+            "linux": {
+                "deb": item(f"linux/cfvigil_{version}_amd64.deb"),
+                "appimage": item(f"linux/CFVigil-{version}-linux-x64.AppImage"),
+            },
+            "windows": {
+                "installer": item(f"windows/CFVigil-Setup-{version}-win-x64.exe")
+            },
+        },
     }
 
 
@@ -278,8 +290,8 @@ def content_type(path):
 
 
 def public_readback(path, relative, opener=urllib.request.urlopen):
-    # The public Worker must already be independently deployed. No fallback
-    # to private R2 readback is accepted as proof of public distribution.
+    # Direct R2 custom-domain readback is mandatory; private S3 reads alone
+    # cannot demonstrate that visitors can download this exact object.
     expected_size = path.stat().st_size
     expected_sha = digest(path)
     for attempt in range(4):
@@ -355,19 +367,30 @@ def publish(release, apt, version, commit, run_id, output, account, access_key, 
     for key, file in sorted(immutable.items()):
         upload(client, key, file, True)
         verified[key] = public_readback(file, key)
-    # Mutable indexes are committed after all immutable files are reachable.
-    # Signed InRelease MUST be the final published object.
+    # Two mutable index representations first; signed InRelease commits
+    # APT afterwards. Without by-hash a concurrent client may see a
+    # transient signed-index mismatch and must retry, never bypass GPG.
     for key, file in sorted(mutable.items()):
-        if key.endswith("/InRelease"):
+        if key == "linux/InRelease":
             continue
         upload(client, key, file, False)
         verified[key] = public_readback(file, key)
-    inrelease = "apt/dists/stable/InRelease"
+    inrelease = "linux/InRelease"
     upload(client, inrelease, mutable[inrelease], False)
     verified[inrelease] = public_readback(mutable[inrelease], inrelease)
+
+    # latest.json is the FINAL commit point. No duplicate "latest" binary
+    # aliases: the site reads this pointer and links immutable binaries.
+    manifest = latest_manifest(immutable, version, commit)
+    latest_path = output.parent / "cfvigil-latest-publish.json"
+    if latest_path.exists():
+        raise ValueError("Refusing to overwrite an existing latest manifest")
+    latest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+    upload(client, "latest.json", latest_path, False)
+    latest_verified = public_readback(latest_path, "latest.json")
     receipt = {
         "schema": 1, "product": "CFVigil", "base_url": BASE,
-        "version": version, "commit": commit,
+        "version": version, "commit": commit, "latest": latest_verified,
         "artifacts": [
             {"name": name, "run_id": int(run_id),
              "files": [verified[key] for key in sorted(files)]}
@@ -375,7 +398,7 @@ def publish(release, apt, version, commit, run_id, output, account, access_key, 
         ],
     }
     output.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
-    print("CFVigil R2 publication and public checksum verification completed")
+    print("CFVigil flat R2 publication, APT and latest manifest readback completed")
 
 
 def main():
