@@ -271,4 +271,74 @@ mod tests {
         );
     }
 
+
+    #[test]
+    fn given_failure_offline_reconnect_and_new_attempt_when_tracking_then_dedup_is_exact() {
+        use crate::incident_store::NotificationWindow;
+        let healthy=make("healthy","attempt-a","Verified attempt");
+        let failed=make("failed","attempt-a","Latest failed attempt");
+        let stale=make("unknown","attempt-a","Cloudflare network request failed");
+        let deploying=make("deploying","attempt-b","New deployment started");
+        let new_failed=make("failed","attempt-b","New deployment failed");
+        let new_healthy=make("healthy","attempt-b","New deployment succeeded");
+        let mut window=NotificationWindow::default();
+        let transitions=[
+            (&healthy,&failed,Some(msg::EVENT_BUILD_FAILURE),true),
+            (&failed,&failed,None,false),
+            (&failed,&stale,None,false),
+            (&stale,&failed,Some(msg::EVENT_BUILD_FAILURE),false),
+            (&failed,&deploying,Some(msg::EVENT_BUILD_STARTED),false),
+            (&deploying,&new_failed,Some(msg::EVENT_BUILD_FAILURE),true),
+            (&new_failed,&new_healthy,Some(msg::EVENT_BUILD_SUCCESS),false),
+            (&new_healthy,&new_healthy,None,false),
+        ];
+        let mut emitted=Vec::<String>::new();
+        for (old,current,expected,notifies_new) in transitions {
+            let event=describe_transition(old,current);
+            assert_eq!(event,expected,
+                "{}:{} -> {}:{}",old.status,old.attempt_id,
+                current.status,current.attempt_id);
+            let new_notification=event
+                .and_then(|message| notification_identity(current,message))
+                .is_some_and(|id| {
+                    let admitted=window.insert(id.clone());
+                    if admitted {emitted.push(id);}
+                    admitted
+                });
+            assert_eq!(new_notification,notifies_new,
+                "{}:{}",current.status,current.attempt_id);
+        }
+        assert_eq!(emitted,vec![
+            "worker:example:failed:attempt-a",
+            "worker:example:failed:attempt-b"
+        ]);
+    }
+
+    #[test]
+    fn given_waf_analytics_unavailable_then_verified_again_when_classifying_then_not_a_second_attack() {
+        use crate::incident_store::NotificationWindow;
+        let mut spike=make("failed","waf-block-spike","WAF blocks spiking: 150 in 10m");
+        spike.kind="zone".into();
+        spike.key="zone:verified".into();
+        let mut unavailable=spike.clone();
+        unavailable.status="unknown".into();
+        unavailable.detail="WAF analytics unavailable".into();
+        let mut continuing=spike.clone();
+        continuing.detail="WAF blocks spiking: 220 in 10m".into();
+        let mut window=NotificationWindow::default();
+        let message=initial_security_event(&spike).unwrap();
+        assert_eq!(message,msg::EVENT_WAF_SPIKE);
+        let identity=notification_identity(&spike,message).unwrap();
+        assert!(window.insert(identity.clone()));
+        assert_eq!(describe_transition(&spike,&unavailable),None);
+        assert_eq!(describe_transition(&unavailable,&continuing),None);
+        assert_eq!(describe_transition(&continuing,&continuing),None);
+        assert!(!window.insert(identity.clone()));
+        assert_eq!(window.ids(),vec![identity.clone()]);
+        // The caller must confirm this exact zone in its verified-zone set
+        // before removing the active alert and rearming a later episode.
+        assert!(window.remove(&identity));
+        assert!(window.insert(identity));
+    }
+
 }
