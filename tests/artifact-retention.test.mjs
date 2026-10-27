@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {validateR2Receipt,deletePublishedArtifacts} from "../scripts/cleanup-published-artifacts.mjs";
 
-const BASE = "https://download.morozhenko.com/dist/CFVigil/releases/v0.1.0/";
+const BASE = "https://download.morozhenko.com/dist/CFVigil/";
 const HASH = "a".repeat(64);
 const COMMIT = "b".repeat(40);
 // Mirror the exact receipt file lists emitted by r2_release.py.
@@ -29,6 +29,8 @@ const record = (name, run_id, ext) => ({
 const receipt = () => ({
   schema:1,product:"CFVigil",version:"0.1.0",commit:COMMIT,
   base_url:"https://download.morozhenko.com/dist/CFVigil/",
+  latest:{url:BASE+"latest.json",sha256:HASH,readback_sha256:HASH,
+    size:12345,readback_size:12345,readback_status:200},
   artifacts:[
     record("cfvigil-release-linux",51,".deb"),
     record("cfvigil-release-windows",51,".exe")
@@ -51,6 +53,24 @@ test("cleanup requires verified public R2 receipt before any network call", asyn
       called=true;throw Error("network");
     }));
     assert.equal(called,false);
+  }
+});
+
+test("cleanup cannot delete source archives unless final latest.json is verified",async()=>{
+  for(const [name,mutate] of [
+    ["missing",r=>delete r.latest],
+    ["foreign-pointer",r=>r.latest.url=BASE+"windows/latest.json"],
+    ["truncated",r=>r.latest.readback_size--],
+    ["tampered",r=>r.latest.readback_sha256="f".repeat(64)],
+    ["failed-http",r=>r.latest.readback_status=404]
+  ]) {
+    const input=receipt();
+    mutate(input);
+    let invoked=0;
+    await assert.rejects(deletePublishedArtifacts(
+      input,"offline-test-token",async()=>{invoked++;throw Error("unexpected");}
+    ),/final latest\.json/,name);
+    assert.equal(invoked,0,name+": no GitHub requests");
   }
 });
 
