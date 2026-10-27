@@ -391,6 +391,41 @@ mod tests {
     }
 
     #[test]
+    fn corrupt_missing_anchor_file_is_quarantined_without_replaying_window_coordinates() {
+        use std::sync::atomic::{AtomicU64,Ordering};
+        static NEXT:AtomicU64=AtomicU64::new(0);
+        let directory=std::env::temp_dir().join(format!(
+            "cfvigil-win-position-{}-{}",
+            std::process::id(),NEXT.fetch_add(1,Ordering::Relaxed)));
+        std::fs::create_dir(&directory).unwrap();
+        let path=directory.join("windows-card-position.json");
+        std::fs::write(&path,b"{}").unwrap();
+
+        let read=crate::storage::read_or_default::<SavedPosition>(
+            &path,crate::storage::MAX_JSON_BYTES).unwrap();
+        assert!(read.quarantined);
+        assert!(read.value.anchor.is_none());
+        assert!(!path.exists());
+        let backups=std::fs::read_dir(&directory).unwrap()
+            .map(|entry|entry.unwrap().path()).collect::<Vec<_>>();
+        assert_eq!(backups.len(),1);
+        assert!(backups[0].file_name().unwrap().to_string_lossy()
+            .contains("windows-card-position.json.corrupt."));
+        assert_eq!(std::fs::read(&backups[0]).unwrap(),b"{}");
+
+        crate::storage::write_atomic(&path,&SavedPosition {
+            anchor:Some(Anchor{x:-200,bottom:800}),
+        },crate::storage::MAX_JSON_BYTES).unwrap();
+        let restored=crate::storage::read_or_default::<SavedPosition>(
+            &path,crate::storage::MAX_JSON_BYTES).unwrap();
+        assert!(!restored.quarantined);
+        let saved=restored.value.anchor.unwrap();
+        assert_eq!((saved.x,saved.bottom),(-200,800));
+        assert_eq!(std::fs::read(&backups[0]).unwrap(),b"{}");
+        std::fs::remove_dir_all(&directory).unwrap();
+    }
+
+    #[test]
     fn given_separate_native_card_sessions_when_created_then_no_stale_drag_or_checkpoint_leaks() {
         let first=NativeCard::default();
         assert!(first.anchor.lock().unwrap().is_none());
