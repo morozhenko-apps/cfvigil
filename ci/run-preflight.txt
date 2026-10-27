@@ -258,3 +258,11 @@ fixed at c09e879, and unsafe-cache forged/valid duplicate test at
 12b21fe. Previous #40397520607 passed JS/Python but Rust compile
 failed; require full locked Rust check + unit tests and preflight success.
 No private runner, production API or release publication.
+
+2026-10-27: Mode B consolidated Stage 11 STABLE verification after all authored
+unit, localhost REST/GraphQL, JSON and OS-failure injection, release/R2,
+mutation-oracle and state-machine test tranches. Also verify About owner
+contract and current Rust main credential/autostart helpers. Execute the
+complete required JS/i18n/icon, Python offline, cargo check --locked and
+cargo test --locked on public GitHub-hosted Ubuntu only. This is a source
+and simulated-integration gate, not native KDE/Windows/cloud provider smoke.
