@@ -281,3 +281,25 @@ test("Mode B verify both archive provenances before deleting either",async()=>{
     assert.equal(listingCalls,1,name+": fetch both records in a single read-only preflight");
   }
 });
+
+test("Mode B same archive ID reused for two distinct platform names must not delete",async()=>{
+  const artifacts=[
+    {id:101,name:"cfvigil-release-linux",
+      workflow_run:{id:51,head_sha:COMMIT}},
+    {id:101,name:"cfvigil-release-windows",
+      workflow_run:{id:51,head_sha:COMMIT}}
+  ];
+  let deletes=0;
+  let lists=0;
+  const request=async(url,options={})=>{
+    if(options.method==="DELETE"){deletes++;return {status:204};}
+    lists++;
+    assert.match(url,/\/actions\/runs\/51\/artifacts\?/);
+    return {status:200,json:async()=>({artifacts})};
+  };
+  await assert.rejects(
+    deletePublishedArtifacts(receipt(),"test-only-token",request),/Ambiguous/
+  );
+  assert.equal(lists,1,"one read-only inventory for both platforms");
+  assert.equal(deletes,0,"a duplicated ID must never authorize cleanup");
+});
