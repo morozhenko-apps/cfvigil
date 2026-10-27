@@ -325,3 +325,12 @@ Windows-only anchor code is not runnable on Ubuntu. No production R2.
 object-only language preference, preserve valid {} default and actual
 storage quarantine/rewrite. Run full Node, Python, 20-locale, assets,
 cargo check --locked and Rust tests. Same SHA as Windows build.
+
+2026-10-27: Mode B bounded real HTTP request-budget observer tranche.
+Verify six non-429 HTTP statuses do not trigger throttle, actual 429
+Retry-After stops admissions without leaking error body, and separate
+poll budgets never inherit one another's rate-limit state. Exactly
+three new localhost reqwest integration tests and all existing JS,
+Python, locale/icon and locked Rust check/tests. GitHub-hosted Ubuntu
+Preflight only; no Windows candidate, self-hosted runner, Cloudflare
+account, package publication, R2, main or tag changes.
