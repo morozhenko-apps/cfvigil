@@ -970,3 +970,102 @@ no live environment or R2 state is mutated by writing the code.
 \`--init-environment\` is an explicit external action to be
 run on the owner's machine and is *not* executed by this
 source-only implementation.
+
+### Owner runbook: configure the first CFVigil protected release
+
+Use the following **single commands** in a local clone updated from
+\`morozhenko-apps/cfvigil\` \`dev\`:
+
+\`\`\`bash
+python3 scripts/release_readiness.py
+\`\`\`
+
+This is the default **read-only** audit; it prints the existence of
+GitHub Environment settings and only *credential names*, never their
+values. It exits code 2 if protected reviewers, tag policy, variable
+or secret names are absent/inaccessible, or if \`main\` has not yet
+received the approved \`dev\` code. A GitHub 404 is deliberately
+reported as **missing OR inaccessible**, never as proof that a secret
+or environment is absent. A default-branch mismatch is expected
+during development and must not be auto-fixed by this helper.
+
+If and only if the owner chooses to create an otherwise absent
+GitHub environment, run:
+
+\`\`\`bash
+python3 scripts/release_readiness.py --init-environment
+\`\`\`
+
+The explicit command requires authenticated \`gh\` CLI **admin**
+permissions on \`morozhenko-apps/cfvigil\`, checks the existing
+environment list first, refuses to overwrite existing settings,
+and creates \`cfvigil-release\` with the initiating account as
+required reviewer (solo-maintainer self-review enabled) and only
+\`v*\` tag deployment policy. The operation makes a GitHub
+environment and tag rule but does **NOT** set secrets, generate
+keys, create a tag, merge branches, publish to R2, or run a release.
+If GitHub rejects the reviewer policy, stop and inspect the repo
+environment rather than silently removing the guard.
+
+Required **Environment Variables** (names only; owner supplies values):
+
+| Name | Correct kind of value |
+| --- | --- |
+| \`CFVIGIL_R2_ACCOUNT_ID\` | Cloudflare account ID hosting the preexisting shared \`app-dist\` bucket |
+| \`CFVIGIL_APT_FINGERPRINT\` | Full 40-hex signing fingerprint for the **dedicated CFVigil APT signing subkey** |
+| \`CFVIGIL_RELEASE_APPROVED_TAG\` | Exact tag for the specific owner-approved release, for example \`v0.1.0\`; set this **last**, after promotion and native acceptance |
+
+Required **Environment Secrets**, never show/paste values in
+issue reports, PRs or chat:
+
+| Name | Purpose |
+| --- | --- |
+| \`CFVIGIL_R2_ACCESS_KEY_ID\` | Explicitly provisioned R2 API credential for shared bucket \`app-dist\` |
+| \`CFVIGIL_R2_SECRET_ACCESS_KEY\` | R2 API secret associated with that key |
+| \`CFVIGIL_APT_SIGNING_SUBKEY_BASE64\` | Owner's export of dedicated passphrase-protected CFVigil signing **subkey**, not the offline primary secret key |
+| \`CFVIGIL_APT_SIGNING_PASSPHRASE\` | Passphrase for only the dedicated CFVigil signing subkey |
+
+GitHub Environment variables/secrets are **per repository**:
+RepoTicker's \`apt-release\` environment and its keys do not appear
+in CFVigil automatically. The release workflow checks the approved
+tag, cryptographic key inventory and R2 public readback **at
+publication time**; the readiness helper validates only metadata
+and cannot prove that secrets are correct. Shared \`app-dist\`
+credentials are scoped at least to that **entire bucket** by
+Cloudflare R2, not to the \`dist/CFVigil/\` prefix; the publisher
+itself constrains all object paths to that prefix. Never
+automatically reuse or rotate Picturix/RepoTicker credentials.
+
+**Confirm Cloudflare without changing it:** in the R2 dashboard
+verify existing \`app-dist\` bucket, its active
+\`download.morozhenko.com\` Custom Domain and public GET of a known
+Picturix release object. A \`POST\` status of \`401\` or \`405\`
+does **not** test public download access; GET/HEAD are the
+relevant methods. The actual CFVigil release job independently
+downloads every newly published file over public HTTP and
+verifies its full SHA256 and length before signaling success.
+Do not create a new bucket, Worker or WAF rule here. Later,
+for browser-side \`latest.json\` reads from \`morozhenko.com\`,
+configure read-only GET/HEAD CORS for the existing bucket
+and verify the effective response with an Origin header,
+without breaking Picturix.
+
+**Owner-controlled promotion only:** once physical Linux/Windows
+acceptance and the separate 20-locale/editorial gate are
+approved, fast-forward \`main\` to the validated \`dev\` source,
+set \`CFVIGIL_RELEASE_APPROVED_TAG\` to the exact intended
+version, create the matching protected \`v*\` tag on that
+exact main commit, approve the environment deployment in
+GitHub, and verify the public receipt plus binary archive
+cleanup. Do not automate these owner approvals in this
+preparation task. The first published
+\`dist/CFVigil/latest.json\` then becomes the source for
+PersonalLanding's future download buttons. No website
+buttons should be added before that successful public
+readback.
+
+Rollback of explicit environment bootstrap (if needed) is
+a manual owner review of the repo's Environments settings
+and tag policies; **never delete a pre-existing environment**
+just because this helper ran. The check-only command has
+no rollback requirements.
