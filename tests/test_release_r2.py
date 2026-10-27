@@ -121,7 +121,7 @@ class PublicationFixture(unittest.TestCase):
     def test_old_signed_apt_index_must_reject_new_indexes_even_if_by_hash_matches(self):
         index = self.apt / "dists/stable/main/binary-amd64"
         packages = index / "Packages"
-        new_content = packages.read_bytes() + b"Version: unexpected\\n"
+        new_content = packages.read_bytes() + b"Version: unexpected\n"
         packages.write_bytes(new_content)
         new_hash = index / "by-hash/SHA256" / sha(new_content)
         new_hash.write_bytes(new_content)
