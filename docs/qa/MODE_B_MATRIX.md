@@ -616,3 +616,35 @@ Rollback: each change is scoped to a source/test commit. The
 keyring/autostart helpers preserve existing action ordering. The
 new R2 and GitHub tests are test-only and require no user-state
 migration or cleanup.
+
+## 2026-10-27: identity drift remediation added to Mode B
+
+A source audit found that, although the Tauri product was always
+`CFVigil`, the Cargo workspace member was named `cfvigil-desktop`
+and its derived native executable and Linux theme icon inherited
+that suffix. This risks leaking an internal directory concept into
+installed binaries, KDE task-switcher and downstream manifests.
+
+Architecture-level correction on `dev`: Rust crate `cfvigil`
+plus matching committed `Cargo.lock`, all hosted Linux/Windows/
+protected CI selectors `-p cfvigil`, `main.rs` GTK
+`set_icon_name("cfvigil")` at window creation/show, and new
+package validation requiring the exact DEB `Name=CFVigil`,
+`Exec=cfvigil` and `Icon=cfvigil` with installed PNG.
+`scripts/candidate-version.mjs` now rejects any noncanonical
+crate/lock identity. Tests protect version drift, old suffix,
+installed launcher identity, preserved bundle ID/keyring, and
+the release pipeline. The historical 0.1.0 filename, `cf-vigil`
+Debian package name, `com.morozhenko.cfvigil` app ID and
+`dist/CFVigil/` R2 prefix remain stable.
+
+Prior Mode B hosted Preflight
+[#40470097481](https://github.com/morozhenko-apps/cfvigil/actions/runs/40470097481)
+completed SUCCESS for **the previous SHA**, before identity changes.
+That pass proves only the prior test tranche and is NOT acceptance
+of the renamed executable/launcher. A fresh STABLE gate and matched
+Linux/Windows package checks must verify the current changes.
+Real owner KDE/Windows upgrade/autostart smoke remains OPEN.
+N1/N6/N7/N9 are applicable to upgrade/package identity; N11 still
+inapplicable. No live Cloudflare, production release, R2, signing,
+`main` or self-hosted runners touched.

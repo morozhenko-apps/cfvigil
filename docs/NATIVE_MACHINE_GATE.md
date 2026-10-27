@@ -536,3 +536,23 @@ Native acceptance remains OPEN; update the owner-observed matrix
 above only after physical Linux and Windows results, not the candidate
 job PASS alone. KDE menu launcher/pinned entry and Chrome warning
 classification still need owner-machine evidence.
+
+## Canonical CFVigil name and upgrade acceptance (2026-10-27)
+
+The project/folder name `apps/desktop` identifies the implementation
+subproject, **not** a suffix to the application brand. Tauri
+`productName=CFVigil` and identifier `com.morozhenko.cfvigil`
+never changed. The previous Cargo crate/executable and Linux themed
+icon used `cfvigil-desktop`; now their contract is `cfvigil`.
+The DEB package `cf-vigil`, persistent JSON account/state file
+names, keyring service and release R2 prefix remain unchanged.
+
+Cross-platform owner retest is required after the **new exact-SHA**
+package build: confirm Linux `Name=CFVigil`/`Exec=cfvigil`/
+`Icon=cfvigil`, native History icon, KDE pin and autostart .desktop
+point to installed executable. Confirm Windows NSIS same application
+identity, icon, Start Menu path and any existing autostart registration,
+not a parallel CFVigil Desktop installation. No automatic purge or
+user-settings migration is intended.
+
+Status: source adjusted; **physical upgrade compatibility OPEN**.

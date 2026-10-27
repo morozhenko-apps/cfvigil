@@ -208,3 +208,36 @@ shortcut to that themed icon. It is not evidence that uninstall/purge
 would fix the issue. Inspect the installed theme and
 `~/.local/share/applications` override, rebuild `kbuildsycoca6`,
 and replace a stale pinned KDE shortcut only after observing its target.
+
+## 2026-10-27: canonical CFVigil application identity
+
+**Current source contract:** display/product name `CFVigil`;
+Rust crate and native executable `cfvigil`; Debian package identity
+`cf-vigil` (preserved for seamless package ownership);
+Linux launcher `Name=CFVigil`, `Exec=cfvigil` and
+`Icon=cfvigil`, with a matching installed `hicolor/apps/cfvigil.png`.
+Windows product, existing Windows bundle ID and source-owned ICO remain
+unchanged; no new application data directory. The persistent Tauri
+identifier stays `com.morozhenko.cfvigil`; the keyring service remains
+`com.morozhenko.cfvigil.cloudflare`. The former
+`cfvigil-desktop` executable/theme name seen in old candidate logs
+was an internal Cargo default and is **retired**, not the product name.
+
+`scripts/candidate-version.mjs` validates the Rust package identity
+and matching `Cargo.lock`; `scripts/candidate-assets.mjs`
+checks the installed DEB's `Name`/`Exec`/`Icon` together.
+`tests/product-identity.test.mjs` also catches accidental propagation
+to Linux, Windows or protected-release workflows.
+
+**Installed-machine migration needs actual owner smoke:** install a
+new same-version candidate with `sudo apt install --reinstall ./cfvigil_0.1.0_amd64.deb`;
+verify the DEB-owned executable and launcher using
+`dpkg -L cf-vigil`, inspect `Exec` and `Icon`, and refresh
+`kbuildsycoca6`. Remove/re-pin only an observed stale KDE pinned
+launcher. Do **not** `apt purge`, clear app data, keyring or settings
+to repair an icon. Check an existing launch-at-login entry to ensure
+its `Exec` follows `cfvigil`; if it still targets the old binary,
+disable then re-enable autostart through Settings on the owner machine.
+For Windows verify current-user NSIS reinstall/Start Menu/taskbar
+points to the new `cfvigil.exe`, with unchanged app data/token.
+Source and candidate QA alone cannot claim migration PASS.
