@@ -34,7 +34,7 @@ test("one hosted job runs UI and native Rust checks in a single preflight", () =
   assert.doesNotMatch(workflow, /self-hosted|container:\s*\n/);
   assert.equal((workflow.match(/^    runs-on:/gm) || []).length, 1);
   assert.match(workflow, /node --test tests\/\*\.test\.mjs/);
-  assert.match(workflow, /cargo check --locked -p cfvigil-desktop/);
-  assert.match(workflow, /cargo test --locked -p cfvigil-desktop/);
+  assert.match(workflow, /cargo check --locked -p cfvigil/);
+  assert.match(workflow, /cargo test --locked -p cfvigil/);
   assert.match(workflow, /cancel-in-progress: true/);
 });
