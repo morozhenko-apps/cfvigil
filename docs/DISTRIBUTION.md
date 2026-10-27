@@ -1,3 +1,70 @@
+## 2026-10-27: optional reuse of an existing APT signing authority
+
+Owner's authenticated CLI confirmed that \`cfvigil-release\` was
+**CREATED** and has the owner-reviewer and \`v*\` tag policy,
+while all three release environment variable NAMES and four
+secret NAMES were missing. The dev/main SHA mismatch is
+intentionally unsatisfied, pending explicit release approval.
+This is owner-supplied CLI output, not an independent private
+GitHub environment readback.
+
+**Key clarification:** the checked-in
+\`scripts/verify_signing_key.py\` requires \`CFVIGIL_APT_FINGERPRINT\`
+to be the **40-hex certification PRIMARY fingerprint**, not a
+signing subkey fingerprint. It requires a signing-subkey-only
+export with the primary secret stripped (one primary stub and
+exactly one working signing subkey). This supersedes a mistaken
+"subkey fingerprint" description in the prior operational
+variables table. Do not change the validator to accept a full
+primary export.
+
+The owner has an existing RepoTicker APT keyring under
+\`$HOME/morozhenko/secrets/RepoTicker/\`, including a
+\`FINGERPRINT\`, public keyring and an **encrypted full-secret
+backup**. Reusing its existing primary plus its single signing
+subkey across the CFVigil APT archive is technically compatible
+without changing the cryptographic validator or flat R2 layout.
+The 40-hex fingerprint identifies a key; by itself it cannot
+sign. The local active \`gpg\` keyring must actually contain the
+corresponding private signing subkey. The encrypted full-secret
+backup and unknown \`key.txt\` must **never** be uploaded into
+GitHub Secrets or printed in a chat. Use only
+\`gpg --export-secret-subkeys\` from a verified active local
+keyring. Send the signing-subkey export to CFVigil's own
+environment secret name and passphrase secret name.
+
+**Trade-off:** GitHub repository environment secrets remain
+separate, but the common signing key creates shared trust and
+revocation/compromise blast radius: leaking the signing subkey
+via either pipeline potentially affects **both** APT archives.
+CFVigil remains independently distributable, and later
+migration to a CFVigil-only primary/subkey plus updated
+signed-by keyring is supported. Do not share R2 API keys merely
+because the GPG signing authority is shared. A new independent
+signing identity is still the safer default when strict
+product-level isolation is required.
+
+Implement a local \`scripts/provision_existing_apt_key.sh\`
+with an audit-only \`--check\` mode and an explicit \`--apply\`
+mode. Both obtain the actual fingerprint from the selected
+public FINGERPRINT file; use GPG's own sealed signing subkey,
+validate primary stub/only signing subkey using the existing
+validator, then sign a disposable release note using the
+owner-entered passphrase and verify it with \`gpgv\`. The
+check-only mode makes no GitHub writes. The explicit apply
+mode may write ONLY
+\`CFVIGIL_APT_FINGERPRINT\`,
+\`CFVIGIL_APT_SIGNING_SUBKEY_BASE64\` and
+\`CFVIGIL_APT_SIGNING_PASSPHRASE\` to existing
+\`cfvigil-release\`; it must not touch R2 credentials,
+\`CFVIGIL_RELEASE_APPROVED_TAG\`, app-dist objects, main,
+tags or any RepoTicker environment. Never export the full
+primary private key and never save the unencrypted subkey
+export to disk. Gate all writes on the successful isolated
+signing test. Do not execute an owner-side key provisioning
+command within hosted CI or agent tools. Validate only the
+script's synthetic/static gates in the next single Preflight.
+
 # Approved distribution redesign — 2026-10-27 (authoritative)
 
 **Mode A — release-pipeline architecture refactor.** Owner selected flat
