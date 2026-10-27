@@ -98,8 +98,9 @@ def evaluate(environment, policies, variable_names, secret_names):
 
 def read_names(endpoint, collection):
     payload = gh_api(endpoint)
-    if not isinstance(payload, dict) or not isinstance(payload.get(collection), list):
-        raise GitHubUnavailable("GitHub did not return a valid names-only listing")
+    if (not isinstance(payload, dict) or not isinstance(payload.get(collection), list) or
+            payload.get("total_count") != len(payload[collection])):
+        raise GitHubUnavailable("GitHub did not return a complete names-only listing")
     return {row["name"] for row in payload[collection]
             if isinstance(row, dict) and isinstance(row.get("name"), str)}
 
@@ -113,6 +114,8 @@ def assess_remote():
     try:
         policies_response = gh_api(f"{ENV}/deployment-branch-policies?per_page=100")
         policies = policies_response.get("branch_policies")
+        if not isinstance(policies, list) or policies_response.get("total_count") != len(policies):
+            raise GitHubUnavailable("Incomplete environment deployment policy listing")
         variable_names = read_names(f"{ENV}/variables?per_page=100", "variables")
         secret_names = read_names(f"{ENV}/secrets?per_page=100", "secrets")
     except (GitHubUnavailable, AttributeError):
@@ -179,13 +182,23 @@ def init_environment():
 
 
 def branch_state():
+    heads = {}
     for name in ("dev", "main"):
         try:
             result = gh_api(f"{ROOT}/branches/{name}")
             sha = result.get("commit", {}).get("sha", "")
-            print(f"[INFO] {name} {sha[:12] if isinstance(sha, str) and len(sha) == 40 else 'unknown'}")
-        except GitHubUnavailable:
+            if not isinstance(sha, str) or len(sha) != 40:
+                raise GitHubUnavailable("Missing branch commit SHA")
+            heads[name] = sha
+            print(f"[INFO] {name} {sha[:12]}")
+        except (GitHubUnavailable, AttributeError):
             print(f"[UNKNOWN] Cannot inspect {name} branch.")
+            return False
+    if heads["dev"] != heads["main"]:
+        print("[BLOCKED] dev differs from main; only owner-approved tested promotion can unblock tagging.")
+        return False
+    print("[PASS] dev and main share a source commit; tag authorization is still separate.")
+    return True
 
 
 def main(argv=None):
@@ -197,10 +210,10 @@ def main(argv=None):
     if args.init_environment:
         if not init_environment():
             return 2
-    branch_state()
+    branch_ok = branch_state()
     passed = assess_remote()
     print("[NOTE] No tag, main promotion, R2 upload or signing occurs here.")
-    return 0 if passed else 2
+    return 0 if passed and branch_ok else 2
 
 
 if __name__ == "__main__":
