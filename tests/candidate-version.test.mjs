@@ -37,7 +37,7 @@ test("generated Cargo.lock is valid with Linux LF and Windows CRLF", () => {
   // A Windows Git checkout may contain CRLF: mutate the actual CFVigil
   // stanza, not whichever "version = 1.0.0" occurs first in Cargo.lock.
   const staleLock=lock.replace(/(name = "cfvigil"\r?\nversion = ")1\.0\.0"/,
-    (_, prefix)=>prefix+"1.0.1");
+    (_, prefix)=>prefix+'1.0.1"');
   assert.notEqual(staleLock, lock, "fixture must actually mutate CFVigil's version");
   assert.throws(() => validateCargoLock(staleLock, "1.0.0"), /package version differs/);
   assert.match(lock, /^\[\[package\]\]\r?\nname = "cfvigil"\r?\nversion = "/m);
