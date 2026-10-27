@@ -60,16 +60,16 @@ class PublicationFixture(unittest.TestCase):
         index.mkdir(parents=True)
         package_bytes = pool.read_bytes()
         control = (
-            "Package: cf-vigil\\n"
-            f"Version: {VERSION}\\n"
-            "Architecture: amd64\\n"
-            f"Filename: pool/main/c/cf-vigil/{pool.name}\\n"
-            f"Size: {len(package_bytes)}\\n"
-            f"SHA256: {sha(package_bytes)}\\n"
-            "Description: Minimal test package\\n"
-            " fixture continuation line\\n"
-            "\\n"
-        ).replace("\\\\n", "\\n").encode("utf8")
+            "Package: cf-vigil\n"
+            f"Version: {VERSION}\n"
+            "Architecture: amd64\n"
+            f"Filename: pool/main/c/cf-vigil/{pool.name}\n"
+            f"Size: {len(package_bytes)}\n"
+            f"SHA256: {sha(package_bytes)}\n"
+            "Description: Minimal test package\n"
+            " fixture continuation line\n"
+            "\n"
+        ).encode("utf8")
         files = {
             "Packages": control,
             "Packages.gz": gzip.compress(control, mtime=0),
