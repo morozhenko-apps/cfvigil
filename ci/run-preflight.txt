@@ -395,3 +395,11 @@ Docs/source baseline 987a9a55e2d37d9086a5dce8ae11d6f709c64972. New real dpkg-deb
 + isolated apt-get update / apt-cache policy + corrupted InRelease denial.
 Run complete Node, Python release + icon, Rust locked gates exactly once.
 No production R2, GitHub main/tag, live Keys, CF Worker or WAF change.
+
+2026-10-27: final protected-release GitHub owner configuration preflight.
+Source/docs SHA c855ef8cb9f6113e021b9a0a9db2d3b2285970e1. Verify default no-write GH API audit, explicit
+admin-only environment setup on owner CLI, required reviewer and only v*
+tag branch policy, exactly three variable names and four secret names,
+safety under 404/incomplete listings, no secret values, main SHA
+release guard. Hosted Node/Python/Rust full source gate; no live provider
+credential, production R2, WAF, main/tag change or release execution.
