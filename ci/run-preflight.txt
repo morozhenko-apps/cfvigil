@@ -343,3 +343,13 @@ recovery on repoll, eight-state incident journey, WAF outage rearm,
 stable Node, Python, icon and Rust check/test suites on hosted Ubuntu.
 No external Cloudflare API, owner OS/keyring, Windows candidate,
 release signing, main/tag or R2 publication.
+
+2026-10-27: offline protected release cleanup receipt hardening.
+Verify exact complete CFVigil platform manifests: Linux DEB/AppImage and
+both checksum sidecars; Windows NSIS and checksum sidecar. Reject
+missing, duplicate, wrong-platform, extra, encoded or noncanonical R2
+URLs before making any GitHub API call or deleting an artifact.
+Run ALL stable JS, source i18n/icon, offline Python release tests,
+locked Rust check and Rust unit/integration tests on public hosted
+Ubuntu only. No actual R2/Cloudflare publication, no protected tag,
+main promotion, Windows candidate or owner-machine retest.
