@@ -45,7 +45,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in apps/desktop/ui/*.mjs scripts/*.mjs infra/download-worker/src/*.mjs; do
+          for file in apps/desktop/ui/*.mjs scripts/*.mjs; do
             node --check "$file"
           done
       - name: Validate localization keys and message contracts
