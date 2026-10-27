@@ -290,3 +290,57 @@ publisher and protected workflow remain unchanged.
 **Status: authored, final dedicated CI evidence pending.**
 No live R2 upload, release tag, branch promotion, GitHub
 artifact deletion, Worker deployment or signing occurred.
+
+### 2026-10-27 — release cleanup preflight/atomicity hardening (Mode B regression-first)
+
+**Observed source defect, no actual production deletion:** the current
+`deletePublishedArtifacts` lists, validates and deletes each platform
+archive inside the same loop. A first valid Linux archive is destroyed
+before the function discovers an invalid/malformed/foreign Windows
+archive. This weakens the already documented "only delete exact matching
+temporary artifacts after verified publication" invariant and makes a
+malformed complete receipt able to cause partially destructive cleanup.
+
+**Root-cause alternatives evaluated:** (1) misleading receipt files
+(the previous stricter six-file check now blocks these); (2) a mismatched
+second artifact head SHA (not preflighted before first deletion);
+(3) duplicate Windows artifact name (detected only after first deletion);
+(4) a malformed/missing second artifact listing (detected only after first
+deletion); (5) mixed platform run IDs (validator currently accepts, although
+the publisher emits one common `GITHUB_RUN_ID`); (6) subsequent deletion
+API outage (cannot be made cross-request transactional and must remain
+explicit release failure). Causes 2–5 stem from interleaving external
+reads/validation with destructive actions and the missing common-run
+receipt invariant, not from R2 hashes.
+
+**Plan (documented before implementation):**
+
+1. Use the actual publisher contract: both platform entries must share
+   exactly one positive `run_id`. Existing synthetic test fixture
+   currently uses 51 and 52; correct it to one run and one artifact list
+   before introducing new acceptance tests.
+2. Regression-first negative tests must reject, with **zero DELETE**,
+   foreign Windows SHA after valid Linux, duplicate Windows archive,
+   malformed listing and mixed run IDs, while preserving unrelated
+   archives and idempotent already-absent named archives.
+3. Implement a read-only, full-run preflight: list once, check every
+   planned archive's name/ID/run/commit/uniqueness, then and only then
+   delete the approved exact IDs. Re-list to verify each deletion, keep
+   existing fail-closed HTTP error handling.
+4. Final review of 0, 1 and 2 present archive cases, 401/403/503
+   list errors, POST/DELETE success/failure and restored idempotency.
+   Report any unavoidable partial cleanup after an actual mid-delete
+   transport failure as partial, never as an atomic rollback.
+5. After the entire batch, trigger one deliberate dev preflight run
+   covering JS, Python, Rust, localization and icon. No native-machine
+   repeat, main/tag, GitHub Release or production R2 actions.
+
+**Risk/compatibility:** release-only internal validator and its contract
+fixtures change; all bona fide receipts already share one run ID.
+Rejecting invalid mixed-run receipts is intentional fail-closed behavior,
+not a new public receipt version. No persistent data migration or API
+contract change. Rollback is a scoped revert of the release validator,
+its tests, and this separate documentation amendment.
+
+**Completion criteria:** a real final stable CI PASS on the exact code
+SHA, clear count/citation; leave protected production deployment gated.
