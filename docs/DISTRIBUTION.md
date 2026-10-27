@@ -757,3 +757,30 @@ requested GitHub Actions Preflight
 The run remains in progress at this documentation checkpoint.
 No passing CI outcome is inferred until terminal status and logs
 are independently inspected.
+
+### Final flat distribution source acceptance — 2026-10-27
+
+GitHub-hosted [Preflight #40585813847](https://github.com/morozhenko-apps/cfvigil/actions/runs/40585813847)
+completed **SUCCESS** on exact release/CI source SHA
+`9fd77fa64b600c7c333039273dc7b8a151bbf811`.
+Job log shows **162/162 Node**, **22/22 Python release**,
+**3/3 Python icon**, **164/164 Rust**, all PASS:
+**351/351 tests, zero failures**.
+JS syntax, 20-locale key contracts, icon validation and
+locked Rust check also passed. Fewer tests than the
+previous 353/353 gate reflect intentional removal of
+six obsolete download Worker tests and new exact
+flat-package/manifest tests; it is not a coverage regression
+claim or complete Mode B/physical acceptance.
+
+The protected tag pipeline is **not run**: the public
+`app-dist` bucket was not written, no Cloudflare DNS/WAF
+or R2 security settings were changed, no release credentials
+were imported, and `main`/tag/release were not changed.
+GitHub `cfvigil-release` environment remains a
+separate owner-provisioning gate. Website CORS and
+`latest.json` consumer integration are outside this
+repository change and must be checked before offering
+dynamic public downloads. Only documentation was
+updated after the successful CI SHA, so no additional
+source-gate CI was requested.
