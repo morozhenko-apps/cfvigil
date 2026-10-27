@@ -285,3 +285,10 @@ case exposed a genuine IEEE-754 boundary false-negative (0.3 vs
 0.1*3.0). Production analytics now compares rates within only four
 f64 EPSILON and exact/subthreshold fixtures cover the threefold and
 +0.05 boundary. Require all 139 Rust tests passing, no skipped tests.
+
+2026-10-27: another bounded retry after #40469633416: actual f64
+threefold threshold fix passed that previous failure, but a NEW table
+case was incorrectly expected green for 7% (< absolute 10% floor).
+Preserve the threefold case; assert 7%/9.5% are false and 10% true.
+No domain relaxation or 0.07 spike classification. Full stable gate
+must pass all 139 Rust tests and JS/Python before declaring source PASS.
