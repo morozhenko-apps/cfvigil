@@ -793,3 +793,72 @@ not a blanket operational/security/regression sign-off.
 No `main`, release tag, protected publishing, user self-hosted
 runner, user keyring, or on-device installed application was
 modified by these new tests.
+
+
+## 2026-10-27 — Mode B Windows-native and locale matrix (planned)
+
+### Scope / repository scan
+
+Mode B continues after source STABLE #40511403562:
+157 JavaScript, 16 Python and 149 Rust tests PASS at
+`3455ba8f`. That gate does not execute Windows-only
+`windows_card.rs` tests on Ubuntu, even though the Windows candidate
+workflow can run `cargo test --locked -p cfvigil` on `windows-2025`.
+The owner's earlier Ubuntu visual acceptance is separate.
+
+Risk-first targeted Stage 3 inventory: nontrivial **Windows-native**
+`anchored_position` (critical physical bottom-edge invariant),
+`SavedPosition` persistent JSON (upgrade/corruption), and
+`NativeCard` default drag/anchor state; **native language**
+`ACTIVE`/`supported`/`sanitize`/`menu`/`window_title`
+(all 20 locales). No changes to public API, UI, credentials or
+persistent data format are planned. Existing Windows real-world
+drag/keyring/scroll/notification and native speaker semantic review
+remain pending.
+
+### Stage 4/5/6/7/8 exact branch and interaction plan
+
+| Artifact / function | Positive branches | Negative and boundary variants | Categories | Planned test function count |
+| --- | --- | --- | --- | ---: |
+| `windows_card::anchored_position` | compact 92 and expanded 510, identical bottom edge for saved physical anchor; negative x/multi-monitor position; first reopen measured outer height | measured physical heights 0/1/92/510/511/other; bottom at 0, negative, i32 extrema; arithmetic overflow must return Err, not wrap | P, N1, N2, N9 | 3 |
+| `windows_card::SavedPosition` | encoded same x/bottom exact after repeated serialize/restore; absent anchor as `None` | partial missing x/bottom, invalid/float/out-of-range coordinate; old null anchor and legacy fields cannot fabricate non-null position | P, N1, N6, N12 | 2 |
+| `windows_card::NativeCard` | default has no persisted anchor, not dragging, no checkpoint | fresh state independent of another instance; no stale in-memory state after restart | P, N4, N5, N6 | 1 |
+| `language::ACTIVE`, `supported`, `sanitize` | all 20 supported codes; 20 durable roundtrip locale choices; same account/settings not implicitly involved | empty/case/whitespace/unsupported/legacy locales fall back to en; malformed preference JSON rejects, missing locale defaults | P, N1, N6, N8 | 3 |
+| `language::menu` | 20 locales × five native actions | unknown action falls back to CFVigil, unsupported locale defaults to English; no empty strings | P, N1, N8, N9 | 2 |
+| `language::window_title` | all 20 × main/settings/history/about labels | unknown window fallback, unsupported locale English; title matches corresponding menu action for Settings/History | P, N1, N8, N9 | 2 |
+
+Total **13 planned test functions**, each covers table-driven
+independent assertions. Existing tests retain authority and are not
+counted again. Windows work area behavior, DPI and true OS drag
+interruption cannot be proven by pure coordinate functions; reserve
+real Windows acceptance.
+
+### Stage 10 intended mutation kills
+
+- Change `bottom - measured_outer_height` to `+`, use top edge,
+  or apply logical height instead of measured physical height:
+  anchored screen-bottom invariant fails.
+- Replace checked `i32::try_from` with unchecked narrowing:
+  exact overflowing combinations must return Err.
+- Swap persisted `x` with `bottom` or serialize only one coordinate:
+  serialized roundtrip and corrupted legacy matrix fail.
+- Accept unsupported locale on sanitize, break one of 20 action
+  translations, treat `zh-Hant` as `zh-Hans` or alter fallback:
+  native locale matrix fails.
+- Tie native window title to a global/fixed English label:
+  per-locale Settings/History/About assertions fail.
+
+These are planned mutation **kills** until executed; no mutation
+score is claimed. No new test suite runs are permitted before the
+final full STABLE gate.
+
+### Stage 11 and Stage 12 gates
+
+After test implementation, trigger **once** GitHub-hosted
+Ubuntu Preflight for all stable suites and separate **Windows
+candidate** workflow to execute Windows-only Rust tests. The
+Windows workflow also packages an unsigned candidate as previously
+specified; this is not a production release, tag or R2 publication.
+Document exact CI run and counts; do not interpret host-level
+source tests as a physical Windows OS/owner smoke. No registered
+FLAKY group, so no distinct runnable FLAKY suite exists.
