@@ -102,3 +102,8 @@ Source crate/binary cfvigil, Debian remains cf-vigil. Package must prove
 launcher Name=CFVigil, Exec=cfvigil and Icon=cfvigil with installed PNG.
 Owner KDE physical upgrade/autostart/icon smoke not included. Artifact 1 day;
 no main/tag/R2/release or user self-hosted runners.
+
+2026-10-27: replacement canonical CFVigil candidate after Windows checkout
+revealed one test assertion was LF-only. Same Rust, icons and bundle
+identity; test fixed to accept CRLF on Windows. Rebuild both platforms
+from one SAME SHA for owner smoke. Tauri must produce Name/Exec/Icon CFVigil.

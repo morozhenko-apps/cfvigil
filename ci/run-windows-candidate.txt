@@ -68,3 +68,7 @@ No main, release tag, R2, production publish, or owner runners.
 Source crate/binary cfvigil, productName CFVigil and identifier unchanged.
 Verify NSIS PE and checksums; owner Windows in-place upgrade/startup check
 remains pending. Unsigned candidate 1 day; never publish or use owner runners.
+
+2026-10-27: replacement canonical CFVigil candidate after Windows
+LF-only Cargo.lock regex failure, now corrected to LF/CRLF. Same exact
+source revision as Linux. Run full Windows NSIS/PE/SHA checks. No release.
