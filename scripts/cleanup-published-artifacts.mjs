@@ -20,10 +20,33 @@ export function validateR2Receipt(receipt) {
       receipt.artifacts.some(item => !NAMES.has(item.name))) {
     throw Error("Invalid CFVigil publication receipt or artifact scope");
   }
+  // Only the exact artifacts emitted by r2_release.py can authorize
+  // destruction of their temporary GitHub handoff archives. The public
+  // R2 URL prefix alone does not prove the full platform payload exists.
+  const version = receipt.version;
+  const approved = {
+    "cfvigil-release-linux": [
+      "releases/v" + version + "/linux/cfvigil_" + version + "_amd64.deb",
+      "releases/v" + version + "/linux/cfvigil_" + version + "_amd64.deb.sha256",
+      "releases/v" + version + "/linux/CFVigil-" + version + "-linux-x64.AppImage",
+      "releases/v" + version + "/linux/CFVigil-" + version + "-linux-x64.AppImage.sha256"
+    ],
+    "cfvigil-release-windows": [
+      "releases/v" + version + "/windows/CFVigil-Setup-" + version + "-win-x64.exe",
+      "releases/v" + version + "/windows/CFVigil-Setup-" + version + "-win-x64.exe.sha256"
+    ]
+  };
   for (const item of receipt.artifacts) {
     if (!Number.isSafeInteger(item.run_id) || item.run_id < 1 ||
         !Array.isArray(item.files) || item.files.length < 1) {
       throw Error("Missing verified R2 release files or source run");
+    }
+    const expectedUrls = approved[item.name].map(relative => BASE + relative);
+    const actualUrls = item.files.map(file => file?.url);
+    if (actualUrls.length !== expectedUrls.length ||
+        new Set(actualUrls).size !== expectedUrls.length ||
+        expectedUrls.some(url => !actualUrls.includes(url))) {
+      throw Error("Incomplete or mismatched CFVigil R2 platform receipt");
     }
     for (const file of item.files) {
       if (typeof file.url !== "string" ||
