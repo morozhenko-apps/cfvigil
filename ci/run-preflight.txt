@@ -266,3 +266,9 @@ contract and current Rust main credential/autostart helpers. Execute the
 complete required JS/i18n/icon, Python offline, cargo check --locked and
 cargo test --locked on public GitHub-hosted Ubuntu only. This is a source
 and simulated-integration gate, not native KDE/Windows/cloud provider smoke.
+
+2026-10-27: bounded retry of consolidated Mode B after #40468122561
+found 151/152 JS passing and one stale white-box revision regex;
+contract now checks BOTH superseded revision guard callsites and the
+shared AtomicU64 comparison. Verify Python and locked Rust stages,
+which were NOT reached by the first failed JavaScript gate.
