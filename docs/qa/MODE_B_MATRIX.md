@@ -1388,3 +1388,37 @@ package; modified signed metadata was correctly rejected.
 No live public APT download or installation of an actual
 CFVigil build was attempted; full provider and native
 Mode B coverage remain independently open.
+
+### Release environment readiness source contracts — 2026-10-27
+
+Mode A operational feature: \`scripts/release_readiness.py\`
+uses authenticated \`gh api\` on the owner's machine to
+inspect \`cfvigil-release\`, required reviewer, sole
+\`v*\` tag deployment restriction, exact three GitHub
+Environment variable **names** and four secret **names**,
+plus dev/main SHA parity. It reads no secret values.
+The default mode is non-mutating; \`--init-environment\`
+is an explicit, owner-invoked GitHub environment creation
+only (with admin check, exact repo/name, source-list
+check and refusal to replace existing settings). It never
+creates tags, advances main, publishes R2, imports GPG
+keys or silently weakens missing protection rules.
+
+Offline \`tests/test_release_readiness.py\` covers:
+ready names/rules, incomplete/absent names and API
+pages, invalid/extra deployment policies, missing
+reviewer, misconfigured branch policy, 404/permission
+ambiguity, no writes to existing environments, denied
+admin access, explicit scoped creation payload,
+an incomplete inventory, branch divergence and
+no side effects for the default command. GitHub
+secrets and Cloudflare account data are synthetic
+fixtures in tests; actual owner permissions and
+provider state remain independently unverified.
+
+This is source/testing readiness, **not** proof
+that GitHub has a configured protected environment,
+that Cloudflare permits public GET, that the secret
+values work or that a tagged production release
+has happened. Full hosted source CI acceptance
+must be recorded on the exact changed code SHA.
