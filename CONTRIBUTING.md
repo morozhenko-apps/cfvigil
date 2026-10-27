@@ -1,42 +1,27 @@
-# Bug reports and forks
+# Feedback, bug reports and forks
 
-CFVigil is an open-source project maintained by Stanislav Moseyko (morozhenko).
+CFVigil is an open-source project developed and maintained by Stanislav Moseyko (morozhenko). I'm happy to hear about problems people find and about things that could make the app easier to use. I work on the project myself, though, so I keep responsibility for its code and technical direction in one place.
 
-## Reporting defects
+## Found a bug?
 
-Only actionable, reproducible bug reports are accepted in upstream GitHub Issues.
-Use the **Bug report** issue form and include the CFVigil version or Git SHA,
-operating system and desktop session, reproduction steps, expected result and
-actual result. Verify whether the defect has already been reported.
+Please use the [bug report form](https://github.com/morozhenko-apps/cfvigil/issues/new?template=bug_report.yml). Include the CFVigil version or commit, operating system, how you installed or ran it, and what happened. Steps to reproduce are especially helpful. Check for an existing issue first so that several reports of the same problem can stay together.
 
-Sanitize all diagnostics. Never publish Cloudflare API tokens, credentials,
-account or zone IDs, private Worker names, private domains, request headers,
-personal paths or private screenshots. Report security vulnerabilities privately
-via GitHub Security Advisories, not public Issues.
+Before attaching logs or screenshots, remove API tokens, Cloudflare account and zone IDs, private Worker names, private domains, request headers, usernames, local paths and other sensitive information. Please report security vulnerabilities [privately through GitHub Security Advisories](https://github.com/morozhenko-apps/cfvigil/security/advisories), not through a public issue.
 
-Upstream is not an open feature-request queue. Feature proposals and general
-support requests are outside the scope of Issues.
+## Have an idea?
 
-## External development
+Use the [improvement suggestion form](https://github.com/morozhenko-apps/cfvigil/issues/new?template=feature_request.yml). You don't need to know how to implement it. Explaining the situation, what is inconvenient today and what you would like to do is usually more useful than a detailed technical specification.
 
-The upstream maintainer does **not accept third-party code contributions,
-feature PRs, additional maintainers or external development assignments**.
+I read suggestions as feedback, not as a promised roadmap. A feature may not fit the purpose of CFVigil, or I may not have time to add it. Please don't include private Cloudflare information in public requests.
 
-You may fork CFVigil and independently develop, build and distribute your
-version under Apache License 2.0, observing its attribution/NOTICE requirements.
-Do not represent a fork as an official CFVigil / morozhenko-apps release.
+## Code contributions
 
-An unsolicited pull request is not a commitment to review, merge, support, or
-maintain the proposed code. Prefer independent forks rather than upstream PRs.
+**I don't accept outside pull requests, patches or requests to join the upstream maintenance team.** This includes unsolicited bug fixes as well as new features. Please report a problem or describe your idea in Issues instead of sending a PR. I may fix or implement it in my own way, but I'm not committing to review or merge outside code.
 
-## Owner's development process
+CFVigil is available under the [Apache License 2.0](LICENSE), so you are welcome to fork it, change it and distribute your own version while following the license and [NOTICE](NOTICE) obligations. Please don't present an unofficial fork as an official CFVigil or morozhenko-apps release.
 
-The integration/work branch is `dev`. Release branch `main` is updated only
-after owner-authorized validation and release decisions. The final accepted
-release tag must point to the exact `main` commit.
+## Development and release boundaries
 
-Continuous validation is allowed while implementing features, but final
-end-to-end acceptance and exhaustive quality audit occur **after** the full
-20-locale implementation and contextual translation audit.
+The active source branch is `dev`. The `main` branch is reserved for reviewed releases, and public binaries appear only after the relevant release checks and approval. Source builds and passing CI are not a claim that a particular platform installer has been publicly released.
 
-Documentation-only changes and code changes must be committed separately.
+Detailed internal build, quality and release rules live in [AGENTS.md](AGENTS.md), [the roadmap](docs/ROADMAP_TO_1_0.md) and [distribution documentation](docs/DISTRIBUTION.md). Documentation-only updates and code changes are committed separately.
