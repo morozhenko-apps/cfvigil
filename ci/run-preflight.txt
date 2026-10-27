@@ -334,3 +334,12 @@ three new localhost reqwest integration tests and all existing JS,
 Python, locale/icon and locked Rust check/tests. GitHub-hosted Ubuntu
 Preflight only; no Windows candidate, self-hosted runner, Cloudflare
 account, package publication, R2, main or tag changes.
+
+2026-10-27: final Mode B code-level Cloudflare failure and recovery
+simulation, incident state-machine dedup and reproducible twenty-locale
+runtime audit. Verify six distinct Pages catalog HTTP failures, fresh
+recovery on repoll, eight-state incident journey, WAF outage rearm,
+20-language status/permission/CLDR/RTL/date rendering and all previous
+stable Node, Python, icon and Rust check/test suites on hosted Ubuntu.
+No external Cloudflare API, owner OS/keyring, Windows candidate,
+release signing, main/tag or R2 publication.
