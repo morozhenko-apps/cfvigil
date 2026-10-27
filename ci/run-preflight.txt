@@ -403,3 +403,11 @@ tag branch policy, exactly three variable names and four secret names,
 safety under 404/incomplete listings, no secret values, main SHA
 release guard. Hosted Node/Python/Rust full source gate; no live provider
 credential, production R2, WAF, main/tag change or release execution.
+
+2026-10-27: validate optional existing owner APT signing authority reuse.
+Code/docs baseline 46b252d6a62ea431fa00ab78856d016647c7ffeb. Bash syntax and no-TTY fail-closed
+validation; subkey-only export, isolated GPG signing/gpgv before
+any GitHub writes; explicit --apply scoped to CFVigil environment;
+primary fingerprint correction. No private key is loaded by CI.
+Full stable JavaScript/Python/Rust check once. Production R2,
+GitHub environment secret values, main, tags unchanged.
