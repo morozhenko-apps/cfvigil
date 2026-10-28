@@ -16,7 +16,7 @@ The signing workflow imports only an appropriate signing subkey, not a full priv
 
 ## Publication boundaries
 
-The release workflow runs only for the exact approved version tag on the reviewed main branch, within a protected approval environment. Candidates do not publish anything.
+The normal release workflow runs only for the exact approved version tag on the reviewed main branch, within a protected approval environment. Candidates do not publish anything.
 
 The publisher validates source provenance and both platform bundles before uploading. After uploading immutable files, it verifies every public response against expected length and SHA-256. It updates mutable APT indexes, commits signed `InRelease`, and updates `latest.json` **last**. A failure at any step must not produce a successful release receipt.
 
@@ -29,6 +29,12 @@ Temporary CI artifacts may be deleted only after the complete public readback re
 Before retrying a failed publication, retain the original platform archives and establish whether the failure affected builds, upload or public verification. Correct and regression-test the failed publisher contract before starting another publication. Complete builds need not be repeated while their original archives remain available and their source provenance is still valid.
 
 A job re-run uses its original source revision, so a later publisher correction does not enter that re-run automatically. Running corrected recovery code must preserve the approved artifact version, source revision, signatures, public readback and cleanup gates. It must not silently move an existing release tag, promote another commit to main or grant a development branch access to the protected signing environment. A recovery route that changes those authorization boundaries requires a separate owner decision before implementation or execution.
+
+The owner may approve the exact temporary `release-recovery` branch as a recovery exception. Its workflow starts only when its explicit request marker changes. Implement recovery admission and offline regression checks before starting it: require a completed failed normal release, successful original validation and platform jobs, two unexpired archives with matching artifact identities and source revision, and an unchanged approved tag at current main. Read-only admission and the stable distribution tests precede access to signing credentials; repeat admission inside the protected publication job after owner review.
+
+The recovery publisher downloads those exact archive IDs without rebuilding installers. It uses the original source revision and run ID in its manifest and verified receipt so the existing cleanup gate can delete only the original archives. It preserves signing, every public checksum readback, the final latest-pointer commit and the text-only release finalizer.
+
+Treat the branch and its environment policy as a bounded exception. Keep the normal tag policy and required reviewer unchanged. After all recovery jobs and release finalization succeed, remove the exact branch policy before deleting the branch; verify the branch still points to the completed recovery revision. On failure, retain recovery state and source archives for diagnosis. Reverting the recovery source changes must not change existing public installers or weaken verification.
 
 ## Limits of verification
 

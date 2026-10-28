@@ -22,6 +22,8 @@ Keep application credentials in the OS credential store and ordinary settings/hi
 
 Linux DEB, AppImage and Windows NSIS use one canonical version and identity. The DEB also serves the signed flat APT index; do not publish duplicates of versioned installers. A release requires an owner-approved tag at the reviewed `main` HEAD, protected signing credentials, complete platform checks and publicly verified checksums before temporary archives can be deleted. Release pipeline code is the executable source of truth.
 
+Owner-approved failed-publication recovery may use the exact temporary `release-recovery` branch and an explicit recovery request marker. It reuses successful platform archives from the original approved tag at current `main`, validates their source run and artifact identities, and retains the protected environment and mandatory owner review. It must not build replacement installers, move the release tag or promote recovery code to `main`. After verified publication and successful finalization, remove the exact recovery environment policy and then the branch. Ordinary `dev` pushes never publish.
+
 Never infer release acceptance from source tests alone. Real machine acceptance, security of user data and the release approval are separate gates. Never publish packages, create tags, change production storage or weaken signing gates without explicit owner approval.
 
 ## Documentation boundaries
