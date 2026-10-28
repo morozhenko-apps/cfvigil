@@ -89,3 +89,11 @@ test("Given About project buttons When clicked Then only fixed destinations are 
   assert.match(native,/open::that\("https:\/\/morozhenko\.com\/"\)/);
   assert.match(native,/open::that\("https:\/\/github\.com\/morozhenko-apps\/cfvigil"\)/);
 });
+
+test("Given frameless About When dragging the header Then only About is moved",()=>{
+  assert.match(html,/id="about-drag-area"/);
+  assert.match(css,/\.about-drag-area\{/);
+  assert.match(js,/invoke\("start_about_drag"\)/);
+  assert.match(native,/fn start_about_drag\(app: AppHandle\)/);
+  assert.match(native,/start_about_drag,/);
+});

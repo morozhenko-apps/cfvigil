@@ -125,3 +125,12 @@ test("About mirrors RepoTicker layout, uses native version, safe fixed links and
       assert.ok(t(key,{},locale).trim().length>0,`${locale}/${key}`);
   }
 });
+
+test("configured first poll announces pending instead of disconnected",()=>{
+  const app=read("apps/desktop/ui/app.mjs");
+  const native=read("apps/desktop/src-tauri/src/main.rs");
+  assert.match(app,/syncPending = snapshot.pending/);
+  assert.match(app,/emptyResourceMessageKey/);
+  assert.match(native,/pending: state.pending.load/);
+  assert.match(native,/state.pending.store\(!next.account_id.is_empty\(\), Ordering::Release\)/);
+});

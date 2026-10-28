@@ -143,6 +143,7 @@ struct IncidentNotice {
 #[derive(Clone, Serialize)]
 struct Snapshot {
     ready: bool,
+    pending: bool,
     configured: bool,
     resources: Vec<Resource>,
     pending_incident: Option<IncidentNotice>,
@@ -161,6 +162,7 @@ struct AppState {
     pending_incident: Mutex<Option<IncidentNotice>>,
     provider_warnings: Mutex<Vec<String>>,
     ready: AtomicBool,
+    pending: AtomicBool,
     refresh_lock: tokio::sync::Mutex<()>,
     config_revision: AtomicU64,
     poll_refresh: tokio::sync::watch::Sender<u64>,
@@ -269,6 +271,7 @@ fn get_settings(state: State<'_, AppState>) -> Config {
 fn current_snapshot(state: &AppState) -> Snapshot {
     Snapshot {
         ready: state.ready.load(Ordering::Acquire),
+        pending: state.pending.load(Ordering::Acquire),
         configured: !state.config.lock().unwrap().account_id.is_empty(),
         resources: state.resources.lock().unwrap().clone(),
         pending_incident: state.pending_incident.lock().unwrap().clone(),
@@ -290,6 +293,7 @@ fn invalidate_resources(state: &AppState, reason: &str) {
 }
 
 fn report_sync_failure(app: &AppHandle, state: &AppState, message: &str) {
+    state.pending.store(false, Ordering::Release);
     invalidate_resources(state, msg::DATA_STALE);
     *state.provider_warnings.lock().unwrap() = vec![message.to_owned()];
     publish_snapshot(app, state);
@@ -468,6 +472,8 @@ async fn save_settings(
         // rows from a previous account or previous secret after this save.
         state.config_revision.fetch_add(1, Ordering::AcqRel);
         state.ready.store(false, Ordering::Release);
+        state.pending.store(!next.account_id.is_empty(), Ordering::Release);
+        state.provider_warnings.lock().unwrap().clear();
         if previous.account_id != next.account_id {
             // Never reuse incidents or identities from another account.
             state.resources.lock().unwrap().clear();
@@ -602,6 +608,14 @@ fn start_settings_drag(app: AppHandle) -> Result<(), String> {
         .ok_or("Settings window unavailable")?
         .start_dragging()
         .map_err(|err| format!("Unable to move Settings window: {err}"))
+}
+
+#[tauri::command]
+fn start_about_drag(app: AppHandle) -> Result<(), String> {
+    app.get_webview_window("about")
+        .ok_or("About window unavailable")?
+        .start_dragging()
+        .map_err(|_| "Unable to move About window".to_owned())
 }
 
 #[tauri::command]
@@ -747,7 +761,10 @@ async fn refresh_once(app: AppHandle, budget: &ApiBudget) -> bool {
     let (config, token, revision) = {
         let _credential_guard = state.refresh_lock.lock().await;
         let config = state.config.lock().unwrap().clone();
-        if config.account_id.is_empty() { return true; }
+        if config.account_id.is_empty() {
+            state.pending.store(false, Ordering::Release);
+            return true;
+        }
         let token = match tauri::async_runtime::spawn_blocking(load_token).await {
             Ok(Ok(token)) => token,
             _ => {
@@ -861,6 +878,7 @@ async fn refresh_once(app: AppHandle, budget: &ApiBudget) -> bool {
     }
     *state.provider_warnings.lock().unwrap() = warnings;
     state.ready.store(core_complete, Ordering::Release);
+    state.pending.store(false, Ordering::Release);
     *state.resources.lock().unwrap() = resources.clone();
     publish_snapshot(&app, &state);
     if !core_complete {
@@ -1052,6 +1070,7 @@ fn main() {
                 || history.quarantined || locale.quarantined || catalog.quarantined;
             let language = language::sanitize(locale.value);
             let journal = stored.value.restore(&settings.value.account_id);
+            let pending_initial_sync = !settings.value.account_id.is_empty();
             // Render last known resource names before the first network call.
             // Every cached resource is unverified; active incidents in the
             // journal take precedence and preserve their dedup identities.
@@ -1078,6 +1097,7 @@ fn main() {
                 journal: Mutex::new(journal),
                 pending_incident: Mutex::new(None),
                 ready: AtomicBool::new(false),
+                pending: AtomicBool::new(pending_initial_sync),
                 refresh_lock: tokio::sync::Mutex::new(()),
                 config_revision: AtomicU64::new(0),
                 poll_refresh,
@@ -1170,6 +1190,7 @@ fn main() {
             stop_card_drag,
             fit_settings,
             start_settings_drag,
+            start_about_drag,
             open_resource,
             open_history_event,
         ])

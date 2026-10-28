@@ -97,3 +97,8 @@ input:not([type="checkbox"]), textarea, [contenteditable="true"] {
 .rows::-webkit-scrollbar-thumb:active{background:#426e90}
 .rows .more{position:relative;z-index:1}
 #drawer,#search-row{cursor:default}
+
+/* Visible in-progress glyph for first provider synchronization. */
+.action.syncing .glyph{display:inline-block;animation:cfvigil-poll 1.2s linear infinite}
+@keyframes cfvigil-poll{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.action.syncing .glyph{animation:none}}

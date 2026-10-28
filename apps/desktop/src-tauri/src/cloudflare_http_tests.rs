@@ -132,7 +132,7 @@ async fn given_two_pages_and_new_worker_build_when_discovering_then_true_http_la
                     "id":"023e105f-2a42-4f8b-a1c1-73f6a2a30c0f",
                     "created_on":"2026-10-26T12:00:00Z"
                 }]})),
-            p if p == format!("{base}/pages/projects/front-a/deployments") =>
+            p if p == format!("{base}/pages/projects/front-a/deployments?env=production") =>
                 okay(json!([
                     {"id":"1ad7f12c-cfb2-4976-b341-acf800e0ba80",
                      "created_on":"2026-10-26T12:02:00Z",
@@ -140,7 +140,7 @@ async fn given_two_pages_and_new_worker_build_when_discovering_then_true_http_la
                     {"id":"older","created_on":"2026-10-26T11:59:00Z",
                      "latest_stage":{"status":"failure"}}
                 ])),
-            p if p == format!("{base}/pages/projects/front-b/deployments") =>
+            p if p == format!("{base}/pages/projects/front-b/deployments?env=production") =>
                 okay(json!([{"id":"failed",
                     "created_on":"2026-10-26T12:05:00Z",
                     "latest_stage":{"status":"failure"}}])),
@@ -187,7 +187,7 @@ async fn given_worker_scope_denied_when_pages_respond_then_other_provider_is_pre
             p if p == format!("{base}/workers/scripts") => denied(403,10000),
             p if p == format!("{base}/pages/projects") =>
                 pages(json!([{"name":"site"}]),1),
-            p if p == format!("{base}/pages/projects/site/deployments") =>
+            p if p == format!("{base}/pages/projects/site/deployments?env=production") =>
                 okay(json!([{"id":"success",
                     "created_on":"2026-10-26T12:00:00Z",
                     "latest_stage":{"status":"success"}}])),
@@ -242,7 +242,7 @@ async fn given_pages_detail_429_when_discovering_then_budget_stops_new_requests_
     let server=Loopback::start(|path| {
         if path.ends_with("/workers/scripts") { okay(json!([])) }
         else if path.ends_with("/pages/projects") { pages(json!([{"name":"site"}]),1) }
-        else if path.ends_with("/pages/projects/site/deployments") { denied(429,1015) }
+        else if path.ends_with("/pages/projects/site/deployments?env=production") { denied(429,1015) }
         else { panic!("unexpected endpoint {path}"); }
     });
     let budget=ApiBudget::new();
@@ -294,9 +294,9 @@ async fn given_one_pages_detail_bad_request_when_others_succeed_then_only_one_is
         if path.ends_with("/workers/scripts") { okay(json!([])) }
         else if path.ends_with("/pages/projects") {
             pages(json!([{"name":"bad-options"},{"name":"healthy-site"}]),1)
-        } else if path.ends_with("/pages/projects/bad-options/deployments") {
+        } else if path.ends_with("/pages/projects/bad-options/deployments?env=production") {
             denied(400,8000024)
-        } else if path.ends_with("/pages/projects/healthy-site/deployments") {
+        } else if path.ends_with("/pages/projects/healthy-site/deployments?env=production") {
             okay(json!([{"id":"current","created_on":"2026-10-26T12:00:00Z",
                 "latest_stage":{"status":"success"}}]))
         } else { panic!("unexpected endpoint {path}"); }
@@ -341,9 +341,9 @@ async fn given_rate_limit_in_first_pages_batch_then_next_batch_never_issues_http
                 {"name":"first"},{"name":"second"},{"name":"third"},
                 {"name":"fourth"},{"name":"fifth"}
             ]),1)
-        } else if path.ends_with("/pages/projects/first/deployments") {
+        } else if path.ends_with("/pages/projects/first/deployments?env=production") {
             denied(429,1015)
-        } else if path.contains("/pages/projects/") && path.ends_with("/deployments") {
+        } else if path.contains("/pages/projects/") && path.ends_with("/deployments?env=production") {
             okay(json!([{"created_on":"2026-10-26T12:00:00Z",
                 "latest_stage":{"status":"success"}}]))
         } else { panic!("unexpected endpoint: {path}"); }
@@ -359,7 +359,7 @@ async fn given_rate_limit_in_first_pages_batch_then_next_batch_never_issues_http
     assert!(budget.exhausted());
     let paths=server.paths();
     assert_eq!(paths.len(),6,"two catalogs and at most first four detail requests");
-    assert!(!paths.iter().any(|p|p.contains("/pages/projects/fifth/deployments")));
+    assert!(!paths.iter().any(|p|p.contains("/pages/projects/fifth/deployments?env=production")));
 }
 
 
@@ -627,7 +627,7 @@ async fn given_failed_pages_discovery_then_recovered_provider_when_repolled_then
             } else {
                 pages(json!([{"name":"recovered-page"}]), 1)
             }
-        } else if path.ends_with("/pages/projects/recovered-page/deployments") {
+        } else if path.ends_with("/pages/projects/recovered-page/deployments?env=production") {
             okay(json!([{
                 "id":"attempt-2",
                 "created_on":"2026-10-27T12:00:00Z",
@@ -661,4 +661,29 @@ async fn given_failed_pages_discovery_then_recovered_provider_when_repolled_then
     assert_eq!(catalog_reads.load(Ordering::SeqCst),2);
     assert_eq!(server.paths().len(),5,"two catalogs per poll plus verified detail");
     assert!(!server.paths().join(" ").contains("test-only-token"));
+}
+
+#[tokio::test]
+async fn pages_production_query_excludes_newer_preview_result() {
+    let server = Loopback::start(|path| {
+        if path.ends_with("/workers/scripts") { okay(json!([])) }
+        else if path.ends_with("/pages/projects") {
+            pages(json!([{"name":"site"}]), 1)
+        } else if path.ends_with("/pages/projects/site/deployments?env=production") {
+            okay(json!([
+                {"environment":"preview","id":"preview",
+                 "created_on":"2026-10-27T12:00:00Z",
+                 "latest_stage":{"status":"failure"}},
+                {"environment":"production","id":"live",
+                 "created_on":"2026-10-26T12:00:00Z",
+                 "latest_stage":{"status":"success"}}
+            ]))
+        } else { panic!("unexpected endpoint {path}"); }
+    });
+    let discovered=server.client().discover(&"a".repeat(32),
+        "test-only-token",&ApiBudget::new()).await.unwrap();
+    let page=discovered.resources.iter().find(|r|r.key=="pages:site").unwrap();
+    assert_eq!(page.status,"healthy");
+    assert_eq!(page.attempt_id,"live");
+    assert!(server.paths().iter().any(|p|p.ends_with("?env=production")));
 }

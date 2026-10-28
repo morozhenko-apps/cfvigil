@@ -32,9 +32,16 @@ fn pages_page_path(path: &str, page: usize) -> String {
 /// Cloudflare timestamps are RFC3339; compare parsed instants, not the
 /// textual timezone offset or assumed response order.
 fn latest_pages_deployment(result: &Value) -> Option<&Value> {
-    result.as_array()?.iter().max_by_key(|deployment| {
-        chrono::DateTime::parse_from_rfc3339(str_field(deployment, "created_on")).ok()
-    })
+    // Verify an explicit environment even when the API was filtered.
+    // Never let a newer preview override the last production attempt.
+    result.as_array()?.iter()
+        .filter(|deployment| {
+            let env = str_field(deployment, "environment");
+            env.is_empty() || env == "production"
+        })
+        .max_by_key(|deployment| {
+            chrono::DateTime::parse_from_rfc3339(str_field(deployment, "created_on")).ok()
+        })
 }
 
 fn scoped_provider_warning(provider: &str, error: &str, scope: &str) -> String {
@@ -155,6 +162,14 @@ struct WorkerAttempt {
 
 // The latest attempt wins. The active Worker deployment endpoint returns
 // versions SERVING traffic, not the state of a more recent pending build.
+// A pull-request build is a preview, not a production attempt.
+// Do not assume that a Worker's production branch is always named main.
+fn production_worker_build(build: Option<&Value>) -> Option<&Value> {
+    build.filter(|attempt| {
+        str_field(&attempt["build_trigger_metadata"], "build_trigger_source") != "pull_request"
+    })
+}
+
 fn select_worker_attempt(
     build: Option<&Value>,
     active: Option<&Value>,
@@ -329,7 +344,7 @@ impl Cloudflare {
         let name = str_field(project, "name");
         if !valid_name(name) { return None; }
         Some(self.get(token,
-            &format!("{base}/pages/projects/{name}/deployments"),
+            &format!("{base}/pages/projects/{name}/deployments?env=production"),
             budget).await)
     }
 
@@ -411,7 +426,7 @@ impl Cloudflare {
                 );
                 for ((name, tag, _), active_result) in group.iter()
                     .zip([a,b,c,d].into_iter().flatten()) {
-                    let build = latest.get(tag).or_else(|| latest.get(name));
+                    let build = production_worker_build(latest.get(tag).or_else(|| latest.get(name)));
                     let active = active_result.as_ref().ok()
                         .and_then(|(result, _)| result.get("deployments"))
                         .and_then(Value::as_array);
@@ -596,6 +611,25 @@ mod tests {
         assert_eq!(str_field(latest_pages_deployment(&unordered).unwrap(), "id"), "new");
         assert!(latest_pages_deployment(&json!([])).is_none());
         assert!(latest_pages_deployment(&json!({"result":[]})).is_none());
+    }
+
+    #[test]
+    fn pages_production_and_worker_pull_request_previews_stay_separate() {
+        let deployments = json!([
+            {"environment":"production","id":"live","created_on":"2026-10-26T12:00:00Z",
+             "latest_stage":{"status":"success"}},
+            {"environment":"preview","id":"preview","created_on":"2026-10-27T12:00:00Z",
+             "latest_stage":{"status":"failure"}}
+        ]);
+        assert_eq!(str_field(latest_pages_deployment(&deployments).unwrap(),"id"),"live");
+        assert!(latest_pages_deployment(&json!([{"environment":"preview",
+            "created_on":"2026-10-27T12:00:00Z"}])).is_none());
+        let pr = json!({"build_trigger_metadata":{"build_trigger_source":"pull_request"},
+            "status":"stopped","build_outcome":"fail"});
+        assert!(production_worker_build(Some(&pr)).is_none());
+        let push = json!({"build_trigger_metadata":{"build_trigger_source":"push"},
+            "status":"queued"});
+        assert_eq!(worker_state(production_worker_build(Some(&push)).unwrap()),"deploying");
     }
 
     #[test]

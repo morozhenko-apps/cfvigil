@@ -1,5 +1,6 @@
 import { counters, filterResources, relativeTime } from "./status.mjs";
 import { normalizeSnapshot } from "./snapshot.mjs";
+import { emptyResourceMessageKey } from "./connection-state.mjs";
 import { nextResourceIndex } from "./resource-navigation.mjs";
 import {t, resourceDetail, incidentText, diagnosticText, verboseRelativeTime, currentLocale, intlLocale} from "./localization.mjs";
 import {initializeLanguage} from "./runtime-language.mjs";
@@ -21,6 +22,7 @@ let focusedKey = null;
 let openMenuKey = null;
 let openMenuTrigger = null;
 let syncAvailable = false;
+let syncPending = false;
 let accountConfigured = false;
 let storageWarning = false;
 let providerWarnings = [];
@@ -154,7 +156,9 @@ function render() {
   if (!resources.length) {
     const message = document.createElement("div");
     message.className = "empty";
-    message.textContent = !accountConfigured ? t("card.noAccount") : syncAvailable ? t("card.noResources") : t("card.noData");
+    message.textContent = t(emptyResourceMessageKey({
+      configured:accountConfigured,pending:syncPending,ready:syncAvailable
+    }));
     list.append(message);
     scheduleCardFit();
     return;
@@ -305,7 +309,13 @@ document.addEventListener("keydown", event => {
 // Recompute active diagnostics from the original English native message.
 function refreshLocalizedWarnings() {
   const button = byId("toggle-list");
-  if (lastSyncError !== null) {
+  button.classList.toggle("syncing", syncPending);
+  button.querySelector(".glyph").textContent = syncPending ? "⟳" : "▤";
+  if (syncPending) {
+    const label = t("diagnostic.pending");
+    announce(label);
+    button.title = label;
+  } else if (lastSyncError !== null) {
     const label = lastSyncError ? diagnosticText(lastSyncError) : t("card.apiError");
     announce(label);
     button.title = label;
@@ -353,11 +363,12 @@ function applySnapshot(payload) {
   const snapshot = normalizeSnapshot(payload);
   resources = snapshot.resources;
   syncAvailable = snapshot.ready;
-  if (syncAvailable) lastSyncError = null;
+  syncPending = snapshot.pending;
+  if (syncAvailable || syncPending) lastSyncError = null;
   accountConfigured = snapshot.configured;
   storageWarning = payload?.storage_warning === true;
   providerWarnings = snapshot.provider_warnings;
-  if (!byId("toggle-list").classList.contains("blink")) {
+  if (!byId("toggle-list").classList.contains("blink") && !syncPending) {
     if (storageWarning) {
       const warning = t("card.storageWarning");
       byId("toggle-list").title = warning;
@@ -367,6 +378,7 @@ function applySnapshot(payload) {
       announce("");
     }
   }
+  refreshLocalizedWarnings();
   render();
 }
 await listen("cfvigil-resources", ({payload}) => applySnapshot(payload));

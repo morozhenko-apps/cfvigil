@@ -30,6 +30,11 @@ document.getElementById("about-source").addEventListener("click", () => {
   });
 });
 
+document.getElementById("about-drag-area").addEventListener("pointerdown", event => {
+  if (event.button !== 0 || !event.isPrimary) return;
+  void invoke("start_about_drag").catch(() => {});
+});
+
 const closeAbout = () => { void window.__TAURI__.window.getCurrentWindow().hide(); };
 document.getElementById("about-close").addEventListener("click", closeAbout);
 document.addEventListener("keydown", event => {
