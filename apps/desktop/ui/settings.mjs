@@ -8,6 +8,15 @@ const spinner = document.getElementById("save-spinner");
 const token = document.getElementById("token");
 const tokenStatus = document.getElementById("token-status");
 const submit = document.querySelector('button[type="submit"]');
+let settingsReady = false;
+let settingsLoading = false;
+function setSettingsReady(ready) {
+  settingsReady = ready;
+  for (const id of ["account", "token", "interval", "language"]) {
+    document.getElementById(id).disabled = !ready;
+  }
+  submit.disabled = saving || !ready;
+}
 // Never commit a default/empty draft before native persisted settings load.
 submit.disabled = true;
 let saving = false;
@@ -21,7 +30,7 @@ function setSaving(busy) {
   saving = busy;
   form.setAttribute("aria-busy", String(busy));
   spinner.hidden = !busy;
-  submit.disabled = busy;
+  submit.disabled = busy || !settingsReady;
   document.getElementById("cancel").disabled = busy;
   document.getElementById("close-settings").disabled = busy;
 }
@@ -47,7 +56,6 @@ await initializeLanguage({invoke,listen: (event, callback) => window.__TAURI__.e
     showTokenPresence(tokenPresent);
     scheduleFit();
   }});
-language.disabled = false;
 // Select changes are drafts. Only form Submit commits native settings and locale.
 language.addEventListener("change", () => { message.textContent = ""; });
 let storedSettings = null;
@@ -83,11 +91,15 @@ function scheduleFit() {
     });
   });
 }
-window.addEventListener("focus", scheduleFit);
+window.addEventListener("focus", () => {
+  scheduleFit();
+  if (!settingsReady) void loadStoredSettings();
+});
 await window.__TAURI__.event.listen("cfvigil-settings-opened", () => {
   // The OS close button also means Cancel, not a stored draft that
   // reappears when the same hidden WebView is later shown.
   restoreDraft();
+  if (!settingsReady) void loadStoredSettings();
   scheduleFit();
 });
 // Only the empty topbar starts a compositor-managed window drag.
@@ -174,16 +186,31 @@ async function refreshTokenStatus() {
 // Never delay first display of the window while the OS opens its vault.
 void refreshTokenStatus();
 
-try {
-  const config = await invoke("get_settings");
-  storedSettings = config;
-  document.getElementById("account").value = config.account_id || "";
-  document.getElementById("interval").value = String(config.refresh_seconds);
-  submit.disabled = false;
-} catch {
-  // The previous native state is unknown; applying defaults would corrupt it.
-  message.textContent = t("settings.readError");
+// A failed first read must never silently commit empty fallback settings.
+// Hidden Tauri WebViews are reused: retry after the next explicit open/focus.
+async function loadStoredSettings() {
+  if (settingsLoading || settingsReady) return;
+  settingsLoading = true;
+  try {
+    const config = await invoke("get_settings");
+    if (!config || typeof config.account_id !== "string" ||
+        ![60,180,300,600].includes(config.refresh_seconds)) {
+      throw Error("Invalid persisted settings response");
+    }
+    storedSettings = config;
+    document.getElementById("account").value = config.account_id;
+    document.getElementById("interval").value = String(config.refresh_seconds);
+    message.textContent = "";
+    setSettingsReady(true);
+  } catch {
+    // Recover on a future window open, never reset known data by guessing.
+    setSettingsReady(false);
+    message.textContent = t("settings.readError");
+  } finally {
+    settingsLoading = false;
+  }
 }
+await loadStoredSettings();
 
 try {
   autostart.checked = await invoke("get_autostart");
