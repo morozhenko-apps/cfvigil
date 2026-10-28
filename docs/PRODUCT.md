@@ -33,7 +33,7 @@ Notifications identify meaningful new issues without repeating the same alert in
 
 The account identifier, polling interval, language and optional start-at-login setting are controlled in Settings. Applying an unchanged field does not provoke unrelated credential writes or Cloudflare requests. Cancel discards unsaved changes.
 
-After Apply or startup with a configured account, the card must show a visible pending-sync state until the first Cloudflare result or a verified failure arrives. Pending is neither disconnected nor healthy. The frameless About window supports native dragging from its empty upper strip without obstructing Close.
+After Apply or startup with a configured account, the card must show a visible pending-sync state until the first Cloudflare result or a verified failure arrives. Pending is neither disconnected nor healthy. The pending indicator uses a geometrically centered, fixed-size vector spinner instead of a font-dependent rotating character. Reduced-motion preferences disable rotation while preserving the pending signal. The frameless About window supports native dragging from its empty upper strip without obstructing Close.
 
 The API token is held in the OS credential store, not inside configuration or history JSON. Local preferences, resource cache and event data use per-user application storage. Changing accounts must not retain incidents from the previous account.
 
