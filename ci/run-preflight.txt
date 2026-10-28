@@ -432,3 +432,14 @@ Stable Linux source was previously PASS (368/368) at ad32baa; this
 is the only post-candidate source edit. Rerun full stable once before
 generating new matched Linux + Windows candidates.
 No main/tag/release/R2/environment mutation.
+
+2026-10-28: final CFVigil 1.0.0 privacy/uninstaller release-candidate gate.
+Exact pre-marker dev SHA: 438d270882ddb8c25ab0b7e67b2fabc3850eb293.
+Test native Windows NSIS post-uninstall hook for explicit Delete application
+data only; preserve credentials on ordinary uninstall and /UPDATE; validate
+keyring target and own Windows installer binary through packaging job.
+Rebuild matching Linux DEB/AppImage and Windows NSIS from one commit,
+plus complete final source preflight; no source/packager gate bypass.
+No main promotion, version tag, GitHub release, signing secret use or R2 write.
+Do not poll these workflows. Review completion on an owner-provided
+terminal result before native Windows install/uninstall acceptance.
