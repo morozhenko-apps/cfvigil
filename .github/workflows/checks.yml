@@ -20,6 +20,7 @@ on:
       - 'infra/**'
       - '.github/workflows/checks.yml'
       - '.github/workflows/protected-release.yml'
+      - '.github/workflows/recover-release.yml'
       - '.github/workflows/package-candidate.yml'
       - '.github/workflows/windows-candidate.yml'
   workflow_dispatch:
