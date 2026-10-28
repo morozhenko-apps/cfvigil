@@ -4,7 +4,7 @@ Source tests and automated builds do not replace installation and usability chec
 
 ## Linux
 
-Install a validated DEB or run a checksum-verified AppImage. Check tray appearance, compact/expanded geometry, anchored list behavior, search, keyboard controls, Settings, notifications, event history and application restart. Confirm launch-at-login can be enabled and disabled without duplicate registrations. Test both reconnecting a known account and operating without a token.
+Install a validated DEB or run a checksum-verified AppImage. Check tray appearance, compact/expanded geometry for zero, one and many resources, bottom-anchored list behavior, resizing on search, keyboard controls, Settings, notifications, event history and application restart. Check that right-click in each application WebView does not expose browser navigation, Save as or Print. Confirm launch-at-login can be enabled and disabled without duplicate registrations. Test both reconnecting a known account and operating without a token.
 
 Verify package identity, desktop entry, icons and an upgrade without duplicate application identities. Confirm that removing the package does not accidentally remove unrelated user data.
 
