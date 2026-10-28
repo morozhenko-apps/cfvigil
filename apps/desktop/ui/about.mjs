@@ -1,3 +1,4 @@
+import "./suppress-context-menu.mjs";
 import {t} from "./localization.mjs";
 import {initializeLanguage} from "./runtime-language.mjs";
 
