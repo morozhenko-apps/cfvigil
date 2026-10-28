@@ -1264,6 +1264,7 @@ mod security_tests {
             journal: Mutex::new(IncidentJournal::empty(&"a".repeat(32))),
             pending_incident: Mutex::new(None),
             ready: AtomicBool::new(true),
+            pending: AtomicBool::new(false),
             refresh_lock: tokio::sync::Mutex::new(()),
             config_revision: AtomicU64::new(0),
             poll_refresh,
