@@ -149,3 +149,19 @@ regressions and lockfile source gates. Produce matched unsigned Linux
 and Windows packages from one identical commit for owner reinspection.
 Do not publish R2, promote main, tag a release or run protected signer.
 AGENT RULE: after CI starts do not poll; stop until owner provides results.
+
+2026-10-28: CFVigil owner Windows round-two acceptance candidate.
+Source and documentation reviewed at dev SHA 4b35e76911bfec4645f194c019bfb9cf48d96b4c.
+Verify Pages production-only deployment status, even when a newer Preview
+build failed; Worker pull-request preview must not supersede production.
+Verify the configured first Cloudflare sync is explicitly pending (animated
+resource icon and localized status) until a response or confirmed error.
+Reopening the tray reads a cached native snapshot, never launches an extra
+provider poll and never replaces a newer live event.
+Verify About's upper empty drag strip moves the undecorated window without
+blocking Close or website/source buttons.
+Run stable JavaScript, Rust, provider loopback and release contract checks.
+Build identical-revision Windows unsigned NSIS and Linux DEB/AppImage with
+per-artifact SHA256. Owner must complete native Windows and Linux smoke.
+No main promotion, no release tag, no publishing, no production R2 write.
+Do not poll these workflows; wait for owner review of results.
