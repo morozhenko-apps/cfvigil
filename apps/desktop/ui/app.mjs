@@ -23,6 +23,7 @@ let openMenuKey = null;
 let openMenuTrigger = null;
 let syncAvailable = false;
 let syncPending = false;
+let snapshotEventSerial = 0;
 let accountConfigured = false;
 let storageWarning = false;
 let providerWarnings = [];
@@ -352,6 +353,9 @@ await listen("cfvigil-card-reset", resetCard);
 await listen("cfvigil-card-shown", () => {
   cardVisible = true;
   armAutoHide();
+  // A hidden WebView can miss an Apply event. Rehydrate from native memory,
+  // without starting a second Cloudflare request or overwriting newer events.
+  void refreshFromNative();
 });
 await listen("cfvigil-card-hidden", () => {
   cardVisible = false;
@@ -381,7 +385,10 @@ function applySnapshot(payload) {
   refreshLocalizedWarnings();
   render();
 }
-await listen("cfvigil-resources", ({payload}) => applySnapshot(payload));
+await listen("cfvigil-resources", ({payload}) => {
+  snapshotEventSerial += 1;
+  applySnapshot(payload);
+});
 function presentIncident(payload) {
   if (!payload?.key || !payload?.message) return;
   focusedKey = payload.key;
@@ -398,11 +405,18 @@ await listen("cfvigil-sync-error", ({payload}) => {
   lastSyncError = typeof payload === "string" ? payload : "";
   refreshLocalizedWarnings();
 });
-try {
-  const snapshot = await invoke("get_snapshot");
-  applySnapshot(snapshot);
-  if (snapshot.pending_incident) presentIncident(snapshot.pending_incident);
-} catch { alertOnResources(t("card.loadError")); }
+async function refreshFromNative() {
+  const eventSerial = snapshotEventSerial;
+  try {
+    const snapshot = await invoke("get_snapshot");
+    if (snapshotEventSerial !== eventSerial) return;
+    applySnapshot(snapshot);
+    if (snapshot.pending_incident) presentIncident(snapshot.pending_incident);
+  } catch {
+    if (snapshotEventSerial === eventSerial) alertOnResources(t("card.loadError"));
+  }
+}
+await refreshFromNative();
 
 /* Drag the card background in either mode. Controls, resource rows and
    text selection retain their own native click/scroll behavior. */

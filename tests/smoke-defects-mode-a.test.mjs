@@ -134,3 +134,12 @@ test("configured first poll announces pending instead of disconnected",()=>{
   assert.match(native,/pending: state.pending.load/);
   assert.match(native,/state.pending.store\(!next.account_id.is_empty\(\), Ordering::Release\)/);
 });
+
+test("card reopening reads native cached state without an extra provider poll",()=>{
+  const app=read("apps/desktop/ui/app.mjs");
+  assert.match(app,/cfvigil-card-shown/);
+  assert.match(app,/void refreshFromNative\(\)/);
+  assert.match(app,/snapshotEventSerial \+= 1/);
+  assert.match(app,/if \(snapshotEventSerial !== eventSerial\) return/);
+  assert.match(app,/invoke\("get_snapshot"\)/);
+});
