@@ -311,7 +311,6 @@ document.addEventListener("keydown", event => {
 function refreshLocalizedWarnings() {
   const button = byId("toggle-list");
   button.classList.toggle("syncing", syncPending);
-  button.querySelector(".glyph").textContent = syncPending ? "⟳" : "▤";
   if (syncPending) {
     const label = t("diagnostic.pending");
     announce(label);

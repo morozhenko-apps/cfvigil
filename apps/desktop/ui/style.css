@@ -99,6 +99,12 @@ input:not([type="checkbox"]), textarea, [contenteditable="true"] {
 #drawer,#search-row{cursor:default}
 
 /* Visible in-progress glyph for first provider synchronization. */
-.action.syncing .glyph{display:inline-block;animation:cfvigil-poll 1.2s linear infinite}
+.glyph-sync{display:grid;place-items:center;width:26px;height:26px;flex:none;line-height:1}
+.glyph-sync .glyph-resources{grid-area:1/1}
+.glyph-spinner{display:none;grid-area:1/1;width:24px;height:24px;fill:none;
+  stroke:currentColor;stroke-width:2.2;stroke-linecap:round;
+  transform-box:view-box;transform-origin:50% 50%}
+.action.syncing .glyph-resources{visibility:hidden}
+.action.syncing .glyph-spinner{display:block;animation:cfvigil-poll 1.2s linear infinite}
 @keyframes cfvigil-poll{to{transform:rotate(360deg)}}
-@media(prefers-reduced-motion:reduce){.action.syncing .glyph{animation:none}}
+@media(prefers-reduced-motion:reduce){.action.syncing .glyph-spinner{animation:none}}
