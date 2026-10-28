@@ -2,7 +2,9 @@
 
 Verify the checksum of the Windows installer before executing it. Do not bypass SmartScreen or disable antivirus globally to force installation.
 
-On a real Windows desktop, verify installation and Start menu identity, tray icon, compact and expanded card, Settings and Event History, keyboard focus, search, notifications and correct resizing on varying display scaling.
+On a real Windows desktop, verify installation and Start menu identity, tray icon, compact and expanded card, Settings and Event History, keyboard focus, search, notifications and correct resizing on varying display scaling. In the expanded card, an unconfigured account and zero resources must produce a short content-height window, not a tall empty list; one, many and filtered resources must grow/shrink the window while retaining the bottom anchor. Right-click on the card, Settings, About and History must never display WebView2's Back, Refresh, Save as, Print or Share menus. The app's own resource action button must still work.
+
+Open Settings with a new and an existing account. The Apply button must become usable after loading the native configuration; a temporary/failed read must show an error rather than leave an unexplained disabled button and must retry on reopening Settings. Exercise account, token replacement, interval, locale and autostart independently and verify saved values after reopening. A slow save must present visible progress without accidentally submitting twice. Capture only redacted screenshots; never expose account identifiers or tokens.
 
 Confirm that language and token changes happen only when Apply is used, that Cancel does not persist drafts and that native credential storage never exposes the token to the WebView. Check autostart enable/disable, relaunch, account switching and brief offline recovery.
 
