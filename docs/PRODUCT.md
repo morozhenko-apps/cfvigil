@@ -6,7 +6,7 @@ This document describes what CFVigil should do, rather than recording developmen
 
 CFVigil gives developers a compact, read-only view of Cloudflare Workers and Pages in the desktop tray. The main card has five equally sized controls or counters, in this order: successful, deploying, issues, resources and hide. The title is kept out of the card.
 
-The resource list expands **upwards** without moving the card's anchored bottom edge. Search appears between the expanded list and the compact card; the list has no separate application heading, resource-type column, branch column or per-resource collapsible sections. Each row shows the resource name, relative age, status lamp and a context action that opens the relevant Cloudflare page.
+The resource list expands **upwards** without moving the card's anchored bottom edge. The native window follows the height of the displayed rows (including an empty-state message), search and diagnostics, with an upper bound for long lists; an empty list never occupies a tall fixed-size drawer. Search appears between the expanded list and the compact card; the list has no separate application heading, resource-type column, branch column or per-resource collapsible sections. Each row shows the resource name, relative age, status lamp and a context action that opens the relevant Cloudflare page.
 
 ## Status semantics
 
