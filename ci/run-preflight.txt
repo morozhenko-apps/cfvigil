@@ -5,6 +5,7 @@ Regular source and documentation commits do not trigger Preflight.
 
 Requirements:
 - Stable UI/localization, Python distribution tests, Rust check and Rust tests.
+- Public release readback identifies CFVigil and verifies complete response bytes.
 - Exact source revision and no unexpected Cloudflare writes.
 - No tag, release publication, key imports or production storage changes.
 
