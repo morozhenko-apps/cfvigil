@@ -115,3 +115,14 @@ plus complete final source preflight; no source/packager gate bypass.
 No main promotion, version tag, GitHub release, signing secret use or R2 write.
 Do not poll these workflows. Review completion on an owner-provided
 terminal result before native Windows install/uninstall acceptance.
+
+2026-10-28: Windows owner acceptance defects before CFVigil v1.0.0.
+Exact implementation/docs SHA 8b061d99a437943c6ee0f2bb3655b394221cbbc6.
+Check content-measured expanded tray height (zero/filtered/many resources)
+with bounded native bottom-anchored resizing, disable embedded browser
+context menus in all four WebViews, and retry fail-closed Settings load
+when the prior native read did not complete. Include native command/JS
+regressions and lockfile source gates. Produce matched unsigned Linux
+and Windows packages from one identical commit for owner reinspection.
+Do not publish R2, promote main, tag a release or run protected signer.
+AGENT RULE: after CI starts do not poll; stop until owner provides results.
