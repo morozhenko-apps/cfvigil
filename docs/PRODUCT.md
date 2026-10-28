@@ -33,7 +33,7 @@ The account identifier, polling interval, language and optional start-at-login s
 
 The API token is held in the OS credential store, not inside configuration or history JSON. Local preferences, resource cache and event data use per-user application storage. Changing accounts must not retain incidents from the previous account.
 
-**Privacy boundary:** uninstalling the package alone does not imply that an OS credential-store entry or local user data has been deleted. Any future complete data-erasure feature must explicitly cover both storage classes and verify its results. Never silently delete credentials during an ordinary upgrade.
+**Privacy boundary:** Windows NSIS preserves the existing credential and per-user data during ordinary uninstall or upgrade. If the user explicitly checks **Delete the application data** during an interactive uninstall, NSIS removes the application's per-user folders and the single CFVigil generic credential from Windows Credential Manager. An absent credential counts as already clean; a deletion failure is reported to the user rather than silently claiming success. This needs native Windows acceptance before considering the behavior verified on an installed system. Linux package removal does not erase OS keyring entries.
 
 ## Product scope
 
