@@ -1,3 +1,4 @@
+import "./suppress-context-menu.mjs";
 import { filterHistory, historyTimestamp } from "./history-model.mjs";
 import {t, plural, eventText} from "./localization.mjs";
 import {initializeLanguage} from "./runtime-language.mjs";
