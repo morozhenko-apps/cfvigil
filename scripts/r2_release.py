@@ -20,6 +20,9 @@ import zlib
 BUCKET = "app-dist"
 PREFIX = "dist/CFVigil/"
 BASE = "https://download.morozhenko.com/" + PREFIX
+PUBLIC_READBACK_USER_AGENT = (
+    "CFVigil-ReleaseVerifier/1.0 (+https://github.com/morozhenko-apps/cfvigil)"
+)
 VERSION = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\Z")
 COMMIT = re.compile(r"[a-f0-9]{40}\Z")
 MIMES = {
@@ -295,9 +298,15 @@ def public_readback(path, relative, opener=urllib.request.urlopen):
     # cannot demonstrate that visitors can download this exact object.
     expected_size = path.stat().st_size
     expected_sha = digest(path)
+    # Identify the application rather than urllib's generic client, which
+    # download-edge integrity checks may reject before reaching R2.
+    request = urllib.request.Request(
+        BASE + relative, headers={"User-Agent": PUBLIC_READBACK_USER_AGENT},
+        method="GET",
+    )
     for attempt in range(4):
         try:
-            with opener(BASE + relative, timeout=45) as reply:
+            with opener(request, timeout=45) as reply:
                 if reply.status != 200:
                     raise ValueError("Public R2 download returned non-200")
                 hasher = hashlib.sha256()

@@ -9,6 +9,8 @@ from types import ModuleType
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from urllib.error import HTTPError
+from urllib.request import Request
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import r2_release as release
@@ -393,6 +395,160 @@ class PublicationFixture(unittest.TestCase):
                             Path(self.temp.name) / "receipt.json",
                             "invalid", "", "")
 
+
+
+class PublicReadbackTests(unittest.TestCase):
+    """Exercise real HTTP request construction and fail-closed byte checks."""
+
+    class Reply:
+        def __init__(self, data, status=200):
+            self.status = status
+            self.body = io.BytesIO(data)
+            self.read_sizes = []
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            self.body.close()
+
+        def read(self, size):
+            self.read_sizes.append(size)
+            return self.body.read(size)
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.file = Path(self.temp.name) / "approved-package"
+        self.payload = b"approved CFVigil package bytes"
+        self.file.write_bytes(self.payload)
+        sleep_patch = patch.object(release.time, "sleep")
+        sleep_patch.start()
+        self.addCleanup(sleep_patch.stop)
+
+    def assert_request(self, request, timeout, relative):
+        self.assertIsInstance(request, Request)
+        self.assertEqual(request.full_url, release.BASE + relative)
+        self.assertEqual(request.get_method(), "GET")
+        self.assertIsNone(request.data)
+        self.assertEqual(timeout, 45)
+        self.assertEqual(dict(request.header_items()), {
+            "User-agent": (
+                "CFVigil-ReleaseVerifier/1.0 "
+                "(+https://github.com/morozhenko-apps/cfvigil)"
+            ),
+        })
+
+    def test_GivenReleaseFiles_WhenReadbackRuns_ThenRequestIdentifiesCFVigil(self):
+        for relative in (
+            "linux/CFVigil-0.1.0-linux-x64.AppImage",
+            "windows/CFVigil-Setup-0.1.0-win-x64.exe",
+            "linux/InRelease",
+            "latest.json",
+        ):
+            with self.subTest(relative=relative):
+                calls = []
+
+                def opener(request, timeout):
+                    calls.append(request)
+                    self.assert_request(request, timeout, relative)
+                    return self.Reply(self.payload)
+
+                # Act: the production verifier constructs the HTTP request.
+                result = release.public_readback(self.file, relative, opener)
+
+                # Assert: no receipt replaces the complete byte proof.
+                self.assertEqual(len(calls), 1)
+                self.assertEqual(result, {
+                    "url": release.BASE + relative,
+                    "sha256": sha(self.payload),
+                    "readback_sha256": sha(self.payload),
+                    "size": len(self.payload),
+                    "readback_size": len(self.payload),
+                    "readback_status": 200,
+                })
+
+    def test_GivenLargeBody_WhenReadbackRuns_ThenAllChunksAreHashed(self):
+        # Arrange: exceed a single bounded read, with a distinct final byte.
+        self.payload = b"a" * (1024 * 1024) + b"z"
+        self.file.write_bytes(self.payload)
+        reply = self.Reply(self.payload)
+
+        # Act.
+        result = release.public_readback(
+            self.file, "linux/package", lambda request, timeout: reply)
+
+        # Assert: neither a prefix hash nor an unbounded read is accepted.
+        self.assertEqual(result["readback_sha256"], sha(self.payload))
+        self.assertEqual(result["readback_size"], len(self.payload))
+        self.assertEqual(reply.read_sizes, [1024 * 1024] * 3)
+
+    def test_GivenTransientHTTPFailure_WhenRetried_ThenIdentificationPersists(self):
+        # Arrange: emulate an external HTTP failure without real time/network.
+        relative = "linux/package"
+        calls = []
+
+        def opener(request, timeout):
+            calls.append(request)
+            self.assert_request(request, timeout, relative)
+            if len(calls) == 1:
+                raise HTTPError(request.full_url, 503, "Unavailable", {}, None)
+            return self.Reply(self.payload)
+
+        # Act.
+        result = release.public_readback(self.file, relative, opener)
+
+        # Assert.
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(result["readback_sha256"], sha(self.payload))
+
+    def test_GivenNon200Reply_WhenReadbackRuns_ThenNoBodyProofIsAccepted(self):
+        for status in (201, 206, 403):
+            with self.subTest(status=status):
+                replies = []
+
+                def opener(request, timeout):
+                    reply = self.Reply(self.payload, status)
+                    replies.append(reply)
+                    return reply
+
+                # Act / Assert: status must be exactly 200 even for valid bytes.
+                with self.assertRaisesRegex(ValueError, "returned non-200"):
+                    release.public_readback(self.file, "linux/package", opener)
+                self.assertEqual(len(replies), 4)
+                self.assertTrue(all(not reply.read_sizes for reply in replies))
+
+    def test_GivenWrongPublicBytes_WhenReadbackRuns_ThenVerificationFails(self):
+        for label, body in (
+            ("empty", b""),
+            ("truncated", self.payload[:-1]),
+            ("overlong", self.payload + b"extra"),
+            ("same-size corruption", b"x" * len(self.payload)),
+            ("HTML challenge", b"<html>Complete a challenge</html>"),
+        ):
+            with self.subTest(body=label):
+                # Act / Assert: an identified client never bypasses SHA256.
+                with self.assertRaisesRegex(ValueError, "does not match source"):
+                    release.public_readback(
+                        self.file, "linux/package",
+                        lambda request, timeout: self.Reply(body))
+
+    def test_GivenPersistent403_WhenReadbackRuns_ThenHTTPErrorRemainsVisible(self):
+        # Arrange.
+        relative = "linux/package"
+        error = HTTPError(release.BASE + relative, 403, "Forbidden", {}, None)
+        calls = []
+
+        def opener(request, timeout):
+            self.assert_request(request, timeout, relative)
+            calls.append(request)
+            raise error
+
+        # Act / Assert: failure still blocks publication after bounded attempts.
+        with self.assertRaises(HTTPError) as raised:
+            release.public_readback(self.file, relative, opener)
+        self.assertIs(raised.exception, error)
+        self.assertEqual(len(calls), 4)
 
 
 class UploadSafetyTests(unittest.TestCase):
