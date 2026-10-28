@@ -75,7 +75,7 @@ test("resource detail translations preserve native constants and presentation-on
   const card = read("apps/desktop/ui/app.mjs");
   assert.match(card, /onChange: \(\) => \{\s*render\(\);\s*refreshLocalizedWarnings\(\)/);
   assert.match(card, /lastSyncError = typeof payload === "string"/);
-  assert.match(card, /if \(syncAvailable\) lastSyncError = null/);
+  assert.match(card, /if \(syncAvailable \|\| syncPending\) lastSyncError = null/);
   assert.match(card, /entry\.textContent = diagnosticText\(item\)/);
 });
 

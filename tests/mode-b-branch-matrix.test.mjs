@@ -103,11 +103,11 @@ test("Given resource keyboard navigation When keys and boundaries vary Then all 
 
 test("Given malformed and partial native snapshots When normalized Then status cannot be fabricated", () => {
   assert.deepEqual(normalizeSnapshot(null),{
-    resources:[],ready:false,configured:false,provider_warnings:[]
+    resources:[],ready:false,pending:false,configured:false,provider_warnings:[]
   });
   assert.deepEqual(normalizeSnapshot({resources:"bad",ready:1,configured:"true",
     provider_warnings:[null,42]}),{
-    resources:[],ready:false,configured:false,provider_warnings:[]
+    resources:[],ready:false,pending:false,configured:false,provider_warnings:[]
   });
   const snapshot=normalizeSnapshot({
     resources:[{status:"unknown"}],ready:false,configured:true,
@@ -116,6 +116,9 @@ test("Given malformed and partial native snapshots When normalized Then status c
   assert.deepEqual(snapshot.provider_warnings,["one","two","three","four","five","six"]);
   assert.equal(snapshot.resources[0].status,"unknown");
   assert.equal(snapshot.ready,false);
+  assert.equal(snapshot.pending,false,"missing pending is never an active request");
+  assert.equal(normalizeSnapshot({configured:true,pending:"true"}).pending,false);
+  assert.equal(normalizeSnapshot({configured:true,pending:true}).pending,true);
 });
 
 test("Given real timezone-offset timestamps When calculating relative age Then elapsed time is instant-based", () => {

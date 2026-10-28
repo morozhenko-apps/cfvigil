@@ -4,12 +4,13 @@ import {readFileSync} from "node:fs";
 import {normalizeSnapshot} from "../apps/desktop/ui/snapshot.mjs";
 
 test("missing and stale provider snapshots never claim verified resource health", () => {
-  assert.deepEqual(normalizeSnapshot(null), {resources:[],ready:false,configured:false,provider_warnings:[]});
+  assert.deepEqual(normalizeSnapshot(null), {resources:[],ready:false,pending:false,configured:false,provider_warnings:[]});
   const unknown = [{name:"worker",status:"unknown"}];
   assert.deepEqual(normalizeSnapshot({ready:false,configured:true,resources:unknown}), {
-    resources:unknown,ready:false,configured:true,provider_warnings:[],
+    resources:unknown,ready:false,pending:false,configured:true,provider_warnings:[],
   });
   assert.equal(normalizeSnapshot({ready:"true",configured:true,resources:unknown}).ready,false);
+  assert.equal(normalizeSnapshot({configured:true,pending:"true"}).pending,false);
   assert.deepEqual(normalizeSnapshot({ready:true,resources:{status:"healthy"}}).resources,[]);
 });
 
