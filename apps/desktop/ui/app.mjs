@@ -4,6 +4,8 @@ import { nextResourceIndex } from "./resource-navigation.mjs";
 import {t, resourceDetail, incidentText, diagnosticText, verboseRelativeTime, currentLocale, intlLocale} from "./localization.mjs";
 import {initializeLanguage} from "./runtime-language.mjs";
 import {createNativeDragGesture} from "./native-drag.mjs";
+import {measureExpandedCardHeight} from "./card-sizing.mjs";
+import "./suppress-context-menu.mjs";
 const invoke = (command, args = {}) => window.__TAURI__.core.invoke(command, args);
 const listen = (event, callback) => window.__TAURI__.event.listen(event, callback);
 const byId = id => document.getElementById(id);
@@ -26,6 +28,23 @@ let lastSyncError = null;
 let resizing = false;
 let cardVisible = false;
 let idleTimer = null;
+let lastNativeHeight = null;
+let fitFrame = null;
+// Content and search changes resize the real native window, not a CSS-only
+// viewport. The native command serializes bottom-anchored placement.
+function scheduleCardFit() {
+  if (!expanded || resizing || !cardVisible || fitFrame !== null) return;
+  fitFrame = requestAnimationFrame(async () => {
+    fitFrame = null;
+    if (!expanded || resizing || !cardVisible) return;
+    const height = measureExpandedCardHeight(document);
+    if (height === lastNativeHeight) return;
+    try {
+      await invoke("set_card_expanded", {expanded:true, height});
+      lastNativeHeight = height;
+    } catch { alertOnResources(t("card.resizeError")); }
+  });
+}
 const AUTO_HIDE_MS = 15_000;
 function cancelAutoHide() {
   if (idleTimer !== null) { clearTimeout(idleTimer); idleTimer = null; }
@@ -137,6 +156,7 @@ function render() {
     message.className = "empty";
     message.textContent = !accountConfigured ? t("card.noAccount") : syncAvailable ? t("card.noResources") : t("card.noData");
     list.append(message);
+    scheduleCardFit();
     return;
   }
   const filtered = filterResources(resources, byId("search").value)
@@ -187,6 +207,7 @@ function render() {
     if (row.dataset.key === focusedKey) row.scrollIntoView({block:"nearest"});
   });
   if (focusKey) focusResource(focusKey);
+  scheduleCardFit();
 }
 // An accessible status message, not a visible overlay over the five-cell card.
 function announce(message) {
@@ -201,21 +222,25 @@ function alertOnResources(message) {
 async function toggleList() {
   if (resizing) return;
   resizing = true;
+  const previous = expanded;
   const next = !expanded;
   try {
-    await invoke("set_card_expanded", { expanded: next });
+    // Render the actual rows before measuring. A compact 92px viewport must
+    // never determine the natural expanded height by its scrollHeight.
     expanded = next;
-    byId("card").dataset.view = expanded ? "expanded" : "compact";
-    armAutoHide();
-    byId("drawer").hidden = !expanded;
-    byId("search-row").hidden = !expanded;
-    byId("toggle-list").setAttribute("aria-pressed", String(expanded));
-    byId("toggle-list").setAttribute("aria-expanded", String(expanded));
-    if (expanded) {
+    byId("card").dataset.view = next ? "expanded" : "compact";
+    byId("drawer").hidden = !next;
+    byId("search-row").hidden = !next;
+    byId("toggle-list").setAttribute("aria-pressed", String(next));
+    byId("toggle-list").setAttribute("aria-expanded", String(next));
+    if (next) render();
+    const height = next ? measureExpandedCardHeight(document) : undefined;
+    await invoke("set_card_expanded", {expanded:next, height});
+    lastNativeHeight = next ? height : null;
+    if (next) {
       byId("toggle-list").classList.remove("blink");
       byId("toggle-list").title = t("card.toggleTitle");
       await invoke("acknowledge_incident");
-      render();
       if (!focusedKey || !focusResource(focusedKey)) byId("search").focus();
     } else {
       focusedKey = null;
@@ -224,6 +249,14 @@ async function toggleList() {
       byId("toggle-list").focus();
     }
   } catch {
+    // Restore both native/UI view state on failed expansion. Never leave
+    // search enabled above a compact card after a rejected resize.
+    expanded = previous;
+    byId("card").dataset.view = previous ? "expanded" : "compact";
+    byId("drawer").hidden = !previous;
+    byId("search-row").hidden = !previous;
+    byId("toggle-list").setAttribute("aria-pressed", String(previous));
+    byId("toggle-list").setAttribute("aria-expanded", String(previous));
     alertOnResources(t("card.resizeError"));
   } finally {
     resizing = false;
@@ -291,6 +324,8 @@ await initializeLanguage({invoke,listen,doc:document,onChange: () => {
 function resetCard() {
   lastSyncError = null;
   expanded = false;
+  lastNativeHeight = null;
+  if (fitFrame !== null) { cancelAnimationFrame(fitFrame); fitFrame = null; }
   focusedKey = null;
   byId("search").value = "";
   byId("card").dataset.view = "compact";
