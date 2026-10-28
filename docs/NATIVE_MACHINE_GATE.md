@@ -16,6 +16,6 @@ Install a validated NSIS candidate as an ordinary user. Check tray/menu integrat
 
 Use a dedicated, limited-permission testing token. Never capture it in logs or screenshots. Verify that account switching does not mix incidents or resources and that old or inaccessible provider states are not reported as healthy.
 
-**Credential-store persistence is separate from package uninstall.** Check local files and saved OS credentials independently when evaluating an explicit full-data-removal flow. Do not claim they are erased merely because the executable disappeared.
+**Credential-store persistence is separate from package uninstall.** On Windows, ordinary uninstall and upgrade retain the credential, while checking the native Delete application data option must remove CFVigil's generic Credential Manager entry and app-specific data. The deletion hook is source-implemented but needs real NSIS install/uninstall acceptance; the absence of the executable is not proof of successful erasure. On Linux, ordinary package removal or purge does not implicitly clean the user's credential store.
 
 Record observations and failures in the testing issue or CI system, not in dated Markdown appendices. See [NATIVE_CLOUDFLARE_SMOKE.md](NATIVE_CLOUDFLARE_SMOKE.md) for connected-provider checks and [WINDOWS_NATIVE_SMOKE.md](WINDOWS_NATIVE_SMOKE.md) for Windows-specific points.
