@@ -17,6 +17,8 @@ The resource list expands **upwards** without moving the card's anchored bottom 
 | Red | The latest attempt failed, or a separately verified incident needs attention |
 | Grey | Information is unavailable, unverified or too stale to establish a reliable outcome |
 
+For Pages, only **production** deployments determine the card status; Preview deployments must never supersede a production attempt. For Workers, explicitly identified pull-request previews must not supersede live deployments. Workers without trustworthy production-build evidence remain subject to native/provider acceptance.
+
 A new running attempt takes precedence over an older failed attempt. An earlier successful production deployment does not disguise a newer failed attempt. Cloudflare deployment status is **not** a website uptime check.
 
 Worker execution-error spikes and zone-level WAF blocking spikes are independent signals. An unavailable analytics response is not evidence of recovery. WAF observations belong to the zone and are not attributed to a specific Worker without reliable data. Avoid describing WAF blocks as proof of an attack.
@@ -30,6 +32,8 @@ Notifications identify meaningful new issues without repeating the same alert in
 ## Settings and data
 
 The account identifier, polling interval, language and optional start-at-login setting are controlled in Settings. Applying an unchanged field does not provoke unrelated credential writes or Cloudflare requests. Cancel discards unsaved changes.
+
+After Apply or startup with a configured account, the card must show a visible pending-sync state until the first Cloudflare result or a verified failure arrives. Pending is neither disconnected nor healthy. The frameless About window supports native dragging from its empty upper strip without obstructing Close.
 
 The API token is held in the OS credential store, not inside configuration or history JSON. Local preferences, resource cache and event data use per-user application storage. Changing accounts must not retain incidents from the previous account.
 

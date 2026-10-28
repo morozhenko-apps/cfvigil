@@ -6,12 +6,12 @@ This file defines testing obligations, not a lifetime test counter or a transcri
 
 | Area | Essential checks |
 | --- | --- |
-| Deployments | Latest attempt wins; running after failure is yellow; unverified remains grey |
+| Deployments | Latest production attempt wins; Pages Preview cannot override Production; running after failure is yellow; unverified remains grey |
 | Provider isolation | Workers, Pages, error analytics and WAF failures remain independent |
 | Security | Read-only Cloudflare access; no token leakage; untrusted names/URLs remain opaque |
 | Networking | One bounded poller; offline and rate-limit handling; no duplicate requests |
 | Local state | Corruption recovery, account isolation, restart continuity and history deduplication |
-| UI | Tray anchoring, search, keyboard, accessibility, scaling and native window behavior |
+| UI | Pending first-sync feedback after Apply, About native drag, tray anchoring, search, keyboard, accessibility, scaling and native window behavior |
 | Languages | Placeholder parity, plural forms, directional isolation and event/status consistency |
 | Distribution | Identity/version parity, signed flat APT, immutable checksums and fail-closed publication |
 
