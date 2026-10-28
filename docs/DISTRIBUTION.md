@@ -20,7 +20,15 @@ The release workflow runs only for the exact approved version tag on the reviewe
 
 The publisher validates source provenance and both platform bundles before uploading. After uploading immutable files, it verifies every public response against expected length and SHA-256. It updates mutable APT indexes, commits signed `InRelease`, and updates `latest.json` **last**. A failure at any step must not produce a successful release receipt.
 
+Public verification requests must identify the CFVigil release verifier with a descriptive `User-Agent`. They use ordinary unauthenticated GET requests and stream the complete response; a successful HTTP status alone never replaces length and SHA-256 verification. Client identification must not impersonate a browser or require disabling download security controls.
+
 Temporary CI artifacts may be deleted only after the complete public readback receipt is verified. GitHub Releases carry explanatory metadata, not duplicated installers. The website must reject malformed or unavailable release pointers rather than invent a download URL.
+
+## Failed-publication recovery
+
+Before retrying a failed publication, retain the original platform archives and establish whether the failure affected builds, upload or public verification. Correct and regression-test the failed publisher contract before starting another publication. Complete builds need not be repeated while their original archives remain available and their source provenance is still valid.
+
+A job re-run uses its original source revision, so a later publisher correction does not enter that re-run automatically. Running corrected recovery code must preserve the approved artifact version, source revision, signatures, public readback and cleanup gates. It must not silently move an existing release tag, promote another commit to main or grant a development branch access to the protected signing environment. A recovery route that changes those authorization boundaries requires a separate owner decision before implementation or execution.
 
 ## Limits of verification
 
