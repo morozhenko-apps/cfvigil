@@ -142,3 +142,13 @@ Build identical-revision Windows unsigned NSIS and Linux DEB/AppImage with
 per-artifact SHA256. Owner must complete native Windows and Linux smoke.
 No main promotion, no release tag, no publishing, no production R2 write.
 Do not poll these workflows; wait for owner review of results.
+
+2026-10-28: Recheck round-two CFVigil candidate after JavaScript test contract fix.
+Exact implementation/test SHA: 2a30745efe7b2316a0742b532850cf3efe24acb6.
+Previous verification of 1fd79d0 failed at the same three Node assertions:
+mode-b-branch-matrix and polling missed strict pending:false in
+normalizeSnapshot; native-i18n-contract expected old syncAvailable-only
+error reset while current UI also clears a stale error on syncPending.
+Verify all tests including Rust and the native Windows/Linux package gates.
+Do not publish, tag or promote main. Candidate artifacts only.
+After requesting CI do not poll; wait for owner completion report.
