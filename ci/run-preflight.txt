@@ -480,3 +480,15 @@ error reset while current UI also clears a stale error on syncPending.
 Verify all tests including Rust and the native Windows/Linux package gates.
 Do not publish, tag or promote main. Candidate artifacts only.
 After requesting CI do not poll; wait for owner completion report.
+
+2026-10-28: Candidate after owner acceptance of all previous functional
+fixes, except miscentered pending synchronization indicator.
+Exact source revision: f09593b5757034d8c52c3249a9868a5357ae99dc.
+Check the Resources button's inline 24x24 vector arc within a fixed 26x26
+slot rotates around the center of its own viewBox. Reduced-motion mode
+disables animation. Idle Resources glyph, all five compact controls, UI
+layout and all first-sync states must remain unchanged.
+Run complete stable source/preflight and produce matched unsigned Windows
+NSIS plus Linux DEB/AppImage candidates. No release publication, main
+promotion, tag, signing or production storage writes.
+No repeated CI polling after explicit marker push. Await owner native review.
