@@ -96,5 +96,6 @@ input:not([type="checkbox"]), textarea, [contenteditable="true"] {
 .save-spinner[hidden]{display:none!important}
 @keyframes cfvigil-spin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.save-spinner{animation-duration:2s}}
-button:disabled{cursor:wait;opacity:.65}
+button:disabled{cursor:not-allowed;opacity:.65}
+form[aria-busy="true"] button:disabled{cursor:progress}
 #token-status{display:block;min-height:1em}
