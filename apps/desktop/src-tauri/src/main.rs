@@ -634,9 +634,15 @@ fn fit_settings(app: AppHandle, height: f64) -> Result<(), String> {
 }
 
 #[tauri::command]
-async fn set_card_expanded(app: AppHandle, expanded: bool) -> Result<(), String> {
+async fn set_card_expanded(app: AppHandle, expanded: bool, height: Option<f64>) -> Result<(), String> {
     let window = app.get_webview_window("main").ok_or(msg::ERROR_CARD_MISSING)?;
-    let height = if expanded { EXPANDED_HEIGHT } else { COMPACT_HEIGHT };
+    // The DOM measures the content, but native code owns both the limits
+    // and the bottom-anchored resize. Never accept NaN or unbounded height.
+    let height = if expanded {
+        let requested = height.unwrap_or(EXPANDED_HEIGHT);
+        if !requested.is_finite() { return Err(msg::ERROR_RESIZE.into()); }
+        requested.clamp(COMPACT_HEIGHT + 50.0, EXPANDED_HEIGHT)
+    } else { COMPACT_HEIGHT };
     #[cfg(target_os = "linux")]
     if linux_surface::enabled() {
         return linux_surface::resize(app, height as i32).await;
