@@ -191,8 +191,16 @@ void refreshTokenStatus();
 async function loadStoredSettings() {
   if (settingsLoading || settingsReady) return;
   settingsLoading = true;
+  let readTimeout;
   try {
-    const config = await invoke("get_settings");
+    // A stalled native command should not leave the form apparently busy
+    // indefinitely. The abandoned request is read-only and cannot commit.
+    const config = await Promise.race([
+      invoke("get_settings"),
+      new Promise((_, reject) => {
+        readTimeout = setTimeout(() => reject(Error("Settings read timed out")), 8_000);
+      })
+    ]);
     if (!config || typeof config.account_id !== "string" ||
         ![60,180,300,600].includes(config.refresh_seconds)) {
       throw Error("Invalid persisted settings response");
@@ -207,6 +215,7 @@ async function loadStoredSettings() {
     setSettingsReady(false);
     message.textContent = t("settings.readError");
   } finally {
+    clearTimeout(readTimeout);
     settingsLoading = false;
   }
 }
