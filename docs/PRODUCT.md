@@ -1,46 +1,34 @@
-# CFVigil product behavior
+# CFVigil product contract
 
-This document describes what CFVigil should do, rather than recording development activity. The implementation and tests determine exact algorithms and provider contracts.
+CFVigil is a read-only desktop companion for monitoring Cloudflare Workers and Pages. Supported platforms: Linux and Windows.
 
-## Purpose and interface
+## Interface
 
-CFVigil gives developers a compact, read-only view of Cloudflare Workers and Pages in the desktop tray. The main card has five equally sized controls or counters, in this order: successful, deploying, issues, resources and hide. The title is kept out of the card.
+The compact tray card contains five cells: successful, deploying, issues, resources, and hide. It has no duplicate application title. The resource list expands upward, with the bottom edge anchored; search appears between the list and card only while expanded. Each row contains a name, relative event age, status lamp and action to open its Cloudflare page. Long lists scroll; empty lists use their natural content height.
 
-The resource list expands **upwards** without moving the card's anchored bottom edge. The native window follows the height of the displayed rows (including an empty-state message), search and diagnostics, with an upper bound for long lists; an empty list never occupies a tall fixed-size drawer. Search appears between the expanded list and the compact card; the list has no separate application heading, resource-type column, branch column or per-resource collapsible sections. Each row shows the resource name, relative age, status lamp and a context action that opens the relevant Cloudflare page.
+## Status
 
-## Status semantics
-
-| Status | Meaning |
+| Lamp | Meaning |
 | --- | --- |
-| Green | The latest relevant deployment attempt is confirmed successful |
-| Yellow | The latest attempt is queued, initializing or running |
-| Red | The latest attempt failed, or a separately verified incident needs attention |
-| Grey | Information is unavailable, unverified or too stale to establish a reliable outcome |
+| Green | Latest relevant attempt verified successful |
+| Yellow | Latest attempt queued, initializing or running |
+| Red | Latest attempt failed, or a separately verified incident is active |
+| Grey | Status unavailable, incomplete or unverified |
 
-For Pages, only **production** deployments determine the card status; Preview deployments must never supersede a production attempt. For Workers, explicitly identified pull-request previews must not supersede live deployments. Workers without trustworthy production-build evidence remain subject to native/provider acceptance.
+Pages statuses use **production** deployments, never Preview. Workers exclude explicitly identified pull-request Preview builds; uncertain provider evidence remains unverified. A newer running attempt supersedes an older failure, while a newer failure supersedes an older success. Deployment status is not a website uptime check.
 
-A new running attempt takes precedence over an older failed attempt. An earlier successful production deployment does not disguise a newer failed attempt. Cloudflare deployment status is **not** a website uptime check.
+Worker error spikes and zone-level WAF blocking spikes are independent observations. Missing analytics cannot prove recovery; a WAF event cannot be attributed to an individual Worker without supporting evidence.
 
-Worker execution-error spikes and zone-level WAF blocking spikes are independent signals. An unavailable analytics response is not evidence of recovery. WAF observations belong to the zone and are not attributed to a specific Worker without reliable data. Avoid describing WAF blocks as proof of an attack.
+## Monitoring and local state
 
-## Monitoring and notifications
+Cloudflare requests use one bounded, read-only polling loop and the account permissions granted by the user. Independent provider failures do not erase verified information from other sources or create false success. Rate limits and disconnections preserve unknown states.
 
-Workers and Pages are discovered within the permissions of the user's chosen account and read-only token. Provider failures are isolated: one unavailable data source must not erase other verified results or produce a false green count. Queries are bounded and coordinated by one polling loop. Rate limiting, offline connectivity and partial responses preserve truthful unknown states.
+Settings are transactional: Cancel discards drafts; Apply changes only the selected fields. A newly configured account displays a pending-sync indicator until the initial request finishes or fails. Localized errors, notifications and searchable event history preserve actual provider outcomes. User-controlled language, polling interval and launch-at-login are supported.
 
-Notifications identify meaningful new issues without repeating the same alert indefinitely. Event History is stored locally, is searchable and retains incident context across restarts. Historic resource names and provider identifiers remain opaque; they are never interpreted as code or trusted URLs.
+The API token stays in the operating system credential store. Preferences, cached resources, incident journal and event history remain in per-user local storage. Switching accounts must not mix identities or incidents.
 
-## Settings and data
+Windows upgrade and ordinary uninstall preserve local settings and credentials. Explicit **Delete application data** during Windows uninstall removes CFVigil user data and its credential; failures must be surfaced. Linux package removal does not automatically erase OS keyring entries.
 
-The account identifier, polling interval, language and optional start-at-login setting are controlled in Settings. Applying an unchanged field does not provoke unrelated credential writes or Cloudflare requests. Cancel discards unsaved changes.
+The interface supports keyboard and screen-reader access, right-to-left layouts, localized labels and native window dragging. CFVigil does not deploy, edit Cloudflare configuration, track GitHub Actions or test site availability.
 
-After Apply or startup with a configured account, the card must show a visible pending-sync state until the first Cloudflare result or a verified failure arrives. Pending is neither disconnected nor healthy. The pending indicator uses a geometrically centered, fixed-size vector spinner instead of a font-dependent rotating character. Reduced-motion preferences disable rotation while preserving the pending signal. The frameless About window supports native dragging from its empty upper strip without obstructing Close.
-
-The API token is held in the OS credential store, not inside configuration or history JSON. Local preferences, resource cache and event data use per-user application storage. Changing accounts must not retain incidents from the previous account.
-
-**Privacy boundary:** Windows NSIS preserves the existing credential and per-user data during ordinary uninstall or upgrade. If the user explicitly checks **Delete the application data** during an interactive uninstall, NSIS removes the application's per-user folders and the single CFVigil generic credential from Windows Credential Manager. An absent credential counts as already clean; a deletion failure is reported to the user rather than silently claiming success. This needs native Windows acceptance before considering the behavior verified on an installed system. Linux package removal does not erase OS keyring entries.
-
-## Product scope
-
-Linux and Windows use the same application identity and behavior. The interface supports localization, keyboard interaction, accessible status labels and platform-native tray integration. CFVigil does not deploy Workers, edit Cloudflare settings, monitor GitHub jobs or assert site availability.
-
-[Development checks](qa/MODE_B_MATRIX.md) and [distribution guarantees](DISTRIBUTION.md) document the relevant engineering contracts.
+See [QA acceptance](qa/MODE_B_MATRIX.md) and [distribution contract](DISTRIBUTION.md).

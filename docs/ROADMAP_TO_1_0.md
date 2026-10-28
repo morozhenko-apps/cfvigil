@@ -1,17 +1,7 @@
-# CFVigil product direction
+# CFVigil direction
 
-CFVigil is designed to make routine Cloudflare deployment checks less distracting. Product decisions favor clear status semantics, native desktop behavior and small, predictable interfaces over a large administrative dashboard.
+The baseline product is a compact, read-only monitor for the latest Cloudflare Workers and Pages deployment attempts. It includes a searchable tray list, local event history, notifications, optional error/WAF incident signals, 20 interface languages and Linux/Windows packaging.
 
-## Core scope
+Further features are considered from user feedback and tracked in [GitHub Issues](https://github.com/morozhenko-apps/cfvigil/issues). New integrations must preserve read-only Cloudflare permissions, accurate status semantics and local credential boundaries. Additional platforms require native installation and security testing before support is advertised.
 
-- Tray monitoring for Workers and Pages, showing the most recent deployment attempt.
-- Searchable resource list, contextual links and incident-aware notifications.
-- Worker error-rate and zone-level WAF blocking signals when provider data is available.
-- Local event history, read-only permissions, application settings and localization.
-- Linux and Windows builds with verifiable distribution metadata.
-
-## Future considerations
-
-Additional desktop platforms, improved incident presentation and usability refinements may be considered from user feedback. Platform support is introduced only with native installation and security verification. New capabilities must not expand Cloudflare permissions into write access or blur the difference between deployment state and site uptime.
-
-The living behavior contract is [PRODUCT.md](PRODUCT.md). Public suggestions belong in [GitHub Issues](https://github.com/morozhenko-apps/cfvigil/issues).
+The current behavior is defined by [PRODUCT.md](PRODUCT.md).

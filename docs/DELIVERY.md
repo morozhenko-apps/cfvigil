@@ -1,17 +1,12 @@
-# Development and acceptance
+# Verification and release
 
-CFVigil separates source verification, package verification, native usability and public release authorization.
+CFVigil separates four independent gates:
 
-## Acceptance boundaries
+1. **Source:** stable JavaScript, Python and Rust tests, including provider, security, localization and distribution contracts.
+2. **Packages:** Linux DEB/AppImage and Windows NSIS built from one reviewed revision, with verified metadata and per-file SHA-256.
+3. **Native:** real Windows and Linux install, tray, Settings, keyring, upgrades and uninstall checks.
+4. **Publication:** approved version tag on the exact reviewed `main` commit, protected signing environment and verified public downloads.
 
-**Source:** Stable JavaScript, Python and Rust tests check the latest-attempt rules, provider failures, history, localization, credential boundaries and signed package metadata. The source CI workflow is started explicitly after completed code changes, not after each commit.
+Do not treat a successful package build as proof of native integration or a public artifact as verified before checksum readback. Commit-specific CI results belong in GitHub Actions, not in documentation.
 
-**Packages:** Linux DEB/AppImage and Windows NSIS are built from the same source revision. Package identity, metadata, dependencies and SHA-256 sidecars are verified independently. Candidate archives are not public releases.
-
-**Native behavior:** Install, tray interactions, Settings, data persistence, read-only provider access, notifications and uninstall effects must be observed on each supported OS. Test results for one platform do not substitute for the other.
-
-**Release:** An approved tag, protected signing environment and public checksums are required before any binary becomes an official download.
-
-Individual CI histories and debug transcripts are available through version-control and workflow history. They must not be copied into Markdown as a second, stale status ledger.
-
-See [PRODUCT.md](PRODUCT.md), [NATIVE_MACHINE_GATE.md](NATIVE_MACHINE_GATE.md), [qa/MODE_B_MATRIX.md](qa/MODE_B_MATRIX.md) and [DISTRIBUTION.md](DISTRIBUTION.md).
+See [product](PRODUCT.md), [desktop smoke](NATIVE_MACHINE_GATE.md), [QA matrix](qa/MODE_B_MATRIX.md) and [distribution](DISTRIBUTION.md).
