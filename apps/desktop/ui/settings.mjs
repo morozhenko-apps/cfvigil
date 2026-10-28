@@ -1,3 +1,4 @@
+import "./suppress-context-menu.mjs";
 import {t, diagnosticText, currentLocale, setLocale, localizeDocument, ACTIVE_LOCALES, LANGUAGE_NAMES} from "./localization.mjs";
 import {planSettingsApply} from "./settings-transaction.mjs";
 import {initializeLanguage} from "./runtime-language.mjs";
