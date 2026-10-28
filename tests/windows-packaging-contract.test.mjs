@@ -43,3 +43,23 @@ test("lockfile is source-controlled and reviewed by all CI gates",()=>{
     assert.match(source(file),/cargo (check|metadata|test) --locked/);
   }
 });
+
+test("NSIS deletes only CFVigil's Windows credential on explicit full-data removal",()=>{
+  const overlay=JSON.parse(source("apps/desktop/src-tauri/tauri.windows.conf.json"));
+  const hooks=source("apps/desktop/src-tauri/windows/installer-hooks.nsh");
+  const native=source("apps/desktop/src-tauri/src/main.rs");
+  assert.equal(overlay.bundle.windows.nsis.installerHooks,"windows/installer-hooks.nsh");
+  const service=native.match(/const KEYRING_SERVICE: &str = "([^"]+)"/)?.[1];
+  const user=native.match(/const KEYRING_USER: &str = "([^"]+)"/)?.[1];
+  assert.ok(service && user);
+  assert.match(hooks,/!macro NSIS_HOOK_POSTUNINSTALL/);
+  assert.match(hooks,/\$DeleteAppDataCheckboxState = 1/);
+  assert.match(hooks,/\$UpdateMode <> 1/);
+  assert.match(hooks,/CredDeleteW\(w "([^"]+)", i 1, i 0\) i \.r0/);
+  const target=hooks.match(/CredDeleteW\(w "([^"]+)"/)?.[1];
+  assert.equal(target,`${user}.${service}`,"must match keyring's Windows target");
+  assert.match(hooks,/\$1 <> 1168/); // Already absent is an acceptable outcome
+  assert.match(hooks,/MessageBox MB_ICONEXCLAMATION/); // Failures must be visible
+  assert.doesNotMatch(hooks,/CredEnumerate|DeleteRegKey HKCU|RMDir \/r|cmdkey \/list/);
+  assert.doesNotMatch(hooks,/NSIS_HOOK_PREINSTALL|NSIS_HOOK_POSTINSTALL/);
+});
