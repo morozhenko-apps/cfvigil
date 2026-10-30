@@ -1,9 +1,9 @@
 name: Windows package candidate
 
-# Explicit mainline-only Windows build, never a release or R2 publication.
+# Explicit dev-only Windows build, never a release or R2 publication.
 on:
   push:
-    branches: [main]
+    branches: [dev]
     paths:
       - 'ci/run-windows-candidate.txt'
 

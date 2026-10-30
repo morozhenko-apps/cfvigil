@@ -183,18 +183,24 @@ def init_environment():
 
 
 def branch_state():
-    # The sole long-lived branch replaces the retired dev/main equality check.
-    # This read-only preflight is not CI or release authorization evidence.
-    try:
-        result = gh_api(f"{ROOT}/branches/main")
-        sha = result.get("commit", {}).get("sha", "")
-        if not isinstance(sha, str) or not re.fullmatch(r"[a-f0-9]{40}", sha):
-            raise GitHubUnavailable("Missing or malformed main commit SHA")
-    except (GitHubUnavailable, AttributeError):
-        print("[UNKNOWN] Cannot inspect main branch identity.")
+    # Both permanent branches must identify the same reviewed release source.
+    # This read-only check does not replace CI or owner tag authorization.
+    heads = {}
+    for name in ("dev", "main"):
+        try:
+            result = gh_api(f"{ROOT}/branches/{name}")
+            sha = result.get("commit", {}).get("sha", "")
+            if not isinstance(sha, str) or not re.fullmatch(r"[a-f0-9]{40}", sha):
+                raise GitHubUnavailable("Missing or malformed branch commit SHA")
+        except (GitHubUnavailable, AttributeError):
+            print(f"[UNKNOWN] Cannot inspect {name} branch identity.")
+            return False
+        heads[name] = sha
+        print(f"[INFO] {name} {sha[:12]}")
+    if heads["dev"] != heads["main"]:
+        print("[BLOCKED] dev differs from main; only owner-approved tested promotion can unblock tagging.")
         return False
-    print(f"[INFO] main {sha[:12]}")
-    print("[PASS] Mainline identity is readable; tested source and owner-approved tagging remain separate.")
+    print("[PASS] dev and main share a source commit; tag authorization is still separate.")
     return True
 
 

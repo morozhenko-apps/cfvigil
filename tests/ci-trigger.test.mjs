@@ -12,9 +12,9 @@ function section(start, end) {
   return workflow.slice(first + start.length, last);
 }
 
-test("mainline push only runs preflight on the explicit verification marker", () => {
+test("dev push only runs preflight on the explicit verification marker", () => {
   const push = section("  push:\n", "  pull_request:\n");
-  assert.match(push, /branches: \[main\]/);
+  assert.match(push, /branches: \[dev\]/);
   assert.match(push, /paths: \['ci\/run-preflight\.txt'\]/);
   assert.equal((push.match(/paths:/g) || []).length, 1);
   assert.doesNotMatch(push, /docs\/|README\.md|Cargo\.toml|apps\/desktop/);
@@ -22,7 +22,7 @@ test("mainline push only runs preflight on the explicit verification marker", ()
 
 test("all PRs report required status while the complete merge classifier resolves prose", () => {
   const pr = section("  pull_request:\n", "  workflow_dispatch:\n");
-  assert.match(pr, /branches: \[main\]/);
+  assert.match(pr, /branches: \[dev, main\]/);
   assert.doesNotMatch(pr, /paths(?:-ignore)?:/);
   assert.match(workflow, /fetch-depth: 0/);
   assert.match(workflow, /run: bash scripts\/ci-pr-scope\.sh/);

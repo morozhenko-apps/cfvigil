@@ -3,10 +3,10 @@ name: Preflight
 # Ordinary pushes are deliberate: request one final gate with the marker.
 on:
   push:
-    branches: [main]
+    branches: [dev]
     paths: ['ci/run-preflight.txt']
   pull_request:
-    branches: [main]
+    branches: [dev, main]
   workflow_dispatch:
 
 permissions:
@@ -88,7 +88,7 @@ jobs:
         with:
           workspaces: . -> target
           shared-key: cfvigil-stable-rust
-          save-if: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+          save-if: ${{ github.ref == 'refs/heads/dev' && github.event_name != 'pull_request' }}
       - name: Install native desktop prerequisites
         run: |
           sudo apt-get update
