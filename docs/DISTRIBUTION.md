@@ -54,3 +54,7 @@ admission and published release identity. Offline storage-contract tests must
 exercise intervening creators/replacements, malformed/missing ETags, denied
 reads, stale latest snapshots, corrupt bytes and stopped final receipts.
 Documentation and implementation remain independently revertible.
+
+Local readiness inspects the sole main branch identity and existing release
+environment controls. It cannot infer CI or owner approval from branch presence;
+required exact-source verification and tag authorization remain independent.

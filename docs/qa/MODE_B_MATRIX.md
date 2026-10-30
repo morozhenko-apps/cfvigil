@@ -35,3 +35,8 @@ Use stable Node, Python and Rust tests for deterministic source behavior. Run pa
 Treat unavailable external accounts, permissions, native environments or signed publishing credentials as unverified rather than passed. Synthetic fixtures cannot establish public R2 accessibility or physical installation. Security-sensitive negative scenarios must fail closed.
 
 Do not turn this page into a list of job IDs, terminal output, owner device names or dated pass/fail narratives. Actual outcome and provenance remain in the associated CI run or issue.
+
+The sole permanent source branch is main. PR gates and explicit verification
+markers target that branch; only trusted non-PR mainline runs may save caches.
+Private candidate builds retain separate markers and never authorize release.
+Retirement of dev does not remove signing, source/tag or publication approval.
