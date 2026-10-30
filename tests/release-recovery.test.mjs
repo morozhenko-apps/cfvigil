@@ -23,7 +23,11 @@ test("recovery requires its exact branch and explicit marker without changing no
   assert.match(job("validate"), /github\.event\.deleted == false/);
   assert.match(normal, /tags: \['v\*'\]/);
   assert.doesNotMatch(normal, /release-recovery|workflow_dispatch|branches: \[dev\]/);
-  assert.match(read(".github/workflows/checks.yml"), /'\.github\/workflows\/recover-release\.yml'/);
+  const checks = read(".github/workflows/checks.yml");
+  const prTrigger = checks.slice(checks.indexOf("  pull_request:"), checks.indexOf("  workflow_dispatch:"));
+  assert.match(prTrigger, /branches: \[dev, main\]/);
+  assert.doesNotMatch(prTrigger, /paths(?:-ignore)?:/);
+  assert.match(checks, /bash scripts\/ci-pr-scope\.sh/);
 });
 
 test("recovery validates source and stable contracts before protected signing access", () => {

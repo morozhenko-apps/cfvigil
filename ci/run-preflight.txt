@@ -1,12 +1,1 @@
-CFVigil explicit source verification marker
-
-Editing this file deliberately requests the complete Preflight validation.
-Regular source and documentation commits do not trigger Preflight.
-
-Requirements:
-- Stable UI/localization, Python distribution tests, Rust check and Rust tests.
-- Public release readback identifies CFVigil and verifies complete response bytes.
-- Exact source revision and no unexpected Cloudflare writes.
-- No tag, release publication, key imports or production storage changes.
-
-Detailed results belong in GitHub Actions rather than this tracked marker.
+Bounded parallel source CI rollout: retain exact stable admission and mainline-only publishers.
