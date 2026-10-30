@@ -36,7 +36,15 @@ Treat unavailable external accounts, permissions, native environments or signed 
 
 Do not turn this page into a list of job IDs, terminal output, owner device names or dated pass/fail narratives. Actual outcome and provenance remain in the associated CI run or issue.
 
-The sole permanent source branch is main. PR gates and explicit verification
-markers target that branch; only trusted non-PR mainline runs may save caches.
-Private candidate builds retain separate markers and never authorize release.
-Retirement of dev does not remove signing, source/tag or publication approval.
+Keep both dev and main as permanent branches. Develop on dev;
+promote reviewed changes to the protected release branch. PR gates cover both
+branches; explicit verification and private candidate markers run on dev. Only
+trusted non-PR dev runs may save dependency caches. Signing, exact-source/tag
+admission and owner publication approval remain independent requirements.
+
+Branch correction plan: restore these existing workflow/cache contracts and
+assertions without reverting bounded parallel CI, source-scope admission,
+publication safety or documentation minimization. Validate the affected source
+contracts and workflow policy once, then push normally for final PR checks.
+No marker, tag, release or cloud setting changes. Rollback is a scoped revert;
+retain both permanent branches throughout.

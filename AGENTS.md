@@ -10,7 +10,7 @@ Keep application credentials in the OS credential store and ordinary settings/hi
 
 ## Source workflow
 
-- `main` is the sole long-lived branch. Use reviewed short-lived PR branches, inspect current ownership, preserve required checks and retire task branches after their work is preserved. Do not recreate permanent `dev`, force-push, rewrite other work or publish tags without explicit release authorization.
+- Work on `dev`; inspect the latest head before writing. Do not force-push, rewrite other changes, update `main` or create release tags without the owner's explicit authorization.
 - Read the relevant product and technical contract before changing behavior. Document the intent and rollback boundary before an architectural change.
 - Keep code and documentation in **separate commits**. Prefer small, maintainable fixes rather than workarounds.
 - Run focused diagnostics when necessary. Run the stable suite once, at the final validation gate.
