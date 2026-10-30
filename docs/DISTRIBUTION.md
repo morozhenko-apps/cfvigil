@@ -30,11 +30,12 @@ Before retrying a failed publication, retain the original platform archives and 
 
 A job re-run uses its original source revision, so a later publisher correction does not enter that re-run automatically. Running corrected recovery code must preserve the approved artifact version, source revision, signatures, public readback and cleanup gates. It must not silently move an existing release tag, promote another commit to main or grant a development branch access to the protected signing environment. A recovery route that changes those authorization boundaries requires a separate owner decision before implementation or execution.
 
-The owner may approve the exact temporary `release-recovery` branch as a recovery exception. Its workflow starts only when its explicit request marker changes. Implement recovery admission and offline regression checks before starting it: require a completed failed normal release, successful original validation and platform jobs, two unexpired archives with matching artifact identities and source revision, and an unchanged approved tag at current main. Read-only admission and the stable distribution tests precede access to signing credentials; repeat admission inside the protected publication job after owner review.
-
-The recovery publisher downloads those exact archive IDs without rebuilding installers. It uses the original source revision and run ID in its manifest and verified receipt so the existing cleanup gate can delete only the original archives. It preserves signing, every public checksum readback, the final latest-pointer commit and the text-only release finalizer.
-
-Treat the branch and its environment policy as a bounded exception. Keep the normal tag policy and required reviewer unchanged. After all recovery jobs and release finalization succeed, remove the exact branch policy before deleting the branch; verify the branch still points to the completed recovery revision. On failure, retain recovery state and source archives for diagnosis. Reverting the recovery source changes must not change existing public installers or weaken verification.
+The one-off recovery workflow is retired after accepted publication and is
+retained in Git history. Its temporary signing-environment exception must also
+be absent. Do not carry that development-branch authority into normal mainline
+publication. A future recovery must receive its own reviewed plan and keep
+original archive identities, signatures, exact-byte readback, final pointer and
+receipt-gated cleanup. No historical failure permits weakening these controls.
 
 ## Limits of verification
 
