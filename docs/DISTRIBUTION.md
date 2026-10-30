@@ -41,3 +41,16 @@ Treat the branch and its environment policy as a bounded exception. Keep the nor
 Passing source tests does not prove that a native installer is usable. A successful package build does not by itself establish operating-system integration, Windows code signing, a working APT upgrade or public download availability. These have their own acceptance checks.
 
 This document intentionally excludes bucket names, account identifiers, credential inventories, local secret paths and per-run deployment reports. The actual workflow and publisher source are the executable implementation of this contract.
+
+## Atomic publication safety
+
+Repair plan: replace check-then-upload with per-object conditional PutObject.
+Absent objects require If-None-Match; mutable replacements require the exact
+previous ETag. Snapshot latest.json before changing APT metadata and compare
+that original snapshot at final promotion. Any conflict stops without a receipt
+or deletion authority; it is never retried as an unconditional overwrite.
+Keep immutable same-byte reuse, bounded streamed readback, signatures, mainline
+admission and published release identity. Offline storage-contract tests must
+exercise intervening creators/replacements, malformed/missing ETags, denied
+reads, stale latest snapshots, corrupt bytes and stopped final receipts.
+Documentation and implementation remain independently revertible.
