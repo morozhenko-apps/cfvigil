@@ -25,7 +25,7 @@ test("recovery requires its exact branch and explicit marker without changing no
   assert.doesNotMatch(normal, /release-recovery|workflow_dispatch|branches: \[dev\]/);
   const checks = read(".github/workflows/checks.yml");
   const prTrigger = checks.slice(checks.indexOf("  pull_request:"), checks.indexOf("  workflow_dispatch:"));
-  assert.match(prTrigger, /branches: \[dev, main\]/);
+  assert.match(prTrigger, /branches: \[main\]/);
   assert.doesNotMatch(prTrigger, /paths(?:-ignore)?:/);
   assert.match(checks, /bash scripts\/ci-pr-scope\.sh/);
 });

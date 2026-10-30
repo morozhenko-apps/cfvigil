@@ -133,18 +133,24 @@ class ReleaseReadinessTests(unittest.TestCase):
             with self.assertRaises(ready.GitHubUnavailable):
                 ready.read_names("path", "secrets")
 
-    def test_different_main_and_dev_never_count_as_release_ready(self):
+    def test_GivenSoleMainline_WhenIdentityIsRead_ThenNoRetiredBranchIsRequired(self):
         def github(path, **kwargs):
-            if path.endswith("/branches/dev"):
-                return {"commit": {"sha": "a" * 40}}
-            if path.endswith("/branches/main"):
-                return {"commit": {"sha": "b" * 40}}
-            raise AssertionError(path)
+            self.assertEqual(path, f"{ready.ROOT}/branches/main")
+            return {"commit": {"sha": "a" * 40}}
         with patch.object(ready, "gh_api", side_effect=github):
             out = io.StringIO()
             with contextlib.redirect_stdout(out):
+                self.assertTrue(ready.branch_state())
+        self.assertIn("owner-approved tagging remain separate", out.getvalue())
+
+    def test_GivenMalformedMainlineIdentity_WhenRead_ThenReadinessRemainsUnknown(self):
+        for payload in (None, {}, {"commit":None}, {"commit":{"sha":"x"*40}}, {"commit":{"sha":"a"*39}}, {"commit":{"sha":None}}):
+            with self.subTest(payload=payload), patch.object(ready,"gh_api",return_value=payload), contextlib.redirect_stdout(io.StringIO()):
                 self.assertFalse(ready.branch_state())
-        self.assertIn("only owner-approved", out.getvalue())
+
+    def test_GivenUnavailableMainline_WhenRead_ThenNoSuccessfulIdentityIsClaimed(self):
+        with patch.object(ready,"gh_api",side_effect=ready.GitHubUnavailable("unavailable")), contextlib.redirect_stdout(io.StringIO()):
+            self.assertFalse(ready.branch_state())
 
     def test_explicit_setup_is_never_called_from_default_cli(self):
         with patch.object(ready, "init_environment") as initializer, \

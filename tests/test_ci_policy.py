@@ -8,7 +8,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = {'workflow': 'checks.yml', 'gate': 'stable', 'gate_name': 'Stable UI and Rust verification', 'workers': ['javascript', 'distribution', 'rust'], 'results': {'JS_RESULT': 'javascript', 'PYTHON_RESULT': 'distribution', 'RUST_RESULT': 'rust'}, 'budgets': {'scope': 5, 'javascript': 10, 'distribution': 10, 'rust': 20, 'stable': 5}, 'caches': 1, 'once': ['node --test tests/*.test.mjs', "unittest discover -s tests -p 'test_release_*.py'", 'cargo test --locked -p cfvigil']}
-WRITER = "${{ github.ref == 'refs/heads/dev' && github.event_name != 'pull_request' }}"
+WRITER = "${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}"
 CACHE = 'Swatinem/rust-cache@c676846f29d98ff6b0106d3608c7ffd4048af17b'
 
 def workflow(name):
@@ -21,7 +21,7 @@ class CIPolicyTests(unittest.TestCase):
 
     def test_GivenOrdinaryJobs_WhenParsed_ThenBudgetsDAGAndTrustRemainStrict(self):
         self.assertEqual(self.doc['permissions'], {'contents': 'read'})
-        self.assertEqual(self.doc['on']['push'], {'branches':['dev'], 'paths':['ci/run-preflight.txt']})
+        self.assertEqual(self.doc['on']['push'], {'branches':['main'], 'paths':['ci/run-preflight.txt']})
         self.assertEqual(set(self.doc['jobs']), set(SPEC['budgets']))
         self.assertEqual(self.doc['concurrency']['cancel-in-progress'], 'true')
         self.assertNotIn('paths', self.doc['on']['pull_request'])
@@ -59,6 +59,16 @@ class CIPolicyTests(unittest.TestCase):
         for line in commands.splitlines():
             if any('cargo ' + verb in line for verb in ('test ', 'check ', 'clippy ')):
                 self.assertIn('--locked', line)
+
+    def test_GivenSingleMainlineCandidates_WhenParsed_ThenOnlyTheirOwnMarkerCanBuildPrivatePackages(self):
+        for name,marker in (('package-candidate.yml','ci/run-package-candidate.txt'),('windows-candidate.yml','ci/run-windows-candidate.txt')):
+            with self.subTest(workflow=name):
+                doc=workflow(name)
+                self.assertEqual(doc['on'],{'push':{'branches':['main'],'paths':[marker]}})
+                self.assertEqual(doc['permissions'],{'contents':'read'})
+                for job in doc['jobs'].values():self.assertNotIn('environment',job)
+                self.assertNotIn('CFVIGIL_R2_',str(doc))
+                self.assertNotIn('CFVIGIL_APT_SIGNING',str(doc))
 
     def run_gate(self, values):
         self.assertEqual(len(self.gate['steps']), 1)

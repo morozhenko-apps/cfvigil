@@ -1,10 +1,10 @@
 name: Linux package candidate
 
-# Separate deliberate dev-only gate: normal code/docs pushes and the stable
+# Separate deliberate mainline-only gate: normal code/docs pushes and the stable
 # Preflight marker cannot start package builds. Never publishes a release.
 on:
   push:
-    branches: [dev]
+    branches: [main]
     paths:
       - 'ci/run-package-candidate.txt'
 

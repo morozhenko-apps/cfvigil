@@ -1,9 +1,166 @@
-CFVigil explicit Windows package verification marker
+CFVigil Windows package candidate explicit gate
+================================================
+This file exclusively triggers an unsigned Windows x64 NSIS candidate
+build on windows-2025. Do not use it for releases or during ordinary dev
+commits. No signing, R2, public URLs or GitHub Releases.
 
-Editing this file deliberately requests the unreleased Windows x64 NSIS
-candidate build and package identity/checksum checks.
+2026-10-24: FINAL Windows x64 NSIS candidate after exact Cargo.lock commit,
+CRLF-safe tests, native ICO-before-build dependency, locked Rust suite,
+unsigned installer identity and SHA256 validation. One verification run.
 
-Source validation must precede packaging. Native owner acceptance remains
-separate. No tag, main promotion, signed release or publication.
+2026-10-24: Rerun Windows candidate after CRLF-safe Cargo.lock header
+validation fix and LF/CRLF tampering regression tests. Full NSIS gate.
 
-Detailed results belong in GitHub Actions rather than this tracked marker.
+2026-10-24: Exact-source-SHA unreleased native-machine checkpoint candidate after
+20-locale Preflight #40125464476 PASS. Generate installable Linux DEB/AppImage
+and unsigned Windows NSIS for observed KDE/Windows inspection before Mode B.
+Do not release, publish R2 or use any self-hosted Actions runners.
+
+2026-10-24: Rebuild unsigned unreleased KDE / Windows native smoke
+candidates after Preflight #40129088182 PASS. Verify persisted drag
+margins, compact geometry, Settings Apply-only language, dynamic height
+and 15-second compact-only hide. Strict exact-SHA pairing; no release.
+
+2026-10-25: Build one unsigned Windows x64 NSIS native-machine candidate
+from the owner-provided normalized CFVigil shield source 6706990 and
+subsequent docs-only acceptance notes. Verify icon manifest and stable
+native Windows contracts, no deployment, tag, main merge, signing or R2.
+The candidate is for the Windows physical gate BEFORE Mode B; Windows
+installation requires explicit user action on their own workstation.
+
+2026-10-25: Retest physical Windows failures with unsigned NSIS. Build the
+same source as Preflight for Windows 11: native tray click toggles visible
+card; expanded window contracts correctly on hide; bottom anchored position
+survives repeated opens and full restart; Apply indicator and stored-token
+presence never expose the secret; release binary does not open console.
+Owner must run on Windows before any PASS or Mode B. No signing or R2.
+
+2026-10-25 Windows native recheck after updating strict saved-language
+contract to use its captured Apply draft. Recheck JS, locales, source
+units and Windows Rust/NSIS packaging on this same commit; previous
+failure was an outdated language string-matching test. No releases.
+
+2026-10-25: Rust provider-state test fixture updated to initialize
+config_revision, required after extracting Cloudflare network reads from
+the settings credential lock. Previous CI had passed cargo check but the
+fixture failed cargo test with missing field E0063. Retry Preflight and
+Windows NSIS at exact current source SHA once; no broad Mode B or release.
+
+2026-10-25: Replacement Windows x64 NSIS physical recheck after first hide/show
+offset following manual drag, opaque corner bevel and misaligned Hide arrow.
+Run JS contracts and Windows Rust/NSIS at exactly the same source as Preflight.
+Unsigned/private candidate only, retain owner installation acceptance gate;
+no main, tags, signing, R2 or publication.
+
+2026-10-26: owner-directed final smoke candidate, Windows x64 unsigned NSIS.
+Same source tree as the Linux candidate marker in this single commit.
+Run hosted stable tests, verify unsigned installer/checksums and retain 1 day.
+No tag, protected release, R2, main, self-hosted runners or publication.
+
+2026-10-26: owner retest Windows unsigned NSIS after cross-platform Mode A.
+Hosted Preflight #40398156902 passed at exact source edfcc2a;
+candidate shares ONE dev commit with Linux (only both marker paths differ).
+Recheck changed-only Settings OK/Cancel, native tray locale, cache, pointer
+scrollbar, About/icon, unsigned Chrome warning. SHA256 verification required.
+No main, release tag, R2, production publish, or owner runners.
+
+2026-10-27: canonical CFVigil identity retest same commit as Linux.
+Source crate/binary cfvigil, productName CFVigil and identifier unchanged.
+Verify NSIS PE and checksums; owner Windows in-place upgrade/startup check
+remains pending. Unsigned candidate 1 day; never publish or use owner runners.
+
+2026-10-27: replacement canonical CFVigil candidate after Windows
+LF-only Cargo.lock regex failure, now corrected to LF/CRLF. Same exact
+source revision as Linux. Run full Windows NSIS/PE/SHA checks. No release.
+
+2026-10-27: Mode B Stage 11 Windows-native gate on the SAME source SHA
+as Ubuntu: 6 new Windows Rust tests for anchored card height 0/1/92/510,
+physical overflow, malformed/restarted saved position and independent
+native card state, plus 7 new native language Rust tests and existing
+Node and packaging checks. Unsigned candidate only; no release or R2.
+
+2026-10-27: Mode B Windows validation after #40513445237 failed
+161/163 on language [] and absent Windows anchor {}. Object-only
+parser must preserve valid anchor:null and valid signed positions.
+Run Windows Rust including quarantine restore tests, then unsigned NSIS
+candidate on SAME SHA as Ubuntu. No production release or R2.
+
+2026-10-27: v1.0.0 exact-source first public-release preparation candidate.
+Stable source checked at ad32baa710a5135393c354b317815804c444d5d5:
+Preflight #40598381215 SUCCESS, 368/368. Post-gate changes were
+documentation only. Produce fresh *unreleased* Linux DEB/AppImage
+and Windows unsigned NSIS from ONE shared marker commit to verify
+v1.0.0 package identity, checksum and actual packaging.
+No main fast-forward, tag, approval, R2 publication, or self-hosted
+runner; artifacts expire after 1 day.
+
+2026-10-27: REPLACEMENT matched v1.0.0 package candidates.
+Fixed Windows-only LF/CRLF Cargo.lock mutation test at commit
+23c867aaecceb15ba87adfaae8e695ab928dc32c.
+Old Windows run #40598981104 FAILED one assertion before NSIS build;
+old Linux candidate #40598981099 is not a valid matching pair.
+Run both package workflows from exactly ONE new common SHA.
+Prior full stable v1.0.0 source baseline ad32baa passed 368/368;
+corrective full Preflight #40599368124 requested separately.
+These artifacts are unsigned, unreleased, retention one day:
+no main/tag/protected environment/R2/public release.
+
+2026-10-28: final CFVigil 1.0.0 privacy/uninstaller release-candidate gate.
+Exact pre-marker dev SHA: 438d270882ddb8c25ab0b7e67b2fabc3850eb293.
+Test native Windows NSIS post-uninstall hook for explicit Delete application
+data only; preserve credentials on ordinary uninstall and /UPDATE; validate
+keyring target and own Windows installer binary through packaging job.
+Rebuild matching Linux DEB/AppImage and Windows NSIS from one commit,
+plus complete final source preflight; no source/packager gate bypass.
+No main promotion, version tag, GitHub release, signing secret use or R2 write.
+Do not poll these workflows. Review completion on an owner-provided
+terminal result before native Windows install/uninstall acceptance.
+
+2026-10-28: Windows owner acceptance defects before CFVigil v1.0.0.
+Exact implementation/docs SHA 8b061d99a437943c6ee0f2bb3655b394221cbbc6.
+Check content-measured expanded tray height (zero/filtered/many resources)
+with bounded native bottom-anchored resizing, disable embedded browser
+context menus in all four WebViews, and retry fail-closed Settings load
+when the prior native read did not complete. Include native command/JS
+regressions and lockfile source gates. Produce matched unsigned Linux
+and Windows packages from one identical commit for owner reinspection.
+Do not publish R2, promote main, tag a release or run protected signer.
+AGENT RULE: after CI starts do not poll; stop until owner provides results.
+
+2026-10-28: CFVigil owner Windows round-two acceptance candidate.
+Source and documentation reviewed at dev SHA 4b35e76911bfec4645f194c019bfb9cf48d96b4c.
+Verify Pages production-only deployment status, even when a newer Preview
+build failed; Worker pull-request preview must not supersede production.
+Verify the configured first Cloudflare sync is explicitly pending (animated
+resource icon and localized status) until a response or confirmed error.
+Reopening the tray reads a cached native snapshot, never launches an extra
+provider poll and never replaces a newer live event.
+Verify About's upper empty drag strip moves the undecorated window without
+blocking Close or website/source buttons.
+Run stable JavaScript, Rust, provider loopback and release contract checks.
+Build identical-revision Windows unsigned NSIS and Linux DEB/AppImage with
+per-artifact SHA256. Owner must complete native Windows and Linux smoke.
+No main promotion, no release tag, no publishing, no production R2 write.
+Do not poll these workflows; wait for owner review of results.
+
+2026-10-28: Recheck round-two CFVigil candidate after JavaScript test contract fix.
+Exact implementation/test SHA: 2a30745efe7b2316a0742b532850cf3efe24acb6.
+Previous verification of 1fd79d0 failed at the same three Node assertions:
+mode-b-branch-matrix and polling missed strict pending:false in
+normalizeSnapshot; native-i18n-contract expected old syncAvailable-only
+error reset while current UI also clears a stale error on syncPending.
+Verify all tests including Rust and the native Windows/Linux package gates.
+Do not publish, tag or promote main. Candidate artifacts only.
+After requesting CI do not poll; wait for owner completion report.
+
+2026-10-28: Candidate after owner acceptance of all previous functional
+fixes, except miscentered pending synchronization indicator.
+Exact source revision: f09593b5757034d8c52c3249a9868a5357ae99dc.
+Check the Resources button's inline 24x24 vector arc within a fixed 26x26
+slot rotates around the center of its own viewBox. Reduced-motion mode
+disables animation. Idle Resources glyph, all five compact controls, UI
+layout and all first-sync states must remain unchanged.
+Run complete stable source/preflight and produce matched unsigned Windows
+NSIS plus Linux DEB/AppImage candidates. No release publication, main
+promotion, tag, signing or production storage writes.
+No repeated CI polling after explicit marker push. Await owner native review.

@@ -7,6 +7,7 @@ Cloudflare state, tags, branches or releases. Do not run in hosted CI.
 """
 import argparse
 import json
+import re
 import subprocess
 import sys
 
@@ -182,22 +183,18 @@ def init_environment():
 
 
 def branch_state():
-    heads = {}
-    for name in ("dev", "main"):
-        try:
-            result = gh_api(f"{ROOT}/branches/{name}")
-            sha = result.get("commit", {}).get("sha", "")
-            if not isinstance(sha, str) or len(sha) != 40:
-                raise GitHubUnavailable("Missing branch commit SHA")
-            heads[name] = sha
-            print(f"[INFO] {name} {sha[:12]}")
-        except (GitHubUnavailable, AttributeError):
-            print(f"[UNKNOWN] Cannot inspect {name} branch.")
-            return False
-    if heads["dev"] != heads["main"]:
-        print("[BLOCKED] dev differs from main; only owner-approved tested promotion can unblock tagging.")
+    # The sole long-lived branch replaces the retired dev/main equality check.
+    # This read-only preflight is not CI or release authorization evidence.
+    try:
+        result = gh_api(f"{ROOT}/branches/main")
+        sha = result.get("commit", {}).get("sha", "")
+        if not isinstance(sha, str) or not re.fullmatch(r"[a-f0-9]{40}", sha):
+            raise GitHubUnavailable("Missing or malformed main commit SHA")
+    except (GitHubUnavailable, AttributeError):
+        print("[UNKNOWN] Cannot inspect main branch identity.")
         return False
-    print("[PASS] dev and main share a source commit; tag authorization is still separate.")
+    print(f"[INFO] main {sha[:12]}")
+    print("[PASS] Mainline identity is readable; tested source and owner-approved tagging remain separate.")
     return True
 
 

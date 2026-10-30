@@ -1,9 +1,189 @@
-CFVigil explicit Linux package verification marker
+CFVigil packaging candidate explicit gate
+=========================================
+Only edit this file after a complete packaging/distribution change batch.
+A push changing it on dev runs exactly one nonpublishing Linux candidate
+workflow. This must not create tags, releases, signed APT or R2 uploads.
 
-Editing this file deliberately requests unreleased Linux DEB and AppImage
-candidate builds with source, native dependency and checksum checks.
+2026-10-24: First source-level DEB/AppImage candidate with version,
+metadata, dependency and checksum validation.
 
-Release signing and publication are handled separately by the approved
-tag-only release workflow. No production storage changes.
+2026-10-24: FINAL complete candidate source at dev HEAD. Verify
+version/metadata negative tests, Rust/JS suites, DEB/AppImage bundle
+validation, SHA256, and Cargo.lock review artifact. Supersedes the
+incomplete initial packaging workflow trigger.
 
-Detailed results belong in GitHub Actions rather than this tracked marker.
+2026-10-24: One rerun after fixing Tauri AppImage staging-symlink
+validation. Check actual DEB/AppImage, exact names, metadata and SHA256.
+
+2026-10-24: Verify corrected Tauri Debian Package identity cf-vigil,
+exact metadata and complete checksums/artifact uploads after #40092833835.
+
+2026-10-24: Exact-source-SHA unreleased native-machine checkpoint candidate after
+20-locale Preflight #40125464476 PASS. Generate installable Linux DEB/AppImage
+and unsigned Windows NSIS for observed KDE/Windows inspection before Mode B.
+Do not release, publish R2 or use any self-hosted Actions runners.
+
+2026-10-24: Rebuild unsigned unreleased KDE / Windows native smoke
+candidates after Preflight #40129088182 PASS. Verify persisted drag
+margins, compact geometry, Settings Apply-only language, dynamic height
+and 15-second compact-only hide. Strict exact-SHA pairing; no release.
+
+2026-10-24: Build unsigned Linux-only native smoke candidate for the
+RepoTicker-derived idempotent GTK resize, saved Wayland margins, and
+intrinsic Settings content sizing. NOT A RELEASE. Preserve the exact dev
+SHA and checksum sidecars. Owner must verify Preflight success and Linux
+candidate success before local installation; do not start Mode B.
+
+2026-10-24: Linux native-machine retest candidate v4, unpublished and unsigned.
+Includes RepoTicker-derived early Wayland GDK preference, visible backend log,
+bounded GTK Settings viewport, undecorated draggable Settings with a single
+close control and native card anchor. Check Preflight #40135018274 PASS before
+installation; keep checksum sidecars, dev-only, no Mode B and no R2 upload.
+
+2026-10-24: Build unsigned, unreleased native KDE visual retest candidate
+for c4935f7 exact 92px compact card and high-contrast framed Settings.
+Keep same Wayland geometry/position logic. Do not install unless
+Preflight #40137409627 and this Linux build both complete SUCCESS;
+verify included SHA256 sidecars. No release, Mode B, or R2.
+
+2026-10-25: Build unsigned unreleased Alcotester connected Cloudflare
+smoke candidate for partial Pages/Workers Builds diagnostics, truthful
+verified resource counters, normal polling on partial provider failures,
+and drag-safe nonselectable static text. Gate installation on Preflight
+#40142604820 SUCCESS plus this package SUCCESS, verify SHA256. No R2,
+Mode B, tags or Windows releases.
+
+2026-10-25: Unreleased Alcotester Pages HTTP 400 retest candidate;
+Cloudflare Pages project list uses 20-item pagination, numeric provider
+errors are sanitized and 400 no longer falsely claims missing Pages Read.
+Require Preflight #40181633690 SUCCESS and candidate SUCCESS plus SHA256
+sidecars before installing. Do not publish R2, tag, merge main or Mode B.
+
+2026-10-25: Build unsigned unreleased native Alcotester retest candidate for
+Cloudflare Pages 8000024 invalid list options. The catalog's first request
+has zero pagination params and subsequent pages use page only; Pages
+deployment GETs are unpaged, RFC3339 newest wins. Install only after
+Preflight #40185408101 SUCCESS and this candidate SUCCESS with SHA256
+sidecars. No Mode B, R2, main merge or release.
+
+2026-10-25: Original owner PNG source+12 derived assets completely tracked
+(including ICO/ICNS), source manifest validated locally by owner, run the
+canonical icon consistency check before stable JS/Python/Rust + unsigned DEB
+and AppImage. Confirm native icon assignment to main, Settings, History,
+About and the Linux tray. Freeze previously accepted KDE geometry. No Mode B,
+R2 upload, main merge, release tagging or installed-machine PASS claim.
+
+2026-10-25: Retry bundled icon CI once after aligning legacy Windows
+source contract with tracked ICO/ICNS files. Original 1254x1254 RGBA PNG,
+12 manifest entries; all checks MUST run on the same dev commit. Builds
+are unsigned native-machine candidates only. No main, tags, R2 or Mode B.
+
+2026-10-25: Recheck owner-committed normalized shield icons at dev source
+6706990 (alpha visible bbox 272,216 to 1054,1034, 5% outer margin,
+12 generated files). Verify manifest, focused alpha crop tests, KDE .desktop
+Icon=hicolor installable image, stable Node/Python/Rust suites and build a
+fresh unreleased DEB/AppImage on exactly this SHA. Earlier installed DEB
+predates asset commit and cannot show this image. No main/Mode B/R2/tags.
+
+2026-10-26: owner-directed final smoke candidate, Linux amd64 DEB/AppImage.
+Same source tree as the Windows candidate marker in this single commit.
+Run hosted stable tests, validate package identity/checksums and retain 1 day.
+No tag, protected release, R2, main, self-hosted runners or publication.
+
+2026-10-26: owner retest Linux DEB+AppImage after cross-platform Mode A.
+Hosted Preflight #40398156902 passed at exact source edfcc2a;
+candidate shares ONE dev commit with Windows (only both marker paths differ).
+Recheck cached grey roster, bounded Cloudflare reads, KSNI updated labels,
+pointer scrollbar, branded About/History and KDE packaged icons.
+Unsigned, unreleased 1-day artifacts; no main, release tag, R2, or owner runners.
+
+2026-10-27: canonical CFVigil identity retest against Mode B stable #40484906417.
+Source crate/binary cfvigil, Debian remains cf-vigil. Package must prove
+launcher Name=CFVigil, Exec=cfvigil and Icon=cfvigil with installed PNG.
+Owner KDE physical upgrade/autostart/icon smoke not included. Artifact 1 day;
+no main/tag/R2/release or user self-hosted runners.
+
+2026-10-27: replacement canonical CFVigil candidate after Windows checkout
+revealed one test assertion was LF-only. Same Rust, icons and bundle
+identity; test fixed to accept CRLF on Windows. Rebuild both platforms
+from one SAME SHA for owner smoke. Tauri must produce Name/Exec/Icon CFVigil.
+
+2026-10-27: v1.0.0 exact-source first public-release preparation candidate.
+Stable source checked at ad32baa710a5135393c354b317815804c444d5d5:
+Preflight #40598381215 SUCCESS, 368/368. Post-gate changes were
+documentation only. Produce fresh *unreleased* Linux DEB/AppImage
+and Windows unsigned NSIS from ONE shared marker commit to verify
+v1.0.0 package identity, checksum and actual packaging.
+No main fast-forward, tag, approval, R2 publication, or self-hosted
+runner; artifacts expire after 1 day.
+
+2026-10-27: REPLACEMENT matched v1.0.0 package candidates.
+Fixed Windows-only LF/CRLF Cargo.lock mutation test at commit
+23c867aaecceb15ba87adfaae8e695ab928dc32c.
+Old Windows run #40598981104 FAILED one assertion before NSIS build;
+old Linux candidate #40598981099 is not a valid matching pair.
+Run both package workflows from exactly ONE new common SHA.
+Prior full stable v1.0.0 source baseline ad32baa passed 368/368;
+corrective full Preflight #40599368124 requested separately.
+These artifacts are unsigned, unreleased, retention one day:
+no main/tag/protected environment/R2/public release.
+
+2026-10-28: final CFVigil 1.0.0 privacy/uninstaller release-candidate gate.
+Exact pre-marker dev SHA: 438d270882ddb8c25ab0b7e67b2fabc3850eb293.
+Test native Windows NSIS post-uninstall hook for explicit Delete application
+data only; preserve credentials on ordinary uninstall and /UPDATE; validate
+keyring target and own Windows installer binary through packaging job.
+Rebuild matching Linux DEB/AppImage and Windows NSIS from one commit,
+plus complete final source preflight; no source/packager gate bypass.
+No main promotion, version tag, GitHub release, signing secret use or R2 write.
+Do not poll these workflows. Review completion on an owner-provided
+terminal result before native Windows install/uninstall acceptance.
+
+2026-10-28: Windows owner acceptance defects before CFVigil v1.0.0.
+Exact implementation/docs SHA 8b061d99a437943c6ee0f2bb3655b394221cbbc6.
+Check content-measured expanded tray height (zero/filtered/many resources)
+with bounded native bottom-anchored resizing, disable embedded browser
+context menus in all four WebViews, and retry fail-closed Settings load
+when the prior native read did not complete. Include native command/JS
+regressions and lockfile source gates. Produce matched unsigned Linux
+and Windows packages from one identical commit for owner reinspection.
+Do not publish R2, promote main, tag a release or run protected signer.
+AGENT RULE: after CI starts do not poll; stop until owner provides results.
+
+2026-10-28: CFVigil owner Windows round-two acceptance candidate.
+Source and documentation reviewed at dev SHA 4b35e76911bfec4645f194c019bfb9cf48d96b4c.
+Verify Pages production-only deployment status, even when a newer Preview
+build failed; Worker pull-request preview must not supersede production.
+Verify the configured first Cloudflare sync is explicitly pending (animated
+resource icon and localized status) until a response or confirmed error.
+Reopening the tray reads a cached native snapshot, never launches an extra
+provider poll and never replaces a newer live event.
+Verify About's upper empty drag strip moves the undecorated window without
+blocking Close or website/source buttons.
+Run stable JavaScript, Rust, provider loopback and release contract checks.
+Build identical-revision Windows unsigned NSIS and Linux DEB/AppImage with
+per-artifact SHA256. Owner must complete native Windows and Linux smoke.
+No main promotion, no release tag, no publishing, no production R2 write.
+Do not poll these workflows; wait for owner review of results.
+
+2026-10-28: Recheck round-two CFVigil candidate after JavaScript test contract fix.
+Exact implementation/test SHA: 2a30745efe7b2316a0742b532850cf3efe24acb6.
+Previous verification of 1fd79d0 failed at the same three Node assertions:
+mode-b-branch-matrix and polling missed strict pending:false in
+normalizeSnapshot; native-i18n-contract expected old syncAvailable-only
+error reset while current UI also clears a stale error on syncPending.
+Verify all tests including Rust and the native Windows/Linux package gates.
+Do not publish, tag or promote main. Candidate artifacts only.
+After requesting CI do not poll; wait for owner completion report.
+
+2026-10-28: Candidate after owner acceptance of all previous functional
+fixes, except miscentered pending synchronization indicator.
+Exact source revision: f09593b5757034d8c52c3249a9868a5357ae99dc.
+Check the Resources button's inline 24x24 vector arc within a fixed 26x26
+slot rotates around the center of its own viewBox. Reduced-motion mode
+disables animation. Idle Resources glyph, all five compact controls, UI
+layout and all first-sync states must remain unchanged.
+Run complete stable source/preflight and produce matched unsigned Windows
+NSIS plus Linux DEB/AppImage candidates. No release publication, main
+promotion, tag, signing or production storage writes.
+No repeated CI polling after explicit marker push. Await owner native review.
