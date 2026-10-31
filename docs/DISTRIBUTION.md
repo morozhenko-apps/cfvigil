@@ -45,7 +45,7 @@ This document intentionally excludes bucket names, account identifiers, credenti
 
 ## Atomic publication safety
 
-Repair plan: replace check-then-upload with per-object conditional PutObject.
+The publisher uses per-object conditional PutObject.
 Absent objects require If-None-Match; mutable replacements require the exact
 previous ETag. Snapshot latest.json before changing APT metadata and compare
 that original snapshot at final promotion. Any conflict stops without a receipt
@@ -54,7 +54,8 @@ Keep immutable same-byte reuse, bounded streamed readback, signatures, mainline
 admission and published release identity. Offline storage-contract tests must
 exercise intervening creators/replacements, malformed/missing ETags, denied
 reads, stale latest snapshots, corrupt bytes and stopped final receipts.
-Documentation and implementation remain independently revertible.
+Source verification does not prove a new production publication; its live
+readback and owner release approval remain separate gates.
 
 Local readiness validates both permanent dev and main source identities and
 requires their reviewed tips to match before tagging. It also inspects existing
