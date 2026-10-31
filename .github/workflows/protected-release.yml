@@ -15,7 +15,7 @@ jobs:
     outputs:
       version: ${{ steps.admit.outputs.version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # actions/checkout@v7.0.1
         with: {fetch-depth: 0, persist-credentials: false}
       - uses: actions/setup-node@v7
         with: {node-version: 24}
@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 110
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # actions/checkout@v7.0.1
         with: {persist-credentials: false}
       - uses: actions/setup-node@v7
         with: {node-version: 24}
@@ -68,7 +68,7 @@ jobs:
           node scripts/candidate-assets.mjs collect \
             --source target/release/bundle --target "$RUNNER_TEMP/release/linux"
           ( cd "$RUNNER_TEMP/release/linux" && sha256sum -c ./*.sha256 )
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # actions/upload-artifact@v7.0.2
         with:
           name: cfvigil-release-linux
           path: ${{ runner.temp }}/release/linux/*
@@ -83,7 +83,7 @@ jobs:
       run:
         shell: pwsh
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # actions/checkout@v7.0.1
         with: {persist-credentials: false}
       - uses: actions/setup-node@v7
         with: {node-version: 24}
@@ -108,7 +108,7 @@ jobs:
           $exe=Get-ChildItem $folder -Filter "*.exe"
           if ($exe.Count -ne 1) { throw "Unexpected NSIS installer count" }
           if ((Get-AuthenticodeSignature $exe[0].FullName).Status -ne "NotSigned") { throw "Unexpected NSIS signing status" }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # actions/upload-artifact@v7.0.2
         with:
           name: cfvigil-release-windows
           path: ${{ runner.temp }}/release/windows/*
@@ -130,13 +130,13 @@ jobs:
       CFVIGIL_APT_FINGERPRINT: ${{ vars.CFVIGIL_APT_FINGERPRINT }}
       CFVIGIL_R2_ACCOUNT_ID: ${{ vars.CFVIGIL_R2_ACCOUNT_ID }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # actions/checkout@v7.0.1
         with: {persist-credentials: false}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # actions/download-artifact@v8.0.2
         with:
           name: cfvigil-release-linux
           path: ${{ runner.temp }}/release/linux
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # actions/download-artifact@v8.0.2
         with:
           name: cfvigil-release-windows
           path: ${{ runner.temp }}/release/windows
@@ -211,7 +211,7 @@ jobs:
       contents: read
       actions: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # actions/checkout@v7.0.1
         with: {persist-credentials: false}
       - uses: actions/setup-node@v7
         with: {node-version: 24}

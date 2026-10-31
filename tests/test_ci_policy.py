@@ -9,7 +9,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = {'workflow': 'checks.yml', 'gate': 'stable', 'gate_name': 'Stable UI and Rust verification', 'workers': ['javascript', 'distribution', 'rust'], 'results': {'JS_RESULT': 'javascript', 'PYTHON_RESULT': 'distribution', 'RUST_RESULT': 'rust'}, 'budgets': {'scope': 5, 'javascript': 10, 'distribution': 10, 'rust': 20, 'stable': 5}, 'caches': 1, 'once': ['node --test tests/*.test.mjs', "unittest discover -s tests -p 'test_release_*.py'", 'cargo test --locked -p cfvigil']}
 WRITER = "${{ github.ref == 'refs/heads/dev' && github.event_name != 'pull_request' }}"
-CACHE = 'Swatinem/rust-cache@c676846f29d98ff6b0106d3608c7ffd4048af17b'
+CACHE = 'Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0'
 
 def workflow(name):
     return yaml.load((ROOT / '.github/workflows' / name).read_text(), Loader=yaml.BaseLoader)
