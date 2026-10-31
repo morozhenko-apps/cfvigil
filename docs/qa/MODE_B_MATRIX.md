@@ -41,10 +41,3 @@ promote reviewed changes to the protected release branch. PR gates cover both
 branches; explicit verification and private candidate markers run on dev. Only
 trusted non-PR dev runs may save dependency caches. Signing, exact-source/tag
 admission and owner publication approval remain independent requirements.
-
-Branch correction plan: restore these existing workflow/cache contracts and
-assertions without reverting bounded parallel CI, source-scope admission,
-publication safety or documentation minimization. Validate the affected source
-contracts and workflow policy once, then push normally for final PR checks.
-No marker, tag, release or cloud setting changes. Rollback is a scoped revert;
-retain both permanent branches throughout.
