@@ -83,10 +83,11 @@ Milestones:
 
 - [x] Read current source, agent/CI owners, permanent refs and concurrent work.
 - [x] Record scope, compatibility decisions, validation and rollback before code.
-- [ ] Apply scoped action/toolchain and directly related source-contract changes.
-- [ ] Execute applicable stable checks once at the final gate; report separate
+- [x] Apply scoped action/toolchain and directly related source-contract changes.
+- [x] Execute applicable stable checks once at the final gate; report separate
   known-flaky/stability outcomes and unexecuted native/provider gates.
-- [ ] Record the final source/verification boundary and publish validated dev work.
+- [x] Record the final local source/verification boundary and remaining blockers.
+- [ ] Complete exact-source remote CI and the separately authorized release process.
 
 Planned validation:
 
@@ -103,3 +104,17 @@ scoped executable commit and its documentation update separately if needed. This
 maintenance does not authorize protected-branch promotion, tags, store upload,
 runner changes or cloud deployment. Native/device/provider acceptance remains
 independent of local checks. No architecture or application contract changes.
+
+### Local execution outcome
+
+Applicable local source/tooling gates completed successfully.
+Remote CI, protected release-branch promotion, native/provider/store acceptance and production deployment are not established by this local execution.
+
+Node26.13.0 with bundled npm11.20.0 was used. Non-Node SDK versions were preserved. Application dependency versions were preserved; any required test-tool compatibility correction is documented separately.
+
+Executed commands (paths are relative to this repository; glob notation abbreviates the recorded expanded file list):
+
+- `python3 -m unittest discover -s tests -v` — exit `0` (STABLE_SOURCE).
+- `node --test 'tests/*.test.mjs'` — exit `0` (STABLE_NODE).
+
+Publication boundary: dev maintenance may be shared with these exact outcomes. Failed gates block completion/release. Main/master, accepted tags, deployment configuration and store identities remain outside this maintenance publication. Rollback uses ordinary reverts of the separate executable commits and this documentation receipt.
