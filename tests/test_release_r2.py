@@ -9,6 +9,8 @@ from types import ModuleType
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from urllib.error import HTTPError
+from urllib.request import Request
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import r2_release as release
@@ -325,9 +327,9 @@ class PublicationFixture(unittest.TestCase):
         self.assertEqual(release.BUCKET, "app-dist")
         self.assertNotIn("latest.json", mutable)
 
-    def offline_publication(self, fail_latest=False):
+    def offline_publication(self, fail_latest=False, client_override=None):
         """Emulate cloud clients while running real upload/publish ordering."""
-        client = UploadSafetyTests.FakeS3()
+        client = client_override or UploadSafetyTests.FakeS3()
         boto = ModuleType("boto3")
         boto.client = lambda *args, **kwargs: client
         config = ModuleType("botocore.config")
@@ -363,6 +365,19 @@ class PublicationFixture(unittest.TestCase):
                                 destination, "a" * 32, "test-key", "test-secret")
         return client, seen, destination
 
+    def test_GivenLatestChangesDuringAptPublication_WhenPromoting_ThenOtherWriterAndNoReceiptRemain(self):
+        class RacingStore(UploadSafetyTests.FakeS3):
+            def put_object(store, **kwargs):
+                result = super().put_object(**kwargs)
+                if kwargs["Key"] == release.PREFIX + "linux/InRelease":
+                    store.objects[release.PREFIX+"latest.json"] = (b"other release", {"sha256":sha(b"other release")})
+                return result
+        client = RacingStore()
+        with self.assertRaisesRegex(ValueError, "Concurrent latest pointer"):
+            self.offline_publication(client_override=client)
+        self.assertEqual(client.objects[release.PREFIX+"latest.json"][0], b"other release")
+        self.assertFalse((Path(self.temp.name)/"verified-publication-receipt.json").exists())
+
     def test_flat_publication_preserves_single_binary_and_publishes_latest_last(self):
         client, seen, destination = self.offline_publication()
         self.assertTrue(destination.exists())
@@ -395,11 +410,168 @@ class PublicationFixture(unittest.TestCase):
 
 
 
+class PublicReadbackTests(unittest.TestCase):
+    """Exercise real HTTP request construction and fail-closed byte checks."""
+
+    class Reply:
+        def __init__(self, data, status=200):
+            self.status = status
+            self.body = io.BytesIO(data)
+            self.read_sizes = []
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            self.body.close()
+
+        def read(self, size):
+            self.read_sizes.append(size)
+            return self.body.read(size)
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.file = Path(self.temp.name) / "approved-package"
+        self.payload = b"approved CFVigil package bytes"
+        self.file.write_bytes(self.payload)
+        sleep_patch = patch.object(release.time, "sleep")
+        sleep_patch.start()
+        self.addCleanup(sleep_patch.stop)
+
+    def assert_request(self, request, timeout, relative):
+        self.assertIsInstance(request, Request)
+        self.assertEqual(request.full_url, release.BASE + relative)
+        self.assertEqual(request.get_method(), "GET")
+        self.assertIsNone(request.data)
+        self.assertEqual(timeout, 45)
+        self.assertEqual(dict(request.header_items()), {
+            "User-agent": (
+                "CFVigil-ReleaseVerifier/1.0 "
+                "(+https://github.com/morozhenko-apps/cfvigil)"
+            ),
+        })
+
+    def test_GivenReleaseFiles_WhenReadbackRuns_ThenRequestIdentifiesCFVigil(self):
+        for relative in (
+            "linux/CFVigil-0.1.0-linux-x64.AppImage",
+            "windows/CFVigil-Setup-0.1.0-win-x64.exe",
+            "linux/InRelease",
+            "latest.json",
+        ):
+            with self.subTest(relative=relative):
+                calls = []
+
+                def opener(request, timeout):
+                    calls.append(request)
+                    self.assert_request(request, timeout, relative)
+                    return self.Reply(self.payload)
+
+                # Act: the production verifier constructs the HTTP request.
+                result = release.public_readback(self.file, relative, opener)
+
+                # Assert: no receipt replaces the complete byte proof.
+                self.assertEqual(len(calls), 1)
+                self.assertEqual(result, {
+                    "url": release.BASE + relative,
+                    "sha256": sha(self.payload),
+                    "readback_sha256": sha(self.payload),
+                    "size": len(self.payload),
+                    "readback_size": len(self.payload),
+                    "readback_status": 200,
+                })
+
+    def test_GivenLargeBody_WhenReadbackRuns_ThenAllChunksAreHashed(self):
+        # Arrange: exceed a single bounded read, with a distinct final byte.
+        self.payload = b"a" * (1024 * 1024) + b"z"
+        self.file.write_bytes(self.payload)
+        reply = self.Reply(self.payload)
+
+        # Act.
+        result = release.public_readback(
+            self.file, "linux/package", lambda request, timeout: reply)
+
+        # Assert: neither a prefix hash nor an unbounded read is accepted.
+        self.assertEqual(result["readback_sha256"], sha(self.payload))
+        self.assertEqual(result["readback_size"], len(self.payload))
+        self.assertEqual(reply.read_sizes, [1024 * 1024] * 3)
+
+    def test_GivenTransientHTTPFailure_WhenRetried_ThenIdentificationPersists(self):
+        # Arrange: emulate an external HTTP failure without real time/network.
+        relative = "linux/package"
+        calls = []
+
+        def opener(request, timeout):
+            calls.append(request)
+            self.assert_request(request, timeout, relative)
+            if len(calls) == 1:
+                raise HTTPError(request.full_url, 503, "Unavailable", {}, None)
+            return self.Reply(self.payload)
+
+        # Act.
+        result = release.public_readback(self.file, relative, opener)
+
+        # Assert.
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(result["readback_sha256"], sha(self.payload))
+
+    def test_GivenNon200Reply_WhenReadbackRuns_ThenNoBodyProofIsAccepted(self):
+        for status in (201, 206, 403):
+            with self.subTest(status=status):
+                replies = []
+
+                def opener(request, timeout):
+                    reply = self.Reply(self.payload, status)
+                    replies.append(reply)
+                    return reply
+
+                # Act / Assert: status must be exactly 200 even for valid bytes.
+                with self.assertRaisesRegex(ValueError, "returned non-200"):
+                    release.public_readback(self.file, "linux/package", opener)
+                self.assertEqual(len(replies), 4)
+                self.assertTrue(all(not reply.read_sizes for reply in replies))
+
+    def test_GivenWrongPublicBytes_WhenReadbackRuns_ThenVerificationFails(self):
+        for label, body in (
+            ("empty", b""),
+            ("truncated", self.payload[:-1]),
+            ("overlong", self.payload + b"extra"),
+            ("same-size corruption", b"x" * len(self.payload)),
+            ("HTML challenge", b"<html>Complete a challenge</html>"),
+        ):
+            with self.subTest(body=label):
+                # Act / Assert: an identified client never bypasses SHA256.
+                with self.assertRaisesRegex(ValueError, "does not match source"):
+                    release.public_readback(
+                        self.file, "linux/package",
+                        lambda request, timeout: self.Reply(body))
+
+    def test_GivenPersistent403_WhenReadbackRuns_ThenHTTPErrorRemainsVisible(self):
+        # Arrange.
+        relative = "linux/package"
+        error = HTTPError(release.BASE + relative, 403, "Forbidden", {}, None)
+        calls = []
+
+        def opener(request, timeout):
+            self.assert_request(request, timeout, relative)
+            calls.append(request)
+            raise error
+
+        # Act / Assert: failure still blocks publication after bounded attempts.
+        with self.assertRaises(HTTPError) as raised:
+            release.public_readback(self.file, relative, opener)
+        self.assertIs(raised.exception, error)
+        self.assertEqual(len(calls), 4)
+
+
 class UploadSafetyTests(unittest.TestCase):
     """Exercise the actual R2 upload logic with offline S3 byte-contract fakes."""
 
     class NotFound(Exception):
         response = {"ResponseMetadata": {"HTTPStatusCode":404}}
+
+    class PreconditionFailed(Exception):
+        response = {"ResponseMetadata": {"HTTPStatusCode": 412}}
 
     class Forbidden(Exception):
         response = {"ResponseMetadata": {"HTTPStatusCode":403}}
@@ -421,10 +593,22 @@ class UploadSafetyTests(unittest.TestCase):
                 raise UploadSafetyTests.Forbidden()
             if Key not in self.objects:
                 raise UploadSafetyTests.NotFound()
-            return {"Metadata":self.objects[Key][1]}
-        def upload_file(self, filename, Bucket, Key, ExtraArgs):
-            self.writes.append((Bucket, Key, ExtraArgs))
-            self.objects[Key] = (Path(filename).read_bytes(), ExtraArgs["Metadata"])
+            return {"Metadata":self.objects[Key][1], "ETag":'"'+sha(self.objects[Key][0])+'"'}
+        def put_object(self, Bucket, Key, Body, ContentLength, **options):
+            existing = self.objects.get(Key)
+            if options.get("IfNoneMatch") == "*":
+                if existing is not None:
+                    raise UploadSafetyTests.PreconditionFailed()
+            elif "IfMatch" in options:
+                if existing is None or options["IfMatch"] != '"'+sha(existing[0])+'"':
+                    raise UploadSafetyTests.PreconditionFailed()
+            else:
+                raise AssertionError("Unconditional storage write is forbidden")
+            content = Body.read()
+            if len(content) != ContentLength:
+                raise AssertionError("Stream length mismatch")
+            self.writes.append((Bucket, Key, options))
+            self.objects[Key] = (content, options["Metadata"])
         def get_object(self, Bucket, Key):
             return {"Body":UploadSafetyTests.Body(self.objects[Key][0])}
 
@@ -477,6 +661,82 @@ class UploadSafetyTests(unittest.TestCase):
         with self.assertRaises(self.Forbidden):
             release.upload(self.client,self.key,self.file,True)
         self.assertEqual(self.client.writes,[])
+
+    def test_GivenInterveningCreateOrReplacement_WhenConditionalWriteRuns_ThenCompetingBytesRemain(self):
+        for immutable, initial in ((True,None),(False,None),(False,b"previous")):
+            with self.subTest(immutable=immutable,initial=initial):
+                class RacingStore(self.FakeS3):
+                    def put_object(store, **kwargs):
+                        store.objects[kwargs["Key"]]=(b"competing",{"sha256":sha(b"competing")})
+                        return super().put_object(**kwargs)
+                store=RacingStore()
+                if initial is not None: store.objects[self.object_key]=(initial,{"sha256":sha(initial)})
+                with self.assertRaises(self.PreconditionFailed):
+                    release.upload(store,self.key,self.file,immutable)
+                self.assertEqual(store.writes,[])
+                self.assertEqual(store.objects[self.object_key][0],b"competing")
+
+    def test_GivenExistingMutableObject_WhenWriting_ThenExactSnapshotETagIsRequired(self):
+        previous=b"previous"
+        self.client.objects[self.object_key]=(previous,{"sha256":sha(previous)})
+        release.upload(self.client,self.key,self.file,False)
+        self.assertEqual(self.client.writes[0][2]["IfMatch"],'"'+sha(previous)+'"')
+        self.assertNotIn("IfNoneMatch",self.client.writes[0][2])
+
+    def test_GivenAbsentObject_WhenWriting_ThenCreateOnlyIsRequired(self):
+        for immutable in (True,False):
+            with self.subTest(immutable=immutable):
+                store=self.FakeS3();release.upload(store,self.key,self.file,immutable)
+                self.assertEqual(store.writes[0][2]["IfNoneMatch"],"*")
+                self.assertNotIn("IfMatch",store.writes[0][2])
+
+    def test_GivenMalformedETag_WhenReplacingMutable_ThenNoWriteIsAttempted(self):
+        for etag in (None,"",'bare','""','"bad\r\ntag"','"'+'x'*129+'"'):
+            with self.subTest(etag=etag):
+                store=self.FakeS3();store.objects[self.object_key]=(b"old",{"sha256":sha(b"old")})
+                original=store.head_object
+                store.head_object=lambda **kwargs: {**original(**kwargs),"ETag":etag}
+                with self.assertRaisesRegex(ValueError,"ETag"):
+                    release.upload(store,self.key,self.file,False)
+                self.assertEqual(store.writes,[])
+
+    def test_GivenOpaqueValidETag_WhenParsed_ThenExactTagIsPreserved(self):
+        for etag in ('"a"','"'+'a'*128+'"','"multipart-4"'):
+            with self.subTest(etag=etag):self.assertEqual(release.object_etag({"ETag":etag}),etag)
+        self.assertIsNone(release.object_etag(None))
+
+    def test_GivenSameMutableBytes_WhenReused_ThenReadbackStillRequiredWithoutRewrite(self):
+        self.client.objects[self.object_key]=(self.file.read_bytes(),{"sha256":release.digest(self.file)})
+        release.upload(self.client,self.key,self.file,False)
+        self.assertEqual(self.client.writes,[])
+
+    def test_GivenChangedOrMissingLatest_WhenExpectedSnapshotSupplied_ThenPromotionIsDenied(self):
+        for expected,current in ((None,b"new"),({"ETag":'"old"'},None),({"ETag":'"old"'},b"new")):
+            with self.subTest(expected=expected,current=current):
+                store=self.FakeS3()
+                if current is not None:store.objects[self.object_key]=(current,{"sha256":sha(current)})
+                with self.assertRaisesRegex(ValueError,"Concurrent latest pointer"):
+                    release.upload(store,self.key,self.file,False,expected_latest=expected)
+                self.assertEqual(store.writes,[])
+
+    def test_GivenUnsafeOrEmptyLocalFile_WhenUploadRequested_ThenStorageCannotBeMutated(self):
+        for kind in ("empty","missing","symlink"):
+            with self.subTest(kind=kind):
+                file=Path(self.temp.name)/kind
+                if kind=="empty":file.write_bytes(b"")
+                elif kind=="symlink":file.symlink_to(self.file)
+                with self.assertRaises(ValueError):release.upload(self.client,self.key,file,True)
+                self.assertEqual(self.client.writes,[])
+
+    def test_GivenOverlongPrivateBody_WhenReadbackRuns_ThenItStopsAtTheFirstOverflow(self):
+        self.client.objects[self.object_key]=(self.file.read_bytes(),{"sha256":release.digest(self.file)})
+        class Body:
+            def iter_chunks(body,chunk_size):
+                yield b"x"*(self.file.stat().st_size+1)
+                raise AssertionError("Overflow must stop further reads")
+        self.client.get_object=lambda **kwargs:{"Body":Body()}
+        with self.assertRaisesRegex(ValueError,"Private R2 readback failed"):
+            release.upload(self.client,self.key,self.file,True)
 
 
 if __name__ == "__main__":

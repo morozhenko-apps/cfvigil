@@ -1,35 +1,42 @@
 # CFVigil
 
-CFVigil is a free, open-source desktop companion for watching Cloudflare deployments. It stays in the system tray and makes it easy to see what's happening across your Workers and Pages projects without keeping a browser dashboard open.
+**Cloudflare deployment status in your desktop tray.** Free, open source, and available for Linux and Windows.
 
-## Why I built it
+CFVigil shows the latest relevant deployment attempts for Cloudflare Workers and Pages in a compact, searchable panel. Keep track of what's deploying, what succeeded, and what needs attention without repeatedly opening the Cloudflare dashboard.
 
-I maintain several apps and games, and a number of them rely on Cloudflare. When I'm working on a release, I don't want to open each project individually to find out whether the latest deployment succeeded, is still running or needs attention. I just want a small, clear view of everything, and the option to open the details when something looks wrong.
+## Download
 
-That's what CFVigil is for. It keeps routine checks out of the way and makes problems easier to notice, without turning deployment monitoring into another full-time task.
+- [Product page and downloads](https://morozhenko.com/cfvigil/)
+- [Linux DEB](https://morozhenko.com/cfvigil/install/linux) · [Linux AppImage](https://download.morozhenko.com/dist/CFVigil/linux/CFVigil-1.0.0-linux-x64.AppImage)
+- [Windows x64 installer](https://morozhenko.com/cfvigil/install/windows)
+- [Release manifest and checksums](https://download.morozhenko.com/dist/CFVigil/latest.json)
 
-## What it does
+Windows NSIS installers are currently unsigned. Check the published SHA-256 checksum before installing. Linux packages include a DEB and AppImage; the signed Linux APT repository is described on the product page.
 
-The tray card gives you a quick count of successful deployments, deployments in progress and issues. Expand it to search your resources, see their latest reported status and open the relevant project in Cloudflare.
+## Features
 
-CFVigil follows the **latest deployment attempt**, rather than assuming that the last successful version tells the whole story. A new deployment in progress is shown as in progress, even if the previous attempt failed. Missing or unavailable information isn't mistaken for success.
+- **Production deployment status:** a compact tray card summarizing successful, running and failed attempts; an expanded searchable list for individual Workers and Pages.
+- **Latest attempt first:** a new in-progress attempt supersedes an earlier failure. Unavailable information stays unverified rather than appearing successful.
+- **Incident signals:** optional Worker execution-error spikes and zone-level WAF blocking activity, where the Cloudflare account makes those metrics available.
+- **Local event history:** searchable events, notifications, configurable refresh interval and optional start-at-login.
+- **Native desktop integration:** Linux KDE and Windows, with 20 interface languages.
 
-It can also notify you about changes that need attention, keep a searchable local event history and highlight unusual Worker error rates or WAF blocking activity when Cloudflare makes that data available. You can set a refresh interval, choose an interface language and optionally start the app when you sign in.
+CFVigil does not trigger deployments, modify Cloudflare settings, monitor GitHub workflow jobs, or perform website uptime checks.
 
-CFVigil works with Cloudflare using a **read-only API token**. It doesn't publish deployments, change Cloudflare settings or manage your infrastructure. The token is stored using your operating system's credential service, and application preferences and event history stay on your device.
+## Connect Cloudflare
 
-## Platforms
+Open **Settings**, enter your Cloudflare Account ID and a **read-only API token**, then select **Apply**. The card shows a pending-sync indicator while fetching the initial results.
 
-CFVigil is a desktop app for **Linux and Windows**.
+Grant only the API permissions required for the features you use: Workers Scripts Read, Workers CI Read and Pages Read for deployments; Account Analytics Read, Zone Read and Zone Analytics Read for optional Worker error and WAF metrics.
 
-## Feedback
+Your token is stored in your operating system's credential manager. Application preferences, cached resource names and event history remain on your device. CFVigil does not send app usage telemetry or your Cloudflare data to developer-operated analytics servers.
 
-Found a problem? Send a [bug report](https://github.com/morozhenko-apps/cfvigil/issues/new?template=bug_report.yml), ideally with the steps needed to reproduce it. Have an idea that could make the app more useful? Share an [improvement suggestion](https://github.com/morozhenko-apps/cfvigil/issues/new?template=feature_request.yml). You don't need to know how to code the solution.
+## Privacy, license and support
 
-Please remove private project information and API credentials from screenshots and logs. For security issues, use [private vulnerability reporting](https://github.com/morozhenko-apps/cfvigil/security/advisories).
+- [Privacy Policy](https://morozhenko.com/cfvigil/privacy-policy)
+- [Terms of Use](https://morozhenko.com/cfvigil/terms-of-use)
+- [Apache License 2.0](LICENSE) · [Notices](NOTICE)
+- [Report a bug](https://github.com/morozhenko-apps/cfvigil/issues/new?template=bug_report.yml) · [Suggest an improvement](https://github.com/morozhenko-apps/cfvigil/issues/new?template=feature_request.yml)
+- [Report a security issue privately](https://github.com/morozhenko-apps/cfvigil/security/advisories)
 
-CFVigil is maintained independently. Reports and ideas are welcome, but I don't accept outside pull requests. You can fork the project under its open-source license; see [CONTRIBUTING.md](CONTRIBUTING.md).
-
-## License
-
-Licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for attribution.
+Do not include Cloudflare tokens, account identifiers or private project information in issue screenshots or logs.

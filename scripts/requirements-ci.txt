@@ -1,0 +1,2 @@
+# CI-only parser, not a desktop or publication dependency.
+PyYAML==6.0.3

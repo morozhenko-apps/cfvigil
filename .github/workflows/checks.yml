@@ -1,77 +1,130 @@
 name: Preflight
 
-# dev is the primary working branch. Pushes to code, docs and agent rules
-# do NOT start CI. An owner/agent requests one complete verification run
-# only after finishing a feature by changing ci/run-preflight.txt.
-# PR verification remains automatic for the exceptional temporary branch.
+# Ordinary pushes are deliberate: request one final gate with the marker.
 on:
   push:
     branches: [dev]
-    paths:
-      - 'ci/run-preflight.txt'
+    paths: ['ci/run-preflight.txt']
   pull_request:
     branches: [dev, main]
-    paths:
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'apps/desktop/**'
-      - 'tests/**'
-      - 'scripts/**'
-      - 'infra/**'
-      - '.github/workflows/checks.yml'
-      - '.github/workflows/protected-release.yml'
-      - '.github/workflows/package-candidate.yml'
-      - '.github/workflows/windows-candidate.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  stable:
-    name: Stable UI and Rust verification
+  scope:
+    name: Resolve verification scope
     runs-on: ubuntu-24.04
-    timeout-minutes: 80
+    timeout-minutes: 5
+    outputs:
+      required: ${{ steps.classify.outputs.required }}
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v7
         with:
-          node-version: 24
-      - name: Check JavaScript syntax
-        shell: bash
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Classify complete PR merge diff
+        id: classify
+        run: bash scripts/ci-pr-scope.sh
+
+  javascript:
+    name: Stable JavaScript and generated assets
+    needs: scope
+    if: needs.scope.outputs.required == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v7
+        with: {node-version: 24}
+      - name: Syntax and generated asset contracts
         run: |
           set -euo pipefail
-          for file in apps/desktop/ui/*.mjs scripts/*.mjs; do
-            node --check "$file"
-          done
-      - name: Validate localization keys and message contracts
-        run: node scripts/check-i18n.mjs
-      - name: Verify original icon and derived Windows/Linux/WebView assets
-        run: node scripts/check-icon-assets.mjs
-      - name: Run stable JavaScript tests
+          for file in apps/desktop/ui/*.mjs scripts/*.mjs; do node --check "$file"; done
+          node scripts/check-i18n.mjs
+          node scripts/check-icon-assets.mjs
+      - name: Stable JavaScript once
         run: node --test tests/*.test.mjs
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Install Linux desktop and real signed-APT test dependencies
-        shell: bash
+
+  distribution:
+    name: Stable Python distribution and CI contracts
+    needs: scope
+    if: needs.scope.outputs.required == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with: {persist-credentials: false}
+      - name: Install isolated contract prerequisites
         run: |
-          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends python3-pil python3-venv dpkg-dev gnupg gpgv
+      - name: Stable release and synthetic icon contracts once
+        run: |
+          python3 -m unittest discover -s tests -p 'test_release_*.py'
+          python3 -m unittest discover -s tests -p 'test_icon_import.py'
+      - name: CI policy and scope contracts
+        run: |
+          python3 -m venv "$RUNNER_TEMP/ci-policy"
+          "$RUNNER_TEMP/ci-policy/bin/python" -m pip install -r scripts/requirements-ci.txt
+          "$RUNNER_TEMP/ci-policy/bin/python" -m unittest discover -s tests -p 'test_ci_policy.py' -v
+
+  rust:
+    name: Stable Rust desktop verification
+    needs: scope
+    if: needs.scope.outputs.required == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with: {persist-credentials: false}
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@c676846f29d98ff6b0106d3608c7ffd4048af17b # v2.9.0
+        with:
+          workspaces: . -> target
+          shared-key: cfvigil-stable-rust
+          save-if: ${{ github.ref == 'refs/heads/dev' && github.event_name != 'pull_request' }}
+      - name: Install native desktop prerequisites
+        run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             build-essential curl file pkg-config libssl-dev \
             libwebkit2gtk-4.1-dev libgtk-3-dev \
             libayatana-appindicator3-dev libgtk-layer-shell-dev \
-            libxdo-dev librsvg2-dev libwayland-dev \
-            libwayland-bin wayland-protocols python3-pil \
-            dpkg-dev gnupg gpgv
-      - name: Run offline release and real signed flat APT tests
-        run: python3 -m unittest discover -s tests -p 'test_release_*.py'
-      - name: Check alpha-tight icon normalization on synthetic images
-        run: python3 -m unittest discover -s tests -p 'test_icon_import.py'
-      - name: Check Rust desktop
-        run: cargo check --locked -p cfvigil
-      - name: Run Rust desktop unit and provider tests
-        run: cargo test --locked -p cfvigil
+            libxdo-dev librsvg2-dev libwayland-dev libwayland-bin wayland-protocols
+      - name: Check and test Rust once
+        run: |
+          cargo check --locked -p cfvigil
+          cargo test --locked -p cfvigil
+
+  stable:
+    name: Stable UI and Rust verification
+    if: always()
+    needs: [scope, javascript, distribution, rust]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      SCOPE_RESULT: ${{ needs.scope.result }}
+      REQUIRED: ${{ needs.scope.outputs.required }}
+      JS_RESULT: ${{ needs.javascript.result }}
+      PYTHON_RESULT: ${{ needs.distribution.result }}
+      RUST_RESULT: ${{ needs.rust.result }}
+    steps:
+      - name: Require exact applicable outcomes
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SCOPE_RESULT" == success ]] || exit 1
+          case "$REQUIRED" in
+            true) expected=success ;;
+            false) expected=skipped ;;
+            *) exit 1 ;;
+          esac
+          for result in "$JS_RESULT" "$PYTHON_RESULT" "$RUST_RESULT"; do
+            [[ "$result" == "$expected" ]] || exit 1
+          done

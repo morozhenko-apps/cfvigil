@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {readFileSync} from "node:fs";
+import {existsSync,readFileSync} from "node:fs";
 
 const read=p=>readFileSync(new URL("../"+p,import.meta.url),"utf8").replace(/\r\n/g,"\n");
 const release=read(".github/workflows/protected-release.yml");
@@ -81,4 +81,14 @@ test("release artifact handoff paths match the verified Linux and Windows stagin
   assert.equal(release.split("\n").filter(line => /^\s*path:.*runner\.temp/.test(line)).length, 4);
   assert.match(release,/--target "\$RUNNER_TEMP\/release\/linux"/);
   assert.match(release,/--target "\$folder"/);
+});
+
+
+test("GivenPublishedRelease_WhenMainlineIsInspected_ThenRetiredRecoveryCannotGrantPublicationAuthority",()=>{
+  for(const path of [".github/workflows/recover-release.yml","scripts/release_recovery.py"]){
+    assert.equal(existsSync(new URL("../"+path,import.meta.url)),false,path);
+  }
+  assert.match(release,/tags: \['v\*'\]/);
+  assert.match(release,/environment: cfvigil-release/);
+  assert.doesNotMatch(release,/release-recovery|workflow_dispatch:/);
 });
